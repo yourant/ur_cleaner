@@ -1,0 +1,7 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+# config
+/configs/dev/config.json
+
+# ide
+/.idea
