@@ -5,3 +5,6 @@
 
 # ide
 /.idea
+
+# pyc
+*.pyc
