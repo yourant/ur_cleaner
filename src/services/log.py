@@ -13,8 +13,11 @@ class SysLogger(Singleton):
     """
     singleton logger service
     """
+    logger = None
+
     def __init__(self):
-        self.logger = self._logger()
+        if not self.logger:
+            self.logger = self._logger()
 
     @staticmethod
     def _logger():
@@ -33,6 +36,8 @@ class SysLogger(Singleton):
     @property
     def log(self):
         return self.logger
+
+
 
 
 

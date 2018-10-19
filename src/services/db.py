@@ -15,8 +15,11 @@ class Mssql(Singleton):
     """
     sqlServer singleton connection
     """
+    connect = None
+
     def __init__(self):
-        self.connect = self._connect()
+        if not self.connect:
+            self.connect = self._connect()
 
     @staticmethod
     def _connect():
