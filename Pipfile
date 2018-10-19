@@ -5,6 +5,7 @@ name = "pypi"
 
 [packages]
 pymssql = "*"
+requests = "*"
 
 [dev-packages]
 

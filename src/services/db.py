@@ -5,8 +5,8 @@
 
 import pymssql
 
-from configs.config import Config,Singleton
-
+from configs.config import Config, Singleton
+from src.services.log import SysLogger
 
 config = Config()
 
@@ -20,7 +20,13 @@ class Mssql(Singleton):
 
     @staticmethod
     def _connect():
-        return pymssql.connect(**config.get_config('mssql'))
+        try:
+            SysLogger().log.info('connect db...')
+            return pymssql.connect(**config.get_config('mssql'))
+
+        except Exception as why:
+            SysLogger().log.info('can not connect db cause of %s' % why)
+            return None
 
     @property
     def connection(self):
