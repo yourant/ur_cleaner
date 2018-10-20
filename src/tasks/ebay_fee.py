@@ -17,7 +17,7 @@ class EbayFee(object):
     """
     def __init__(self):
         self.con = db.Mssql().connection
-        self.logger = log.SysLogger().logger
+        self.logger = log.SysLogger().log
 
     def run_sql(self, sql):
         cur = self.con.cursor(as_dict=True)
@@ -31,14 +31,16 @@ class EbayFee(object):
         return self.run_sql(sql)
 
     @retry(stop=stop_after_attempt(3))
-    def get_ebay_fee(self, ebay_token, begin_date, end_date):
+    def get_ebay_fee(self, ebay_token):
         """
         get the ebay fee of yesterday in local time
         """
+        begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+        end_date = str(datetime.datetime.now())[:10]
         begin_date += "T00:00:00.000Z"
         end_date += "T00:00:00.000Z"  # utc time
         try:
-            api = Trading(config_file='D:/ur_cleaner/configs/dev/ebay.yaml')
+            api = Trading(config_file='D:/ur_cleaner/configs/dev/ebay.yaml', timeout=30)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
                 "AccountEntrySortType": "AccountEntryFeeTypeAscending",
@@ -88,24 +90,20 @@ class EbayFee(object):
                 cr.execute(sql, (row['accountName'], row['value'],
                                  row['Date'], row['feeType'], row['ItemID']))
                 self.logger.info("putting %s" % row['accountName'])
+                self.con.commit()
         except Exception as e:
             self.logger.error("%s while trying to save data" % e)
-
-    def save_trans(self, ebay_token):
-        begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
-        end_date = str(datetime.datetime.now())[:10]
-        try:
-            fees = self.get_ebay_fee(ebay_token, begin_date, end_date)
-            for row in fees:
-                self.save_data(row)
-            self.con.commit()
-        except Exception as e:
-            self.logger.error(e)
 
     def run(self):
         tokens = self.get_ebay_token()
         pool = ThreadPoolExecutor()
-        pool.map(self.save_trans, tokens)
+        try:
+            ret = pool.map(self.get_ebay_fee, tokens)
+            for item in ret:
+                for row in item:
+                    self.save_data(row)
+        except Exception as e:
+            self.logger.error(e)
 
 
 if __name__ == '__main__':
