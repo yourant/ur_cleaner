@@ -19,8 +19,8 @@ class Singleton(object):
 class Config(Singleton):
     def __init__(self):
         path_list = str.split(os.path.split(os.path.realpath(__file__))[0], os.sep) + [ENV, 'config.json']
-        config_path = os.sep.join(path_list)
-        self.config = self._load_config(config_path)
+        self.config_path = os.sep.join(path_list)
+        self.config = self._load_config(self.config_path)
 
     @staticmethod
     def _load_config(path):
@@ -28,11 +28,13 @@ class Config(Singleton):
             return json.load(con)
 
     def get_config(self, key):
+        if key == 'ebay.yaml':
+            return os.sep.join([os.path.split(self.config_path)[0]] + ['ebay.yaml'])
         return self.config[key]
 
 
 if __name__ == '__main__':
     config = Config()
-    print(config.get_config('mssql'))
+    print(config.get_config('ebay.yaml'))
 
 

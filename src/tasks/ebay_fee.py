@@ -5,10 +5,11 @@
 
 
 import datetime
-from concurrent.futures import ThreadPoolExecutor,as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from src.services import db, log
+from configs.config import Config
 
 
 class EbayFee(object):
@@ -18,6 +19,7 @@ class EbayFee(object):
     def __init__(self):
         self.con = db.Mssql().connection
         self.logger = log.SysLogger().log
+        self.config = Config().get_config('ebay.yaml')
 
     def run_sql(self, sql):
         cur = self.con.cursor(as_dict=True)
@@ -41,7 +43,7 @@ class EbayFee(object):
         begin_date += "T00:00:00.000Z"
         end_date += "T00:00:00.000Z"  # utc time
         try:
-            api = Trading(config_file='D:/ur_cleaner/configs/dev/ebay.yaml', timeout=40)
+            api = Trading(config_file='ebay.yaml', timeout=40)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
                 "AccountEntrySortType": "AccountEntryFeeTypeAscending",

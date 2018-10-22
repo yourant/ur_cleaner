@@ -21,7 +21,7 @@ class AliChecker(object):
         self.cur = self.con.cursor(as_dict=True)
         self.oauth = oauth.Ali()
 
-    # @retry(stop=stop_after_attempt(3))
+    @retry(stop=stop_after_attempt(3))
     def get_order_details(self, order_id):
         base_url = self.oauth.get_request_url(order_id)
         out = dict()
@@ -38,7 +38,7 @@ class AliChecker(object):
 
     def check_order(self, check_info):
         order_id = check_info['order_id']
-        search_sql = "SELECT top 1 cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," \
+        search_sql = "SELECT cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," \
                     "cgsm.audiedate, sum(sd.amount) total_amt," \
                     "sum(sd.amount*sd.price) AS total_money, cgsm.expressfee " \
                     "from cg_stockOrderd  AS sd LEFT JOIN cg_stockorderm  AS cgsm" \
