@@ -7,7 +7,6 @@ import json
 import datetime
 import requests
 from concurrent.futures import ThreadPoolExecutor
-from multiprocessing.pool import ThreadPool as Pool
 from tenacity import retry, stop_after_attempt
 from src.services import db, log
 
@@ -65,7 +64,6 @@ class WishRefund(object):
                     break
         except Exception as e:
             self.logger.error(e)
-            raise Exception(e)
 
     def save_data(self, row):
         sql = "INSERT INTO Y_wish_refunded (order_id,refund_time,total_value,notename)" \

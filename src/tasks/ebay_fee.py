@@ -5,7 +5,7 @@
 
 
 import datetime
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor,as_completed
 from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from src.services import db, log
@@ -23,11 +23,12 @@ class EbayFee(object):
         cur = self.con.cursor(as_dict=True)
         with cur as cr:
             cr.execute(sql)
-            for row in cr:
+            ret = cr.fetchall()
+            for row in ret:
                 yield row
 
     def get_ebay_token(self):
-        sql = ('SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo  GROUP BY notename')
+        sql = 'SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo  GROUP BY notename'
         return self.run_sql(sql)
 
     @retry(stop=stop_after_attempt(3))
@@ -40,7 +41,7 @@ class EbayFee(object):
         begin_date += "T00:00:00.000Z"
         end_date += "T00:00:00.000Z"  # utc time
         try:
-            api = Trading(config_file='D:/ur_cleaner/configs/dev/ebay.yaml', timeout=30)
+            api = Trading(config_file='D:/ur_cleaner/configs/dev/ebay.yaml', timeout=40)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
                 "AccountEntrySortType": "AccountEntryFeeTypeAscending",
@@ -94,16 +95,30 @@ class EbayFee(object):
         except Exception as e:
             self.logger.error("%s while trying to save data" % e)
 
+    def save_trans(self, token):
+        ret = self.get_ebay_fee(token)
+        for row in ret:
+            self.save_data(row)
+
     def run(self):
         tokens = self.get_ebay_token()
-        pool = ThreadPoolExecutor()
-        try:
-            ret = pool.map(self.get_ebay_fee, tokens)
-            for item in ret:
-                for row in item:
-                    self.save_data(row)
-        except Exception as e:
-            self.logger.error(e)
+        # pool = ThreadPoolExecutor()
+        # try:
+        #     ret = pool.map(self.get_ebay_fee, tokens)
+        #     for item in ret:
+        #         for row in item:
+        #             self.save_data(row)
+        # except Exception as e:
+        #     self.logger.error(e)
+        with ThreadPoolExecutor() as pool:
+            future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
+            for fu in as_completed(future):
+                try:
+                    data = fu.result()
+                    for row in data:
+                        self.save_data(row)
+                except Exception as e:
+                    self.logger.error(e)
 
 
 if __name__ == '__main__':
