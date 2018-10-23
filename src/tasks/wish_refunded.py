@@ -73,7 +73,7 @@ class WishRefund(object):
             self.con.commit()
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:
-            self.logger.error('fail to save %s cause of %s' % (row['order_id'], e))
+            self.logger.error('fail to save %s cause of duplicate key' % (row['order_id']))
 
     def save_trans(self, token):
         orders = self.get_wish_orders(token)
