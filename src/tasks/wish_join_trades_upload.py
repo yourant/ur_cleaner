@@ -18,14 +18,14 @@ class WishUploader(object):
     def __init__(self):
         self.con = db.Mssql().connection
         self.logger = log.SysLogger().log
+        self.cur = self.con.cursor(as_dict=True)
 
     def get_trades_info(self):
-        cur = self.con.cursor(as_dict=True)
         sql = 'www_wish_join_trades_upload'
-        with cur as cr:
-            cr.execute(sql)
-            for row in cr:
-                yield row
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            yield row
 
     def upload_track_number(self, trades_info):
         modify_url = 'https://china-merchant.wish.com/api/v2/order/modify-tracking'
@@ -63,7 +63,7 @@ class WishUploader(object):
         trade_id = trade_info['nid']
         table_name = trade_info['tablename']
         sql = 'update %s set shippingmethod=1 where nid=%s'
-        cur = self.con.cursor()
+        cur = self.cur
         try:
             cur.execute(sql, (trade_id, table_name))
             self.logger.info('ship %s' % trade_id)
@@ -71,8 +71,6 @@ class WishUploader(object):
 
         except Exception as e:
             self.logger.debug('failed to ship %s cause of %s' % (trade_id, e))
-        finally:
-            cur.close()
 
     def upload_trans(self, trade_info):
         ret = self.upload_track_number(trade_info)
@@ -81,8 +79,14 @@ class WishUploader(object):
             self.logger.info('upload %s successfully' % trade_info['nid'])
 
     def run(self):
-        pool = ThreadPoolExecutor()
-        pool.map(self.upload_trans, self.get_trades_info())
+        try:
+            pool = ThreadPoolExecutor()
+            pool.map(self.upload_trans, self.get_trades_info())
+        except Exception as e:
+            self.logger.error(e)
+        finally:
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == '__main__':

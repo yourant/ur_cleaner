@@ -15,17 +15,17 @@ class EbayInterceptor(object):
     def __init__(self):
         self.con = db.Mssql().connection
         self.logger = log.SysLogger().log
+        self.cur = self.con.cursor(as_dict=True)
 
     def get_trades_info(self):
-        cur = self.con.cursor(as_dict=True)
         sql = 'www_ebay_bad_trades'
-        with cur as cr:
-            cr.execute(sql)
-            for row in cr:
-                yield row
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            yield row
 
     def intercept(self):
-        cur = self.con.cursor(as_dict=True)
+        cur = self.cur
         max_bill_code_query = "P_S_CodeRuleGet 140,''"
         exception_trade_handler = "p_exceptionTradeToException %s,4,'其它异常单',%s"
         normal_trade_handler = 'www_normal2exception %s,%s'
@@ -57,7 +57,8 @@ class EbayInterceptor(object):
             self.logger.debug(e)
 
         finally:
-            cur.close()
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == '__main__':

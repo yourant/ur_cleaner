@@ -16,13 +16,13 @@ class Marker(object):
     def __init__(self):
         self.con = db.Mssql().connection
         self.logger = log.SysLogger().logger
+        self.cur = self.con.cursor(as_dict=True)
 
     def run_sql(self, sql):
-        cur = self.con.cursor(as_dict=True)
-        with cur as cr:
-            cr.execute(sql)
-            for row in cr:
-                yield row
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            yield row
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"
@@ -113,8 +113,14 @@ class Marker(object):
             self.logger.info('marking %s', mar['tradeNid'])
 
     def run(self):
-        self.handle_exception_trades_trans()
-        self.mark_trades_trans()
+        try:
+            self.handle_exception_trades_trans()
+            self.mark_trades_trans()
+        except Exception as e:
+            self.logger.error(e)
+        finally:
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == '__main__':

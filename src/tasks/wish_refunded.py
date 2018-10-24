@@ -93,6 +93,9 @@ class WishRefund(object):
                     self.save_data(row)
         except Exception as e:
             self.logger.error(e)
+        finally:
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == "__main__":

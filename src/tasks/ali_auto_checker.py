@@ -99,8 +99,12 @@ class AliChecker(object):
             ret = pool.map(self.get_order_details, orders)
             for item in ret:
                 self.check_order(item)
+
         except Exception as e:
             self.logger.error(e)
+        finally:
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == "__main__":

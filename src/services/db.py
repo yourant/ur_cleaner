@@ -5,13 +5,13 @@
 
 import pymssql
 
-from configs.config import Config, Singleton
+from configs.config import Config
 from src.services.log import SysLogger
 
 config = Config()
 
 
-class Mssql(Singleton):
+class Mssql(object):
     """
     sqlServer singleton connection
     """
@@ -19,6 +19,7 @@ class Mssql(Singleton):
 
     def __init__(self):
         if not self.connect:
+            SysLogger().log.info('not existing db...')
             self.connect = self._connect()
 
     @staticmethod
@@ -36,6 +37,7 @@ class Mssql(Singleton):
         return self.connect
 
     def close(self):
+        SysLogger().log.info('close db...')
         self.connect.close()
 
 

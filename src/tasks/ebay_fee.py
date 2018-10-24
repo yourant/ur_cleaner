@@ -18,20 +18,16 @@ class EbayFee(object):
     """
     def __init__(self):
         self.con = db.Mssql().connection
+        self.cur = self.con.cursor(as_dict=True)
         self.logger = log.SysLogger().log
         self.config = Config().get_config('ebay.yaml')
 
-    def run_sql(self, sql):
-        cur = self.con.cursor(as_dict=True)
-        with cur as cr:
-            cr.execute(sql)
-            ret = cr.fetchall()
-            for row in ret:
-                yield row
-
     def get_ebay_token(self):
         sql = 'SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo  GROUP BY notename'
-        return self.run_sql(sql)
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            yield row
 
     @retry(stop=stop_after_attempt(3))
     def get_ebay_fee(self, ebay_token):
@@ -85,15 +81,13 @@ class EbayFee(object):
             raise Exception(e)
 
     def save_data(self, row):
-        cur = self.con.cursor()
         sql = 'insert into ebayInsertionfee(accountname,insertionFee,createdday,feeType,itemid)' \
               ' values(%s,%s,%s,%s,%s)'
         try:
-            with cur as cr:
-                cr.execute(sql, (row['accountName'], row['value'],
-                                 row['Date'], row['feeType'], row['ItemID']))
-                self.logger.info("putting %s" % row['accountName'])
-                self.con.commit()
+            self.cur.execute(sql, (row['accountName'], row['value'],
+                             row['Date'], row['feeType'], row['ItemID']))
+            self.logger.info("putting %s" % row['accountName'])
+            self.con.commit()
         except Exception as e:
             self.logger.error("%s while trying to save data" % e)
 
@@ -103,24 +97,22 @@ class EbayFee(object):
             self.save_data(row)
 
     def run(self):
-        tokens = self.get_ebay_token()
-        # pool = ThreadPoolExecutor()
-        # try:
-        #     ret = pool.map(self.get_ebay_fee, tokens)
-        #     for item in ret:
-        #         for row in item:
-        #             self.save_data(row)
-        # except Exception as e:
-        #     self.logger.error(e)
-        with ThreadPoolExecutor() as pool:
-            future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
-            for fu in as_completed(future):
-                try:
-                    data = fu.result()
-                    for row in data:
-                        self.save_data(row)
-                except Exception as e:
-                    self.logger.error(e)
+        try:
+            tokens = self.get_ebay_token()
+            with ThreadPoolExecutor() as pool:
+                future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
+                for fu in as_completed(future):
+                    try:
+                        data = fu.result()
+                        for row in data:
+                            self.save_data(row)
+                    except Exception as e:
+                        self.logger.error(e)
+        except Exception as e:
+            self.logger.error(e)
+        finally:
+            self.cur.close()
+            self.con.close()
 
 
 if __name__ == '__main__':
