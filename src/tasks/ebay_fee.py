@@ -43,7 +43,7 @@ class EbayFee(object):
         begin_date += "T00:00:00.000Z"
         end_date += "T00:00:00.000Z"  # utc time
         try:
-            api = Trading(config_file='ebay.yaml', timeout=40)
+            api = Trading(config_file=self.config, timeout=40)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
                 "AccountEntrySortType": "AccountEntryFeeTypeAscending",
