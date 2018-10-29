@@ -15,14 +15,8 @@ class Marker(object):
     """
     def __init__(self):
         self.con = db.Mssql().connection
-        self.logger = log.SysLogger().logger
+        self.logger = log.SysLogger().log
         self.cur = self.con.cursor(as_dict=True)
-
-    def run_sql(self, sql):
-        self.cur.execute(sql)
-        ret = self.cur.fetchall()
-        for row in ret:
-            yield row
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"
@@ -30,8 +24,10 @@ class Marker(object):
         marked_days = self.calculate_mark_day(trade_info['memo'])
         if marked_days >= 5:
             try:
-                max_bill_code = self.run_sql(max_bill_code_query).__next__()['MaxBillCode']
-                self.run_sql(exception_trade_handler % (trade_info['nid'], max_bill_code))
+                self.cur.execute(max_bill_code_query)
+                code_ret = self.cur.fetchone()
+                max_bill_code = code_ret['MaxBillCode']
+                self.cur.execute(exception_trade_handler % (trade_info['nid'], max_bill_code))
                 self.logger.info('transporting %s' % trade_info['nid'])
             except Exception as e:
                 self.logger.error('%s while fetching the exception trades' % e)
@@ -56,33 +52,32 @@ class Marker(object):
         return delta_day
 
     def prepare_to_mark(self):
-        cur = self.con.cursor(as_dict=True)
         trades_to_mark_sql = "www_outOfStock_sku '7','春节放假,清仓,停产,停售,线下清仓,线上清仓,线上清仓50P,线上清仓100P'"
         empty_mark_sql = "update p_tradeUn set reasonCode = '', memo = %s where nid = %s"
         pattern = '不采购: .*;'
         today = str(datetime.datetime.now())[5:10]
-        trades_to_mark = self.run_sql(trades_to_mark_sql)
+        self.cur.execute(trades_to_mark_sql)
+        trades_to_mark = self.cur.fetchall()
         ret_trades = {}
-        with cur as cr:
-            for tra in trades_to_mark:
-                memo = tra['memo']
-                origin_memo = re.sub(pattern, '', memo)
-                if tra['which'] == 'pre':
-                    cr.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
-                    self.con.commit()
-                    self.logger.info('emptying %s', tra['tradeNid'])
+        for tra in trades_to_mark:
+            memo = tra['memo']
+            origin_memo = re.sub(pattern, '', memo)
+            if tra['which'] == 'pre':
+                self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
+                self.con.commit()
+                self.logger.info('emptying %s', tra['tradeNid'])
+            else:
+                mark_memo = '不采购: ' + tra['purchaser'] + today + ':' + tra['sku'] + tra['goodsSkuStatus'] + ';'
+                trade = {
+                    'tradeNid': tra['tradeNid'],
+                    'mark_memo': mark_memo,
+                    'origin_memo': origin_memo,
+                    'reasonCode': tra['howPur']
+                }
+                if tra['tradeNid'] in ret_trades:
+                    ret_trades[tra['tradeNid']]['mark_memo'] += mark_memo
                 else:
-                    mark_memo = '不采购: ' + tra['purchaser'] + today + ':' + tra['sku'] + tra['goodsSkuStatus'] + ';'
-                    trade = {
-                        'tradeNid': tra['tradeNid'],
-                        'mark_memo': mark_memo,
-                        'origin_memo': origin_memo,
-                        'reasonCode': tra['howPur']
-                    }
-                    if tra['tradeNid'] in ret_trades:
-                        ret_trades[tra['tradeNid']]['mark_memo'] += mark_memo
-                    else:
-                        ret_trades[tra['tradeNid']] = trade
+                    ret_trades[tra['tradeNid']] = trade
 
         return ret_trades
 
@@ -98,17 +93,17 @@ class Marker(object):
                         "and PROTECTIONELIGIBILITYTYPE='缺货订单' " \
                         "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=7"
 
-        exception_trades = self.run_sql(exception_sql)
-        pool = ThreadPoolExecutor()
-        pool.map(self.transport_exception_trades, exception_trades)
-        self.con.commit()
+        self.cur.execute(exception_sql)
+        exception_trades = self.cur.fetchall()
+        for trade in exception_trades:
+            self.transport_exception_trades(trade)
 
     def mark_trades_trans(self):
         update_memo_sql = "update p_tradeUn set memo = '%s', reasonCode = '%s' where nid = %s"
         trades_to_mark = self.prepare_to_mark()
         for mar in trades_to_mark.values():
             new_memo = mar['origin_memo'] + mar['mark_memo']
-            self.run_sql(update_memo_sql % (new_memo, mar['reasonCode'], mar['tradeNid']))
+            self.cur.execute(update_memo_sql % (new_memo, mar['reasonCode'], mar['tradeNid']))
             self.con.commit()
             self.logger.info('marking %s', mar['tradeNid'])
 
