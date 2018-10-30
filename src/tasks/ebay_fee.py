@@ -8,18 +8,16 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
-from src.services import db, log
+from src.services.base_service import BaseService
 from configs.config import Config
 
 
-class EbayFee(object):
+class EbayFee(BaseService):
     """
     fetch ebay fee using api
     """
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.cur = self.con.cursor(as_dict=True)
-        self.logger = log.SysLogger().log
+        super().__init__()
         self.config = Config().get_config('ebay.yaml')
 
     def get_ebay_token(self):

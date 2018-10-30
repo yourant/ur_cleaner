@@ -1,5 +1,5 @@
 [[source]]
-url = "https://pypi.tuna.tsinghua.edu.cn/simple "
+url = "https://pypi.python.org/simple"
 verify_ssl = true
 name = "pypi"
 
@@ -8,6 +8,7 @@ pymssql = "*"
 requests = "*"
 ebaysdk = "*"
 tenacity = "*"
+pymysql = "*"
 
 [dev-packages]
 

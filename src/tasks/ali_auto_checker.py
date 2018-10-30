@@ -8,17 +8,16 @@ from functools import reduce
 from concurrent.futures import ThreadPoolExecutor
 import requests
 from tenacity import retry, stop_after_attempt
-from src.services import db, log, oauth
+from src.services.base_service import BaseService
+from src.services import oauth
 
 
-class AliChecker(object):
+class AliChecker(BaseService):
     """
     check purchased orders
     """
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.logger = log.SysLogger().log
-        self.cur = self.con.cursor(as_dict=True)
+        super().__init__()
         self.oauth = oauth.Ali()
 
     @retry(stop=stop_after_attempt(3))

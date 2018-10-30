@@ -5,18 +5,15 @@
 
 import datetime
 import re
-from src.services import db, log
-from concurrent.futures import ThreadPoolExecutor
+from src.services.base_service import BaseService
 
 
-class Marker(object):
+class Marker(BaseService):
     """
     mark trades out of stock
     """
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.logger = log.SysLogger().log
-        self.cur = self.con.cursor(as_dict=True)
+        super().__init__()
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"

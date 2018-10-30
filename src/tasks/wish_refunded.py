@@ -8,17 +8,15 @@ import datetime
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from tenacity import retry, stop_after_attempt
-from src.services import db, log
+from src.services.base_service import BaseService
 
 
-class WishRefund(object):
+class WishRefund(BaseService):
     """
     get refunded orders of wish
     """
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.logger = log.SysLogger().log
-        self.cur = self.con.cursor(as_dict=True)
+        super().__init__()
 
     def run_sql(self, sql):
         self.cur.execute(sql)

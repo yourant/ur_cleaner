@@ -9,16 +9,13 @@ upload tracking number of wish's merged trades
 
 import requests
 import json
-import datetime
-from src.services import db, log
+from src.services.base_service import BaseService
 from concurrent.futures import ThreadPoolExecutor
 
 
-class WishUploader(object):
+class WishUploader(BaseService):
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.logger = log.SysLogger().log
-        self.cur = self.con.cursor(as_dict=True)
+        super().__init__()
 
     def get_trades_info(self):
         sql = 'www_wish_join_trades_upload'

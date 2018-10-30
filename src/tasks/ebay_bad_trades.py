@@ -4,18 +4,16 @@
 # Author: turpure
 
 import datetime
-from src.services import db, log
+from src.services.base_service import BaseService
 
 
-class EbayInterceptor(object):
+class EbayInterceptor(BaseService):
     """
     intercept ebay fraud trades
     """
 
     def __init__(self):
-        self.con = db.Mssql().connection
-        self.logger = log.SysLogger().log
-        self.cur = self.con.cursor(as_dict=True)
+        super().__init__()
 
     def get_trades_info(self):
         sql = 'www_ebay_bad_trades'
