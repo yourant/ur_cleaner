@@ -18,4 +18,14 @@ class BaseService(object):
         self.warehouse_con = db.DataBase('mysql').connection
         self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
 
+    def close(self):
+        try:
+            self.cur.close()
+            self.con.close()
+            self.warehouse_cur.close()
+            self.warehouse_con.close()
+            self.logger.info('close connection')
+        except Exception as e:
+            self.logger.error('fail to close connection cause of {}'.format(e))
+
 

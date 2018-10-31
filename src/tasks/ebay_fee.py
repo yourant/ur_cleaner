@@ -109,8 +109,7 @@ class EbayFee(BaseService):
         except Exception as e:
             self.logger.error(e)
         finally:
-            self.cur.close()
-            self.con.close()
+            self.close()
 
 
 if __name__ == '__main__':

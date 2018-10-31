@@ -55,8 +55,7 @@ class EbayInterceptor(BaseService):
             self.logger.debug(e)
 
         finally:
-            self.cur.close()
-            self.con.close()
+            self.close()
 
 
 if __name__ == '__main__':

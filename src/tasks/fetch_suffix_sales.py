@@ -18,7 +18,15 @@ class Fetcher(BaseService):
         sql = 'oauth_saleTrendy @dateFlag=%s, @beginDate=%s, @endDate=%s'
         self.cur.execute(sql, (date_flag, begin_date, end_date))
         ret = self.cur.fetchall()
-        return ret
+        for row in ret:
+            yield (row['suffix'], row['orderTime'], row['amt'], row['dateFlag'])
 
     def push(self, row):
-        sql = 'insert into cache_suffixSales() values(%s,%s,%s, %s)'
+        sql = 'insert into cache_suffixSales(suffix,orderTime,amt,dateFlag) values(%s,%s,%s, %s)'
+        self.warehouse_cur.executemany(sql,)
+
+
+if __name__ == '__main__':
+    worker = Fetcher()
+    for row in worker.fetch(0, '2018-10-01', '2018-10-10'):
+        print(row)
