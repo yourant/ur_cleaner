@@ -3,6 +3,7 @@
 # @Time: 2018-10-30 15:07
 # Author: turpure
 
+import datetime
 from src.services.base_service import BaseService
 
 
@@ -19,18 +20,23 @@ class Fetcher(BaseService):
         self.cur.execute(sql, (date_flag, begin_date, end_date))
         ret = self.cur.fetchall()
         for row in ret:
-            yield (row['suffix'], row['orderTime'], float(row['amt']), row['dateFlag'])
+            yield (row['suffix'], row['orderTime'], float(row['amt']) if row['amt'] else 0, row['dateFlag'])
 
     def push(self, rows):
         sql = 'insert into cache_suffixSales(suffix,orderTime,amt,dateFlag) values(%s,%s,%s, %s)'
         self.warehouse_cur.executemany(sql, list(rows))
         self.warehouse_con.commit()
 
+    def clean(self):
+        pass
+
     def work(self):
         try:
-            rows = self.fetch(1, '2018-10-01', '2018-10-10')
-            self.push(rows)
-            self.logger.info('success to fetch suffix sales')
+            yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+            for date_flag in [0, 1]:
+                rows = self.fetch(date_flag, yesterday, yesterday)
+                self.push(rows)
+                self.logger.info('success to fetch suffix sales')
         except Exception as why:
             self.logger.error('fail to fetch suffix sales cause of {}'.format(why))
         finally:
