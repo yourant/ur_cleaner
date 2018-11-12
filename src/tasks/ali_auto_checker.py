@@ -4,8 +4,6 @@
 # Author: turpure
 
 import json
-from functools import reduce
-from concurrent.futures import ThreadPoolExecutor
 import requests
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
@@ -26,11 +24,11 @@ class AliChecker(BaseService):
         out = dict()
         try:
             res = requests.get(base_url)
-            ret = json.loads(res.content)['result']['toReturn'][0]
+            ret = json.loads(res.content)['result']
             out['order_id'] = order_id
-            out['expressFee'] = (ret['carriage'] + 0.0) / 100
-            out['sumPayment'] = (ret['sumPayment'] + 0.0) / 100
-            out['qty'] = reduce(lambda x, y: x + y, [ele['quantity'] for ele in ret['orderEntries']])
+            out['expressFee'] = float(ret['baseInfo']['shippingFee'])
+            out['sumPayment'] = float(ret['baseInfo']['totalAmount'])
+            out['qty'] = sum([ele['quantity'] for ele in ret['productItems']])
             return out
         except Exception as e:
             self.logger.error('error while get order details %s' % e)
@@ -94,10 +92,10 @@ class AliChecker(BaseService):
     def run(self):
         try:
             orders = self.get_order_from_py()
-            pool = ThreadPoolExecutor()
-            ret = pool.map(self.get_order_details, orders)
-            for item in ret:
-                self.check_order(item)
+            for id in orders:
+                ret = self.get_order_details(id)
+                if ret:
+                    self.check_order(ret)
 
         except Exception as e:
             self.logger.error(e)

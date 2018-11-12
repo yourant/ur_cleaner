@@ -42,9 +42,10 @@ class Ali(Singleton):
             self.logger.error('%s:error while getting access token' % e)
 
     def get_signature(self, order_id):
-        url_path = 'param2/1/cn.alibaba.open/%s/%s' % (self.api_name, self.app_key)
+        url_path = 'param2/1/com.alibaba.trade/%s/%s' % (self.api_name, self.app_key)
         token = self.token
         signature_par_dict = {
+            'webSite': '1688',
             'access_token': token,
             'orderId': order_id
         }
@@ -60,12 +61,13 @@ class Ali(Singleton):
         token = self.token
         signature = self.get_signature(order_id)
         head = [
-            'http://gw.open.1688.com:80/openapi/param2/1/cn.alibaba.open',
+            'http://gw.open.1688.com:80/openapi/param2/1/com.alibaba.trade',
             self.api_name,
             self.app_key
         ]
         url_head = '/'.join(head)
         para_dict = {
+            'webSite': '1688',
             'orderId': order_id,
             '_aop_signature': signature,
             'access_token': token
@@ -78,4 +80,4 @@ class Ali(Singleton):
 
 if __name__ == "__main__":
     ali = Ali()
-    print(ali.get_request_url('229325633125162774'))
+    print(ali.get_request_url('265917568994768662'))
