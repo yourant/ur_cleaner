@@ -32,6 +32,7 @@ class AliChecker(BaseService):
             return out
         except Exception as e:
             self.logger.error('error while get order details %s' % e)
+            return out
 
     def check_order(self, check_info):
         order_id = check_info['order_id']
@@ -78,7 +79,6 @@ class AliChecker(BaseService):
                 self.logger.info('checking %s' % bill_number)
         except Exception as e:
             self.logger.error('%s while checking %s' % (e, order_id))
-            raise Exception(e)
 
     def get_order_from_py(self):
         query = ("select alibabaorderid as orderId from CG_StockOrderM "
