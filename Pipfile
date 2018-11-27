@@ -9,6 +9,7 @@ requests = "*"
 ebaysdk = "*"
 tenacity = "*"
 pymysql = "*"
+pandas = "*"
 
 [dev-packages]
 

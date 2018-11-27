@@ -25,7 +25,7 @@ class ProfitFetcher(BaseService):
                 row['suffix'], row['SaleMoney'], row['salemoneyzn'], row['eBayFeeebay'], row['eBayFeeznebay'],
                 row['ppFee'], row['ppFeezn'], row['CostMoney'], row['ExpressFare'], row['InpackageMoney'],
                 row['StoreName'], row['refund'], row['diefeeZn'], row['suffixFee'], row['opeFee'],
-                row['grossProfit'], row['dt'], row['dateFlag']
+                row['grossProfit'], row['orderDay'], row['dateFlag']
             )
 
     def push(self, rows):
