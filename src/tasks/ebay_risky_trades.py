@@ -116,7 +116,7 @@ class RiskController(BaseService):
     def work(self):
         trades = self.get_trades_info()
         try:
-            # self.intercept(trades)
+            self.intercept(trades)
             self.save_to_base(trades)
         except Exception as e:
             self.logger.error(e)
