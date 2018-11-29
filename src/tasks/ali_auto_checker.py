@@ -41,7 +41,7 @@ class AliChecker(BaseService):
                     "sum(sd.amount*sd.price) AS total_money, cgsm.expressfee " \
                     "from cg_stockOrderd  AS sd LEFT JOIN cg_stockorderm  AS cgsm" \
                     " ON sd.stockordernid= cgsm.nid WHERE note LIKE '%" + order_id + "%'" \
-                    "AND cgsm.checkflag =0 GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," \
+                    " AND cgsm.checkflag =0 GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," \
                     "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag"
 
         check_sql = "P_CG_UpdateStockOutOfByStockOrder %s"
@@ -64,19 +64,20 @@ class AliChecker(BaseService):
         try:
             self.cur.execute(search_sql)
             ret = self.cur.fetchone()
-            qty = ret['total_amt']
-            total_money = ret['total_money']
-            bill_number = ret['billnumber']
-            checker = ret['audier']
-            check_qty = check_info['qty']
-            order_money = check_info['sumPayment']
-            if qty == check_qty:
-                self.cur.execute(update_sql, (order_id, order_money, total_money, order_money, bill_number))
-                self.cur.execute(check_sql, (bill_number,))
-                self.cur.execute(update_price, (order_money, total_money, qty) * 4 + (bill_number,))
-                self.cur.execute(update_status, (checker, order_money, bill_number))
-                self.con.commit()
-                self.logger.info('checking %s' % bill_number)
+            if ret:
+                qty = ret['total_amt']
+                total_money = ret['total_money']
+                bill_number = ret['billnumber']
+                checker = ret['audier']
+                check_qty = check_info['qty']
+                order_money = check_info['sumPayment']
+                if qty == check_qty:
+                    self.cur.execute(update_sql, (order_id, order_money, total_money, order_money, bill_number))
+                    self.cur.execute(check_sql, (bill_number,))
+                    self.cur.execute(update_price, (order_money, total_money, qty) * 4 + (bill_number,))
+                    self.cur.execute(update_status, (checker, order_money, bill_number))
+                    self.con.commit()
+                    self.logger.info('checking %s' % bill_number)
         except Exception as e:
             self.logger.error('%s while checking %s' % (e, order_id))
 
