@@ -24,7 +24,7 @@ class Ali(Singleton):
         self.token = self._get_access_token()
 
     def _get_access_token(self):
-        base_url = 'https://gw.api.alibaba.com/openapi/param2/1/system.oauth2/getToken/%s' % self.app_key
+        base_url = 'https://gw.open.1688.com/openapi/param2/1/system.oauth2/getToken/%s' % self.app_key
         post_data = {
             'grant_type': 'refresh_token',
             'client_id': self.app_key,
@@ -80,4 +80,4 @@ class Ali(Singleton):
 
 if __name__ == "__main__":
     ali = Ali()
-    print(ali.get_request_url('265917568994768662'))
+    print(ali.get_request_url('264849699445768662'))

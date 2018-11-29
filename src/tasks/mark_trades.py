@@ -52,12 +52,15 @@ class Marker(BaseService):
         trades_to_mark_sql = "www_outOfStock_sku '7','春节放假,清仓,停产,停售,线下清仓,线上清仓,线上清仓50P,线上清仓100P'"
         empty_mark_sql = "update p_tradeUn set reasonCode = '', memo = %s where nid = %s"
         pattern = '不采购: .*;'
-        today = str(datetime.datetime.now())[5:10]
         self.cur.execute(trades_to_mark_sql)
         trades_to_mark = self.cur.fetchall()
         ret_trades = {}
         for tra in trades_to_mark:
             memo = tra['memo']
+            if re.match(pattern, memo):
+                today = re.findall('\d{2}-\d{2}', memo)[0]
+            else:
+                today = str(datetime.datetime.now())[5:10]
             origin_memo = re.sub(pattern, '', memo)
             if tra['which'] == 'pre':
                 self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
@@ -85,7 +88,7 @@ class Marker(BaseService):
         then the trade should be transported to exception trades
         """
         exception_sql = "select nid,reasoncode,memo,DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())" \
-                        " as deltaday from p_tradeun " \
+                        " as deltaday from p_tradeun with(nolock) " \
                         "where (reasoncode like '%不采购%' or reasoncode like '%春节%') " \
                         "and PROTECTIONELIGIBILITYTYPE='缺货订单' " \
                         "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=7"
