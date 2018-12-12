@@ -27,16 +27,17 @@ class RiskController(BaseService):
                       "buyerId,shipToName,shipToStreet,shipToStreet2,shipToCity,"
                       "shipToZip,shipToCountryCode,shipToPhoneNum,"
                       "'p_tradeun' as tablename "
-                      "from P_Tradeun with(nolock) where memo not like '%钓鱼账号%'"
-                      "  and protectioneligibilitytype='缺货订单' and  "
-                      "dateadd(hour,8,ordertime) between dateadd(day,-3,getdate()) and getdate() and "
+                      "from P_Tradeun with(nolock) where "
+                      " memo not like '%钓鱼账号%' and  protectioneligibilitytype='缺货订单' and   "
+                      "dateadd(hour,8,ordertime) between dateadd(day,-30,getdate()) and getdate() and "
                       "  {} union "
                       "select dateadd(hour,8,ordertime) as orderTime,suffix,nid,"
                       "buyerId,shipToName,shipToStreet,shipToStreet2,shipToCity,"
                       "shipToZip,shipToCountryCode,shipToPhoneNum,"
                       "'p_trade' as tablename "
-                      "from P_Trade with(nolock) where memo not like '%钓鱼账号%' and"
-                      " dateadd(hour,8,ordertime) between dateadd(day,-3,getdate()) and getdate() and "
+                      "from P_Trade with(nolock) where "
+                      " memo not like '%钓鱼账号%' and  "
+                      " dateadd(hour,8,ordertime) between dateadd(day,-30,getdate()) and getdate() and "
                       " {}"
                       )
         filed_query = []
@@ -114,7 +115,7 @@ class RiskController(BaseService):
             self.logger.error(e)
 
     def work(self):
-        trades = self.get_trades_info()
+        trades = [trade for trade in self.get_trades_info()]
         try:
             self.intercept(trades)
             self.save_to_base(trades)

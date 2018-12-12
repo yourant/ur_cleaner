@@ -17,7 +17,6 @@ class ProfitFetcher(BaseService):
 
     def fetch(self, date_flag, begin_date, end_date):
         sql = 'oauth_FinancialProfit @dateFlag=%s, @beginDate=%s, @endDate=%s'
-        # sql = 'zz_jamesTest @dateFlag=%s, @beginDate=%s, @endDate=%s'
         self.cur.execute(sql, (date_flag, begin_date, end_date))
         ret = self.cur.fetchall()
         for row in ret:
@@ -50,7 +49,7 @@ class ProfitFetcher(BaseService):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
             for date_flag in (0, 1):
-                rows = self.fetch(date_flag, '2018-09-01', yesterday)
+                rows = self.fetch(date_flag, '2018-01-01', yesterday)
                 self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch suffix profit cause of {}'.format(why))
