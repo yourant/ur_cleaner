@@ -29,7 +29,7 @@ class RiskController(BaseService):
                       "'p_tradeun' as tablename "
                       "from P_Tradeun with(nolock) where "
                       " memo not like '%钓鱼账号%' and  protectioneligibilitytype='缺货订单' and   "
-                      "dateadd(hour,8,ordertime) between dateadd(day,-30,getdate()) and getdate() and "
+                      "dateadd(hour,8,ordertime) between dateadd(day,-4,getdate()) and getdate() and "
                       "  {} union "
                       "select dateadd(hour,8,ordertime) as orderTime,suffix,nid,"
                       "buyerId,shipToName,shipToStreet,shipToStreet2,shipToCity,"
@@ -37,7 +37,7 @@ class RiskController(BaseService):
                       "'p_trade' as tablename "
                       "from P_Trade with(nolock) where "
                       " memo not like '%钓鱼账号%' and  "
-                      " dateadd(hour,8,ordertime) between dateadd(day,-30,getdate()) and getdate() and "
+                      " dateadd(hour,8,ordertime) between dateadd(day,-4,getdate()) and getdate() and "
                       " {}"
                       )
         filed_query = []
@@ -55,17 +55,18 @@ class RiskController(BaseService):
         self.cur.execute(query)
         ret = self.cur.fetchall()
         for row in ret:
-            return row
+            yield row
 
     def get_trades_info(self):
         risky_trades = []
         for ele in self.get_blacklist():
             sql = self.generate_query(ele)
-            trade = self.risky_trades(sql)
-            if trade:
-                if not trade['nid'] in risky_trades:
-                    risky_trades.append(trade['nid'])
-                    yield trade
+            trades = self.risky_trades(sql)
+            for trade in trades:
+                if trade:
+                    if not trade['nid'] in risky_trades:
+                        risky_trades.append(trade['nid'])
+                        yield trade
 
     def save_to_base(self, trades):
         sql = ('insert into riskyTrades (tradeNid,orderTime,suffix,buyerId,'
@@ -78,10 +79,10 @@ class RiskController(BaseService):
                                            row['buyerId'], row['shipToName'], row['shipToStreet'],
                                            row['shipToStreet2'], row['shipToCity'], row['shipToZip'],
                                            row['shipToCountryCode'], row['shipToPhoneNum'], '待处理'))
+                self.warehouse_con.commit()
                 self.logger.info('putting risky trade {}'.format(row['nid']))
             except Exception as e:
                 self.logger.error(e)
-        self.warehouse_con.commit()
 
     def intercept(self, trades):
         cur = self.cur
