@@ -19,6 +19,20 @@ class EbayFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        if not self._get_batch_id():
+            self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+        else:
+            self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
+                                + datetime.timedelta(days=1))[:10]
+
+    def _get_batch_id(self):
+        sql = 'select max(batchId) as batchId from y_fee'
+        try:
+            self.cur.execute(sql)
+            ret = self.cur.fetchone()
+            return ret['batchId']
+        except Exception as why:
+            self.logger.error('fail to get max batchId cause of {}'.format(why))
 
     def get_ebay_token(self):
         sql = 'SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo  GROUP BY notename'
@@ -32,7 +46,9 @@ class EbayFee(BaseService):
         """
         get the ebay fee of yesterday in local time
         """
-        begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+
+        # begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+        begin_date = self.batch_id
         end_date = str(datetime.datetime.now())[:10]
         begin_date += "T00:00:00.000Z"
         end_date += "T00:00:00.000Z"  # utc time
@@ -69,7 +85,8 @@ class EbayFee(BaseService):
                                 fee['ItemID'] = row.ItemID
                                 if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
                                     self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
-                                yield fee
+                                if int(row.NetDetailAmount.value) != 0:
+                                    yield fee
                         break
 
                     except Exception as e:
@@ -79,11 +96,11 @@ class EbayFee(BaseService):
             raise Exception(e)
 
     def save_data(self, row):
-        sql = 'insert into ebayInsertionfee(accountname,insertionFee,createdday,feeType,itemid)' \
-              ' values(%s,%s,%s,%s,%s)'
+        sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId)' \
+              ' values(%s,%s,%s,%s,%s,%s)'
         try:
-            self.cur.execute(sql, (row['accountName'], row['value'],
-                             row['Date'], row['feeType'], row['ItemID']))
+            self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], 'USD',
+                             row['Date'], self.batch_id))
             self.logger.info("putting %s" % row['accountName'])
             self.con.commit()
         except Exception as e:

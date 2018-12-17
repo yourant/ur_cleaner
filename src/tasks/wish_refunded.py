@@ -64,10 +64,10 @@ class WishRefund(BaseService):
             self.logger.error(e)
 
     def save_data(self, row):
-        sql = "INSERT INTO Y_wish_refunded (order_id,refund_time,total_value,notename)" \
+        sql = "INSERT INTO y_refunded (order_id,refund_time,total_value,currencyCode)" \
               " VALUES(%s,%s,%s,%s)"
         try:
-            self.cur.execute(sql, (row['order_id'], row['last_updated'], row['order_total'], row['aliasname']))
+            self.cur.execute(sql, (row['order_id'], row['last_updated'], row['order_total'], 'USD'))
             self.con.commit()
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:
