@@ -39,7 +39,13 @@ class ProfitFetcher(BaseService):
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s',  
-               ')'
+               ') ON DUPLICATE KEY UPDATE saleMoney=values(saleMoney),'
+               'saleMoneyZn=values(saleMoneyZn),ebayFeeEbay=values(ebayFeeEbay),'
+               'ebayFeeZnEbay=values(ebayFeeZnEbay),ppFee=values(ppFee),'
+               'ppFeeZn=values(ppFeeZn),costMoney=values(costMoney),'
+               'expressFare=values(expressFare),inPackageMoney=values(inPackageMoney),'
+               'refund=values(refund),dieFeeZn=values(dieFeeZn),insertionFee=values(insertionFee),'
+               'saleOpeFeeZn=values(saleOpeFeeZn),grossProfit=values(grossProfit)'
                ]
         self.warehouse_cur.executemany(''.join(sql), rows)
         self.warehouse_con.commit()
@@ -49,7 +55,7 @@ class ProfitFetcher(BaseService):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
             for date_flag in (0, 1):
-                rows = self.fetch(date_flag, '2015-01-01', yesterday)
+                rows = self.fetch(date_flag, yesterday, yesterday)
                 self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch suffix profit cause of {}'.format(why))
