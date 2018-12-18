@@ -85,7 +85,7 @@ class EbayFee(BaseService):
                                 fee['ItemID'] = row.ItemID
                                 if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
                                     self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
-                                if int(row.NetDetailAmount.value) != 0:
+                                if float(row.NetDetailAmount.value) != 0:
                                     yield fee
                         break
 
