@@ -11,16 +11,16 @@ from src.services import log
 from configs.config import Config, Singleton
 
 
-class Ali(Singleton):
+class Ali(object):
     """
     get refresh_token from https://open.1688.com/api/apiTool.htm?spm=a260s.8209109.0.0.lQxRzL
     """
-    def __init__(self):
+    def __init__(self, account):
         self.logger = log.SysLogger().log
         self.api_name = Config().get_config('ali')['api_name']
         self.app_key = Config().get_config('ali')['app_key']
         self.app_secret_key = Config().get_config('ali')['app_secret_key']
-        self.refresh_token = Config().get_config('ali')['refresh_token']
+        self.refresh_token = Config().get_config('ali')['refresh_token'][account]
         self.token = self._get_access_token()
 
     def _get_access_token(self):
@@ -79,5 +79,5 @@ class Ali(Singleton):
 
 
 if __name__ == "__main__":
-    ali = Ali()
+    ali = Ali('tb853697605')
     print(ali.get_request_url('264849699445768662'))

@@ -7,7 +7,7 @@ import json
 import requests
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
-from src.services import oauth
+from src.services import oauth as aliOauth
 
 
 class AliChecker(BaseService):
@@ -16,11 +16,13 @@ class AliChecker(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.oauth = oauth.Ali()
+        # self.oauth = oauth.Ali('tb853697605')
 
     @retry(stop=stop_after_attempt(3))
-    def get_order_details(self, order_id):
-        base_url = self.oauth.get_request_url(order_id)
+    def get_order_details(self, order_info):
+        order_id = order_info['orderId']
+        oauth = aliOauth.Ali(order_info['account'])
+        base_url = oauth.get_request_url(order_id)
         out = dict()
         try:
             res = requests.get(base_url)
@@ -82,19 +84,22 @@ class AliChecker(BaseService):
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        query = ("select alibabaorderid as orderId from CG_StockOrderM "
-                "where CheckFlag=0 and DATEDIFF(day, MakeDate, GETDATE())<30 "
-                "and isnull(alibabaorderid,'')!=''")
+        query = ("select Cm.alibabaorderid as orderId,info.loginId as account  "
+                 "from CG_StockOrderM  as Cm LEFT JOIN S_AlibabaCGInfo as info "
+                 "on Cm.AliasName1688 = info.AliasName "
+                 "where CheckFlag=0 and DATEDIFF(day, MakeDate, GETDATE())<30 "
+                 "and isnull(alibabaorderid,'')!='' "
+                 "and isnull(AliasName1688,'') != '' ")
         self.cur.execute(query)
         ret = self.cur.fetchall()
         for row in ret:
-            yield row['orderId']
+            yield row
 
     def run(self):
         try:
             orders = self.get_order_from_py()
-            for id in orders:
-                ret = self.get_order_details(id)
+            for row in orders:
+                ret = self.get_order_details(row)
                 if ret:
                     self.check_order(ret)
 
