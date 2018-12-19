@@ -8,6 +8,7 @@ import requests
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
 from src.services import oauth as aliOauth
+from concurrent.futures import ThreadPoolExecutor
 
 
 class AliChecker(BaseService):
@@ -84,31 +85,34 @@ class AliChecker(BaseService):
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        query = ("select Cm.alibabaorderid as orderId,info.loginId as account  "
-                 "from CG_StockOrderM  as Cm LEFT JOIN S_AlibabaCGInfo as info "
-                 "on Cm.AliasName1688 = info.AliasName "
-                 "where CheckFlag=0 and DATEDIFF(day, MakeDate, GETDATE())<30 "
-                 "and isnull(alibabaorderid,'')!='' "
-                 "and isnull(AliasName1688,'') != '' ")
+        query = ("select alibabaOrderid as orderId,loginId as account,billNumber from "
+               "CG_StockOrderM  as Cm with(nolock) LEFT JOIN S_AlibabaCGInfo as info with(nolock) "
+               "on Cm.AliasName1688 = info.AliasName where logisticsStatus = '等待买家收货' "
+               "and inflag = 0  and is1688Order = 0 and archive = 0")
         self.cur.execute(query)
         ret = self.cur.fetchall()
         for row in ret:
             yield row
 
-    def run(self):
+    def check(self, order):
         try:
-            orders = self.get_order_from_py()
-            for row in orders:
-                ret = self.get_order_details(row)
-                if ret:
-                    self.check_order(ret)
-
+            ret = self.get_order_details(order)
+            if ret:
+                self.check_order(ret)
         except Exception as e:
             self.logger.error(e)
+
+    def work(self):
+        try:
+            orders = self.get_order_from_py()
+            for order in orders:
+                self.check(order)
+        except Exception as e:
+            self.logger(e)
         finally:
             self.close()
 
 
 if __name__ == "__main__":
     worker = AliChecker()
-    worker.run()
+    worker.work()
