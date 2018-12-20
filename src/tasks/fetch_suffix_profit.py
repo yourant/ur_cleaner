@@ -54,8 +54,9 @@ class ProfitFetcher(BaseService):
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+            month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
             for date_flag in (0, 1):
-                rows = self.fetch(date_flag, yesterday, yesterday)
+                rows = self.fetch(date_flag, month_first_day, yesterday)
                 self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch suffix profit cause of {}'.format(why))
