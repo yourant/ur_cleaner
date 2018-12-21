@@ -44,11 +44,11 @@ class RefundFetcher(BaseService):
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            someday = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
-            rows = self.fetch(someday, yesterday)
+            month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
+            rows = self.fetch(month_first_day, yesterday)
             self.push(rows)
         except Exception as why:
-            self.logger.error('fail to fetch refund detail casuse of {}'.format(why))
+            self.logger.error('fail to fetch refund detail cause of {}'.format(why))
         finally:
             self.close()
 

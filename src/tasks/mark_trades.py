@@ -14,6 +14,7 @@ class Marker(BaseService):
     """
     def __init__(self):
         super().__init__()
+        self.goods_status = ('春节放假', '清仓', '停产', '停售', '线下清仓', '线上清仓', '线上清仓50P', '线上清仓100P')
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"
@@ -49,7 +50,8 @@ class Marker(BaseService):
         return delta_day
 
     def prepare_to_mark(self):
-        trades_to_mark_sql = "www_outOfStock_sku '7','春节放假,清仓,停产,停售,线下清仓,线上清仓,线上清仓50P,线上清仓100P'"
+        param_status = ','.join(self.goods_status)
+        trades_to_mark_sql = "www_outOfStock_sku '7','{}'".format(param_status)
         empty_mark_sql = "update p_tradeUn set reasonCode = '', memo = %s where nid = %s"
         pattern = '不采购: .*;'
         self.cur.execute(trades_to_mark_sql)
@@ -62,11 +64,12 @@ class Marker(BaseService):
             else:
                 today = str(datetime.datetime.now())[5:10]
             origin_memo = re.sub(pattern, '', memo)
-            if tra['which'] == 'pre':
+            if tra['which'] == 'pre' and tra['goodsSkuStatus'] in self.goods_status:
                 self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
                 self.con.commit()
                 self.logger.info('emptying %s', tra['tradeNid'])
-            else:
+
+            if tra['which'] == 'cur' and tra['goodsSkuStatus'] in self.goods_status:
                 mark_memo = '不采购: ' + tra['purchaser'] + today + ':' + tra['sku'] + tra['goodsSkuStatus'] + ';'
                 trade = {
                     'tradeNid': tra['tradeNid'],
