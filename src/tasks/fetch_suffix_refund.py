@@ -32,7 +32,8 @@ class RefundFetcher(BaseService):
                "suffix,goodsName,goodsCode,goodsSku,tradeId,"
                "orderId,storeName,refund,currencyCode,refundId,"
                "refundTime) values ("
-               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)")
+               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+               "ON DUPLICATE KEY UPDATE refund=values(refund)")
 
         try:
             self.warehouse_cur.executemany(sql, rows)
