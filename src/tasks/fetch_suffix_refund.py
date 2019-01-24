@@ -25,18 +25,19 @@ class RefundFetcher(BaseService):
                 row['tradeNid'], row['ack'], row['storename'],
                 row['total_value'], row['currencyCode'],
                 row['id'], row['refund_time'], row['orderTime'], row['orderCountry'],
-                row['platform'], row['expressWay']
+                row['platform'], row['expressWay'], row['refMonth'], row['dateDelta']
             )
 
     def push(self, rows):
         sql = ("insert into cache_refund_details("
                "suffix,goodsName,goodsCode,goodsSku,tradeId,"
                "orderId,storeName,refund,currencyCode,refundId,"
-               "refundTime,orderTime,orderCountry,platform,expressWay) values ("
-               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+               "refundTime,orderTime,orderCountry,platform,expressWay,refMonth,dateDelta) values ("
+               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                "ON DUPLICATE KEY UPDATE refund=values(refund),"
                "orderTime=values(orderTime),orderCountry=values(orderCountry),"
-               "platform=values(platform),expressWay=values(expressWay)")
+               "platform=values(platform),expressWay=values(expressWay),"
+               "refMonth=values(refMonth),dateDelta=values(dateDelta)")
 
         try:
             self.warehouse_cur.executemany(sql, rows)
