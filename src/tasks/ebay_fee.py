@@ -10,6 +10,7 @@ from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from src.services.base_service import BaseService
 from configs.config import Config
+import pymssql
 
 
 class EbayFee(BaseService):
@@ -103,6 +104,8 @@ class EbayFee(BaseService):
                              row['Date'], self.batch_id))
             self.logger.info("putting %s" % row['accountName'])
             self.con.commit()
+        except pymssql.IntegrityError as e:
+            pass
         except Exception as e:
             self.logger.error("%s while trying to save data" % e)
 
