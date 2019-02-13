@@ -35,7 +35,7 @@ class Marker(BaseService):
     def calculate_mark_day(self, memo):
         try:
             year = str(datetime.datetime.now())[:5]
-            lasted_marked_day = (year + re.findall('\d\d-\d\d', memo)[-1]).split('-')
+            lasted_marked_day = (year + re.findall(r'\d\d-\d\d', memo)[-1]).split('-')
             mark_day = datetime.datetime(int(lasted_marked_day[0]),
                                          int(lasted_marked_day[1]),
                                          int(lasted_marked_day[2]))
@@ -60,11 +60,11 @@ class Marker(BaseService):
         for tra in trades_to_mark:
             memo = tra['memo']
             if re.match(pattern, memo):
-                today = re.findall('\d{2}-\d{2}', memo)[0]
+                today = re.findall(r'\d{2}-\d{2}', memo)[0]
             else:
                 today = str(datetime.datetime.now())[5:10]
             origin_memo = re.sub(pattern, '', memo)
-            if tra['which'] == 'pre' and tra['goodsSkuStatus'] in self.goods_status:
+            if tra['which'] == 'pre':
                 self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
                 self.con.commit()
                 self.logger.info('emptying %s', tra['tradeNid'])
