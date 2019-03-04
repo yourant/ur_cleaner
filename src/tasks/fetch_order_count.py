@@ -35,7 +35,7 @@ class OrderCounter(BaseService):
     def work(self):
         try:
             today = str(datetime.datetime.today())[:10]
-            some_day_ago = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
+            some_day_ago = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
             for i in (0, 1):
                 res = self.fetch(i, some_day_ago, today)
                 self.push(res)
