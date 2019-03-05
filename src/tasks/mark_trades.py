@@ -112,7 +112,7 @@ class Marker(BaseService):
 
     def run(self):
         try:
-            # self.handle_exception_trades_trans()  # 春节期间不再转移到取消订单
+            self.handle_exception_trades_trans()
             self.mark_trades_trans()
         except Exception as e:
             self.logger.error(e)
