@@ -27,7 +27,11 @@ class EbayFee(BaseService):
                                 + datetime.timedelta(days=1))[:10]
 
     def _get_batch_id(self):
-        sql = 'select max(batchId) as batchId from y_fee'
+        sql = ("select max(batchId) batchId from y_fee"
+               " where notename in "
+               "(select DictionaryName from B_Dictionary nolock "
+               "where CategoryID=12 and FitCode ='eBay')"
+               )
         try:
             self.cur.execute(sql)
             ret = self.cur.fetchone()
