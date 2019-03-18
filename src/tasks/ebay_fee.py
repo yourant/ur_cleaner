@@ -40,7 +40,9 @@ class EbayFee(BaseService):
             self.logger.error('fail to get max batchId cause of {}'.format(why))
 
     def get_ebay_token(self):
-        sql = 'SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo  GROUP BY notename'
+        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken "
+               "FROM S_PalSyncInfo  GROUP BY notename")
+               # " having notename='eBay-A2-littlemay93'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -54,15 +56,19 @@ class EbayFee(BaseService):
 
         # begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
         begin_date = self.batch_id
+        # begin_date = '2019-03-01'
         end_date = str(datetime.datetime.now())[:10]
+        # end_date = '2019-03-18'
         begin_date += "T00:00:00.000Z"
-        end_date += "T00:00:00.000Z"  # utc time
+        end_date += "T01:00:00.000Z"  # utc time
         try:
-            api = Trading(config_file=self.config, timeout=40)
+            api = Trading(siteid=0, config_file=self.config, timeout=40)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
                 "AccountEntrySortType": "AccountEntryFeeTypeAscending",
+                # "AccountEntrySortType": "AccountEntryCreatedTimeDescending",
                 "AccountHistorySelection": "BetweenSpecifiedDates",
+                "Currency": 'USD',
                 "BeginDate": begin_date,
                 "EndDate": end_date,
                 "Pagination": {"EntriesPerPage": 2000, "PageNumber": 1}
@@ -71,10 +77,15 @@ class EbayFee(BaseService):
             total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
             for num in range(0, total_pages):
                 par['Pagination']['PageNumber'] = num + 1
-                res = api.execute('GetAccount', par)
                 for i in range(1, 4):
                     try:
-                        ret = res.reply.AccountEntries.AccountEntry
+                        res = api.execute('GetAccount', par)
+                        try:
+                            ret = res.reply.AccountEntries.AccountEntry
+                        except Exception:
+                            par['Currency'] = 'GBP'
+                            res = api.execute('GetAccount', par)
+                            ret = res.reply.AccountEntries.AccountEntry
                         for row in ret:
                             fee_type = row.AccountDetailsEntryType
 
@@ -86,6 +97,7 @@ class EbayFee(BaseService):
                                 fee['feeType'] = fee_type
                                 fee['Date'] = str(row.Date)
                                 fee['value'] = row.NetDetailAmount.value
+                                fee['currency'] = row.NetDetailAmount._currencyID
                                 fee['accountName'] = ebay_token['notename']
                                 fee['ItemID'] = row.ItemID
                                 if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
@@ -104,7 +116,7 @@ class EbayFee(BaseService):
         sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId)' \
               ' values(%s,%s,%s,%s,%s,%s)'
         try:
-            self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], 'USD',
+            self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], row['currency'],
                              row['Date'], self.batch_id))
             self.logger.info("putting %s" % row['accountName'])
             self.con.commit()
