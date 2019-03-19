@@ -55,59 +55,60 @@ class EbayFee(BaseService):
         """
 
         # begin_date = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
-        begin_date = self.batch_id
-        # begin_date = '2019-03-01'
-        end_date = str(datetime.datetime.now())[:10]
-        # end_date = '2019-03-18'
+        # begin_date = self.batch_id
+        begin_date = '2019-03-02'
+        # end_date = str(datetime.datetime.now())[:10]
+        end_date = '2019-03-08'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         try:
             api = Trading(siteid=0, config_file=self.config, timeout=40)
             par = {
                 "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
-                "AccountEntrySortType": "AccountEntryFeeTypeAscending",
-                # "AccountEntrySortType": "AccountEntryCreatedTimeDescending",
+                # "AccountEntrySortType": "AccountEntryFeeTypeAscending",
+                "AccountEntrySortType": "AccountEntryCreatedTimeDescending",
                 "AccountHistorySelection": "BetweenSpecifiedDates",
                 "Currency": 'USD',
                 "BeginDate": begin_date,
                 "EndDate": end_date,
                 "Pagination": {"EntriesPerPage": 2000, "PageNumber": 1}
             }
-            response = api.execute('GetAccount', par)
-            total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
-            for num in range(0, total_pages):
-                par['Pagination']['PageNumber'] = num + 1
-                for i in range(1, 4):
-                    try:
-                        res = api.execute('GetAccount', par)
+            currency = ['USD', 'GBP']
+            for cur in currency:
+                par['Currency'] = cur
+                try:
+                    response = api.execute('GetAccount', par)
+                except Exception:
+                    par.pop("Currency")
+                    response = api.execute('GetAccount', par)
+                total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
+                for num in range(0, total_pages):
+                    par['Pagination']['PageNumber'] = num + 1
+                    for i in range(1, 4):
                         try:
-                            ret = res.reply.AccountEntries.AccountEntry
-                        except Exception:
-                            par['Currency'] = 'GBP'
                             res = api.execute('GetAccount', par)
                             ret = res.reply.AccountEntries.AccountEntry
-                        for row in ret:
-                            fee_type = row.AccountDetailsEntryType
+                            for row in ret:
+                                fee_type = row.AccountDetailsEntryType
 
-                            if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping',
-                                                'PayPalOTPSucc',
-                                                'PaymentCC', 'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown'
-                                                ):
-                                fee = dict()
-                                fee['feeType'] = fee_type
-                                fee['Date'] = str(row.Date)
-                                fee['value'] = row.NetDetailAmount.value
-                                fee['currency'] = row.NetDetailAmount._currencyID
-                                fee['accountName'] = ebay_token['notename']
-                                fee['ItemID'] = row.ItemID
-                                if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
-                                    self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
-                                if float(row.NetDetailAmount.value) != 0:
-                                    yield fee
-                        break
-
-                    except Exception as e:
-                        self.logger.error("trying %s times but %s" % (i, e))
+                                if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping',
+                                                    'PayPalOTPSucc',
+                                                    'PaymentCC', 'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown'
+                                                    ):
+                                    fee = dict()
+                                    fee['feeType'] = fee_type
+                                    fee['Date'] = str(row.Date)
+                                    fee['value'] = row.NetDetailAmount.value
+                                    fee['currency'] = row.NetDetailAmount._currencyID
+                                    fee['accountName'] = ebay_token['notename']
+                                    fee['ItemID'] = row.ItemID
+                                    if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
+                                        self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
+                                    if float(row.NetDetailAmount.value) != 0:
+                                        yield fee
+                            break
+                        except Exception as e:
+                            self.logger.error("trying %s times but %s" % (i, e))
         except Exception as e:
             self.logger.error('%s while getting ebay fee' % e)
             raise Exception(e)
@@ -133,12 +134,13 @@ class EbayFee(BaseService):
     def run(self):
         try:
             tokens = self.get_ebay_token()
-            with ThreadPoolExecutor() as pool:
+            with ThreadPoolExecutor(16) as pool:
                 future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
                         data = fu.result()
                         for row in data:
+                            # print(row)
                             self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
