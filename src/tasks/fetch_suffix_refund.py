@@ -22,7 +22,7 @@ class RefundFetcher(BaseService):
         for row in ret:
             yield (
                 row['suffix'], row['goodsname'], row['goodscode'], row['sku'],
-                row['tradeNid'], row['ack'], row['storename'],
+                row['tradeNid'], row['mergeBillId'], row['ack'], row['storename'],
                 row['total_value'], row['currencyCode'],
                 row['id'], row['refund_time'], row['orderTime'], row['orderCountry'],
                 row['platform'], row['expressWay'], row['refMonth'], row['dateDelta']
@@ -30,11 +30,11 @@ class RefundFetcher(BaseService):
 
     def push(self, rows):
         sql = ("insert into cache_refund_details("
-               "suffix,goodsName,goodsCode,goodsSku,tradeId,"
+               "suffix,goodsName,goodsCode,goodsSku,tradeId,mergeBillId,"
                "orderId,storeName,refund,currencyCode,refundId,"
                "refundTime,orderTime,orderCountry,platform,expressWay,refMonth,dateDelta) values ("
-               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
-               "ON DUPLICATE KEY UPDATE refund=values(refund),"
+               "%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+               "ON DUPLICATE KEY UPDATE refund=values(refund), mergeBillId=values(mergeBillId),"
                "orderTime=values(orderTime),orderCountry=values(orderCountry),"
                "platform=values(platform),expressWay=values(expressWay),"
                "refMonth=values(refMonth),dateDelta=values(dateDelta)")
