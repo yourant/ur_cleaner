@@ -42,8 +42,8 @@ class EbayFee(BaseService):
 
     def get_ebay_token(self):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken "
-               "FROM S_PalSyncInfo  GROUP BY notename"
-               " having notename='eBay-A6-vitalityang1'")
+               "FROM S_PalSyncInfo  GROUP BY notename")
+               # " having notename='eBay-A6-vitalityang1'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
