@@ -4,10 +4,9 @@
 # Author: turpure
 
 
-from ebaysdk.trading import Connection as Trading
-from ebaysdk import exception
 from src.services.base_service import BaseService
-from configs.config import Config
+from src.services.tracking_api import Tracker
+from multiprocessing import Pool
 
 
 class EbayTracker(BaseService):
@@ -15,36 +14,49 @@ class EbayTracker(BaseService):
     get ebay order tracking info
     """
 
-    def __init__(self):
-        super().__init__()
-        self.config = Config().get_config('ebay.yaml')
+    def get_track_no(self):
+        sql = ("select nid as tradeId, trackNo, suffix, dateadd(hour,8, ordertime) as orderTime from p_trade(nolock)"
+               " where datediff(day,orderTime,getdate())=10 and expressNId in (5,42)"
+               " and trackno is not null and addressOwner='ebay'")
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            yield row
 
-    def get_tracking(self):
-        token = 'AgAAAA**AQAAAA**aAAAAA**PUFiXA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AGkIupD5eCpA6dj6x9nY+seQ**kykBAA**AAMAAA**iEMy8914/Jad1/soLAuhRzURlm2bNhDkE+dhj7zb0cc0d7L5rfKmGjwIMPS62d+2sFvsv6pEoZj3z+MfosfWTApVyUdYZ3qhyxgBxDRAbdAfzCZpDzLgmas00+15ZAQiwM0bIRu0H1r34utE8SZkhItyUuPhWP1e75B2iddiSy85EHUBbjRXOPlwypZozSms+iVXy3jZzLoKelGdwk5mrtQgm8s/BvxIEe83nkgHAygzm5fq9eqqAcXosdjY/zNK4DvBELPfVI4oNiae/5HrlBMs/Yh0ut4GIqnMDCtCQ+rXb/mk7hzngd8yxubr0gZkmL92a1ZmqXdfVpbnOtLF4CezaSjwYi8y0/Yxf6/TSY1ihIKCBTQ0GQPMpMt1kPmpusXN7KwK9iHJ32ShUoO1FSCZVR9nrE7KP7KCouTYYc5e6WBBz4Fm5QV2DzhsjmbB3PI8luzEVIX8OVXuHsd7kH6KsIU7tmDhFoLyz/dK7tWeTnR+0EOOKF+UQ8VmL3X/hOcTJqz5ZZJ4pOsVCJnAQCmmrCpM7jSVIC/RGarGClhGj+qcTleId+MBSRtzPRhg8KCACm04yXbvyeYQTvERvWVHBy8SLirRIo/iqORTOViuRLJtFxTvh6euJj9H4R8CRxKafTMq9d8qJMF0lcNQg0GJmL6FbRqKK4NNj55CiIYdK1bN01nRc5ovO6CzPThkAk0syQb9uEuO2eVzoEC3xq1Rmggy5SIJ0rM6uBlLqTHIjyqB48j4FMDH3xLQ2/x5'
-        api = Trading(sited=0, config_file=self.config, timeout=40)
-        par = {
-            "RequesterCredentials": {"eBayAuthToken": token},
-            # 'ItemTransactionIDArray': {"ItemTransactionID": {"TransactionID": "6T319518JT669080N"}}
-            'OrderIDArray': {'OrderID': '283054740630-1962439790018'}
-        }
-        # response = api.execute('GetOrderTransactions', par)
-        response = api.execute('GetOrders', par)
-        return response.reply
+    def save_trans(self, row):
+        sql = ("insert into cache_express"
+               "(suffix, tradeId,trackNo,orderTime,lastDate,lastDetail) "
+               "values(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY update "
+               "lastDate=values(lastDate), lastDetail=values(lastDetail)")
+        self.warehouse_cur.execute(sql,
+                                   (row['suffix'], row['tradeId'], row['trackNo'],
+                                   row['orderTime'], row['lastDate'], row['lastDetail']))
+        self.warehouse_con.commit()
 
-    def work(self):
+    def work(self, track_info):
         try:
-            ret = self.get_tracking()
-            print(ret)
+            tracker = Tracker(track_info['trackNo'])
+            ret = tracker.track()
+            ret['tradeId'] = track_info['tradeId']
+            ret['suffix'] = track_info['suffix']
+            ret['orderTime'] = track_info['orderTime']
+            self.save_trans(ret)
+            self.logger.info('success to fetch {} info'.format(track_info['tradeId']))
+
         except Exception as why:
-            print(why)
-        finally:
-            self.close()
+            self.logger.error(why)
+
+    def run(self):
+        try:
+            for row in self.get_track_no():
+                self.work(row)
+        except Exception as why:
+            self.logger.error(why)
 
 
 if __name__ == '__main__':
-    tracker = EbayTracker()
-    res = tracker.work()
-    print(res)
+    worker = EbayTracker()
+    worker.run()
 
 
 
