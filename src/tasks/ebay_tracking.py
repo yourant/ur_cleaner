@@ -79,7 +79,7 @@ class Saver(BaseService):
     def save_trans(self):
         while True:
             this = datetime.datetime.now()
-            if (this-self.start).seconds >= 10 * 60:
+            if (this-self.start).seconds >= 20 * 60:
                 break
             else:
                 sql = ("insert into cache_express"
@@ -94,6 +94,8 @@ class Saver(BaseService):
                                                    row['orderTime'], row['lastDate'], row['lastDetail']))
                         self.warehouse_con.commit()
                         self.logger.info('success to fetch {} info'.format(row['tradeId']))
+                    else:
+                        break
                 except Exception as why:
                     self.logger.info(why)
 

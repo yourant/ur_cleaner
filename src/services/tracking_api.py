@@ -41,9 +41,9 @@ class Tracker(object):
             ret = json.loads(res.content)
             if self.express_name == 'winIt':
                 try:
-                    ret = ret['data']['transportation'][0]['trace'][-2]
-                    out['lastDate'] = ret['date']
-                    out['lastDetail'] = ret['eventStatus']
+                    row = ret['data']['all'][0]
+                    out['lastDate'] = row['trace'][-1]['date']
+                    out['lastDetail'] = row['status']
                 except Exception as why:
                     self.logger.error(why)
             if self.express_name == 'sprint':
