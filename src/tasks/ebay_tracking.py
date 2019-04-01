@@ -6,7 +6,7 @@
 
 from src.services.base_service import BaseService
 from src.services.tracking_api import Tracker
-from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures
 from multiprocessing import Process, Queue
 import datetime
 
@@ -15,12 +15,11 @@ class EbayTracker(BaseService):
     """
     get ebay order tracking info
     """
-    def __init__(self, queue):
+    def __init__(self):
         super().__init__()
-        self.queue = queue
 
     def get_track_no(self):
-        sql = ("select pt.nid as tradeId, expressNid, bw.name as expressName, trackNo, suffix, "
+        sql = ("select  pt.nid as tradeId, expressNid, bw.name as expressName, trackNo, suffix, "
                "dateadd(hour,8, ordertime) as orderTime from p_trade(nolock) as pt"
                " LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid= bw.nid"
                " where datediff(day,orderTime,getdate())=10 and expressNId in (5,42)"
@@ -32,8 +31,8 @@ class EbayTracker(BaseService):
 
     def save_trans(self, row):
         sql = ("insert into cache_express"
-               "(suffix, tradeId,trackNo,orderTime,lastDate,lastDetail) "
-               "values(%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY update "
+               "(suffix, tradeId,trackNo,expressName,orderTime,lastDate,lastDetail) "
+               "values(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY update "
                "lastDate=values(lastDate), lastDetail=values(lastDetail)")
         self.warehouse_cur.execute(sql,
                                    (row['suffix'], row['tradeId'], row['trackNo'], row['expressName'],
@@ -49,7 +48,7 @@ class EbayTracker(BaseService):
             ret['suffix'] = track_info['suffix']
             ret['orderTime'] = track_info['orderTime']
             ret['expressName'] = track_info['expressName']
-            self.put(ret)
+            return ret
 
         except Exception as why:
             self.logger.error(why)
@@ -61,8 +60,17 @@ class EbayTracker(BaseService):
 
     def run(self):
         try:
-            with ThreadPoolExecutor(8) as pool:
-                pool.map(self.work, self.get_track_no())
+            with concurrent.futures.ThreadPoolExecutor(8) as executor:
+                future_task = {executor.submit(self.work, no): no for no in self.get_track_no()}
+                for future in concurrent.futures.as_completed(future_task):
+                    track_no = future_task[future]
+                    try:
+                        data = future.result()
+                    except Exception as exc:
+                        print('{}: exception-{}'.format(track_no, exc))
+                    else:
+                        self.save_trans(data)
+
         except Exception as why:
             self.logger.error(why)
         finally:
@@ -111,7 +119,7 @@ def consumer(qe, start):
     worker.close()
 
 
-if __name__ == '__main__':
+def main_dead_loop():
     queue = Queue()
     now = datetime.datetime.now()
     p1 = Process(target=producer, args=(queue,))
@@ -120,7 +128,13 @@ if __name__ == '__main__':
         p.start()
 
     for p in [p1, p2]:
+
         p.join()
+
+
+if __name__ == '__main__':
+    worker = EbayTracker()
+    worker.run()
 
 
 
