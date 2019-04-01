@@ -10,24 +10,20 @@ from src.services import log
 
 class Tracker(object):
 
-    def __init__(self, track_number):
+    def __init__(self, track_number, expressNid):
         self.logger = log.SysLogger().log
         action_req = ''
         express_name = ''
         self.base_url = ''
         self.track_number = track_number
-        if track_number.startswith('WO'):
+        if expressNid == 5:
             express_name = 'winIt'
-        if track_number.startswith('37'):
-            express_name = 'winIt'
-        if track_number.startswith('UE'):
-            express_name = 'winIt'
-        if track_number.startswith('0B'):
+        else:
             express_name = 'sprint'
-            action_req = 'rml'
-        if track_number.startswith('VC'):
-            express_name = 'sprint'
-            action_req = 'rmr'
+            if track_number.startswith('0B'):
+                action_req = 'rml'
+            if track_number.startswith('VC'):
+                action_req = 'rmr'
 
         self.express_name = express_name
 
