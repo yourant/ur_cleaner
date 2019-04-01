@@ -15,8 +15,9 @@ class EbayTracker(BaseService):
     """
     get ebay order tracking info
     """
-    def __init__(self):
+    def __init__(self, queue):
         super().__init__()
+        self.queue = queue
 
     def get_track_no(self):
         sql = ("select  pt.nid as tradeId, expressNid, bw.name as expressName, trackNo, suffix, "
@@ -48,17 +49,17 @@ class EbayTracker(BaseService):
             ret['suffix'] = track_info['suffix']
             ret['orderTime'] = track_info['orderTime']
             ret['expressName'] = track_info['expressName']
-            return ret
+            self.put(ret)
+            # return ret
 
         except Exception as why:
             self.logger.error(why)
 
     def put(self, row):
         if not self.queue.full():
-            self.logger.info('putting {}'.format(row))
             self.queue.put(row)
 
-    def run(self):
+    def concurrent_run(self):
         try:
             with concurrent.futures.ThreadPoolExecutor(8) as executor:
                 future_task = {executor.submit(self.work, no): no for no in self.get_track_no()}
@@ -76,6 +77,15 @@ class EbayTracker(BaseService):
         finally:
             self.close()
 
+    def run(self):
+        try:
+            with concurrent.futures.ThreadPoolExecutor(8) as pool:
+                pool.map(self.work, self.get_track_no())
+        except Exception as why:
+            self.logger.error(why)
+        finally:
+            self.close()
+
 
 class Saver(BaseService):
 
@@ -86,26 +96,19 @@ class Saver(BaseService):
 
     def save_trans(self):
         while True:
-            this = datetime.datetime.now()
-            if (this-self.start).seconds >= 20 * 60:
-                break
-            else:
-                sql = ("insert into cache_express"
-                       "(suffix, tradeId,expressName,trackNo,orderTime,lastDate,lastDetail) "
-                       "values(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY update "
-                       "lastDate=values(lastDate), lastDetail=values(lastDetail)")
-                try:
-                    if not self.queue.empty():
-                        row = self.queue.get()
-                        self.warehouse_cur.execute(sql,
-                                                   (row['suffix'], row['tradeId'], row['expressName'], row['trackNo'],
-                                                   row['orderTime'], row['lastDate'], row['lastDetail']))
-                        self.warehouse_con.commit()
-                        self.logger.info('success to fetch {} info'.format(row['tradeId']))
-                    else:
-                        break
-                except Exception as why:
-                    self.logger.info(why)
+            sql = ("insert into cache_express"
+                   "(suffix, tradeId,expressName,trackNo,orderTime,lastDate,lastDetail) "
+                   "values(%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY update "
+                   "lastDate=values(lastDate), lastDetail=values(lastDetail)")
+            try:
+                row = self.queue.get()
+                self.warehouse_cur.execute(sql,
+                                           (row['suffix'], row['tradeId'], row['expressName'], row['trackNo'],
+                                           row['orderTime'], row['lastDate'], row['lastDetail']))
+                self.warehouse_con.commit()
+                self.logger.info('success to fetch {} info'.format(row['tradeId']))
+            except Exception as why:
+                self.logger.info(why)
 
 
 def producer(qe):
@@ -119,22 +122,27 @@ def consumer(qe, start):
     worker.close()
 
 
-def main_dead_loop():
+def pro_con():
     queue = Queue()
     now = datetime.datetime.now()
-    p1 = Process(target=producer, args=(queue,))
-    p2 = Process(target=consumer, args=(queue, now))
-    for p in [p1, p2]:
+    pp = Process(target=producer, args=(queue,))
+    pc = Process(target=consumer, args=(queue, now))
+    for p in [pp, pc]:
         p.start()
-
-    for p in [p1, p2]:
-
-        p.join()
+    pp.join()
+    pc.terminate()
 
 
 if __name__ == '__main__':
-    worker = EbayTracker()
-    worker.run()
+    queue = Queue()
+    now = datetime.datetime.now()
+    pp = Process(target=producer, args=(queue,))
+    pc = Process(target=consumer, args=(queue, now))
+    for p in [pp, pc]:
+        p.start()
+    pp.join()
+    pc.terminate()
+
 
 
 
