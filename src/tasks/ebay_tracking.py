@@ -61,7 +61,7 @@ class EbayTracker(BaseService):
 
     def concurrent_run(self):
         try:
-            with concurrent.futures.ThreadPoolExecutor(8) as executor:
+            with concurrent.futures.ThreadPoolExecutor(16) as executor:
                 future_task = {executor.submit(self.work, no): no for no in self.get_track_no()}
                 for future in concurrent.futures.as_completed(future_task):
                     track_no = future_task[future]
