@@ -23,7 +23,7 @@ class EbayTracker(BaseService):
         sql = ("select  pt.nid as tradeId, expressNid, bw.name as expressName, trackNo, suffix, "
                "dateadd(hour,8, ordertime) as orderTime from p_trade(nolock) as pt"
                " LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid= bw.nid"
-               " where datediff(day,orderTime,getdate())=10 and expressNId in (5,42)"
+               " where datediff(day,orderTime,getdate())<10 and expressNId in (5,42)"
                " and addressOwner='ebay' and trackno is not null")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
