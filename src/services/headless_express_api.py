@@ -10,13 +10,13 @@ import re
 
 
 def track_number():
-    a = ['https://www.trackingmore.com/sprintpack-tracking/cn.html?number=0B048028400019917237E'] * 10
+    a = ['https://www.trackingmore.com/sprintpack-tracking/cn.html?number=0B048028400019917237E'] * 1
     for row in a:
         yield row
 
 
 async def run(base_url):
-    browser = await launch({'headless': True, 'disable-gpu': True})
+    browser = await launch({'headless': False, 'disable-gpu': True})
     page = await browser.newPage()
     await page.goto(base_url)
     element = await page.querySelector('#trackItem_0 > tr > td > div.row_box_big.result-events > dl.row_box.origin')
