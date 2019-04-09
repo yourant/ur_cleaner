@@ -20,11 +20,14 @@ class Picker(BaseService):
             yield
 
     def do_task(self, row):
-        sql = 'update p_trade set packingMen=%s, updatedTime=now(),idDone=1 where batchNum=%s'
+        task_sql = "update p_trade set packingMen=%s where batchNum=%s"
+        status_sql = 'update task_pick set updatedTime=now(),isDone=1 where batchNumber=%s'
         try:
-            self.warehouse_cur.execute(sql, (row['picker'], row['batchNumber']))
-            self.logger.info('{} picked {}', format(row['picker'], row['batchNumber']))
+            self.cur.execute(task_sql, (row['picker'], row['batchNumber']))
+            self.warehouse_cur.execute(status_sql, (row['batchNumber']))
+            self.logger.info('{} picked {}'.format(row['picker'], row['batchNumber']))
             self.warehouse_con.commit()
+            self.con.commit()
         except Exception as why:
             self.logger.error('{} failed to pick {} cause of {}'.format(row['picker'], row['batchNumber'], why))
 
