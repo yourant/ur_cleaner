@@ -43,6 +43,7 @@ class WishRefund(BaseService):
                     "start": start,
                     "limit": 500,
                     "since": date,
+
                 }
                 r = requests.get(url, params=data)
                 res_dict = json.loads(r.content)
@@ -64,10 +65,19 @@ class WishRefund(BaseService):
             self.logger.error(e)
 
     def save_data(self, row):
-        sql = "INSERT INTO y_refunded (order_id,refund_time,total_value,currencyCode)" \
-              " VALUES(%s,%s,%s,%s)"
+        sql = ("if not EXISTS (select id from y_refunded(nolock) where "
+               "order_id=%s and refund_time= %s) "
+               "insert into y_refunded (order_id,refund_time, total_value,currencyCode) "
+               "values (%s,%s,%s,%s) "
+               "else update y_refunded set "
+               "total_value=%s where order_id=%s and refund_time= %s")
+        # sql = "INSERT INTO y_refunded (order_id,refund_time,total_value,currencyCode)" \
+        #       " VALUES(%s,%s,%s,%s)"
         try:
-            self.cur.execute(sql, (row['order_id'], row['last_updated'], row['order_total'], 'USD'))
+            self.cur.execute(sql,
+                             (row['order_id'], row['refunded_time'],
+                              row['order_id'], row['refunded_time'], row['merchant_responsible_refund_amount'], 'USD',
+                              row['merchant_responsible_refund_amount'], row['order_id'], row['refunded_time']))
             self.con.commit()
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:
