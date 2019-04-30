@@ -9,7 +9,7 @@ from src.services.base_service import BaseService
 class Picker(BaseService):
 
     def get_tasks(self):
-        sql = 'select batchNumber, picker from task_pick where isDone=0'
+        sql = 'select batchNumber, picker from task_pick where isDone=1'
         try:
             self.warehouse_cur.execute(sql)
             ret = self.warehouse_cur.fetchall()
@@ -21,7 +21,7 @@ class Picker(BaseService):
 
     def get_trades(self, row):
         trades_to_update = ("select tradeNid, pickupNo as batchNumber "
-                            "from P_TradePickup(nolock)  where 1=1  and PickupNo like '%{}%' ")
+                            "from P_TradePickup(nolock)  where 1=1  and PickupNo = '{}' ")
         try:
             self.cur.execute(trades_to_update.format(row['batchNumber']))
             ret = self.cur.fetchall()
