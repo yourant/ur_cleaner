@@ -9,7 +9,7 @@ from src.services.base_service import BaseService
 class Picker(BaseService):
 
     def get_tasks(self):
-        sql = 'select batchNumber, picker from task_pick where isDone=1'
+        sql = 'select batchNumber, picker from task_pick where isDone=0'
         try:
             self.warehouse_cur.execute(sql)
             ret = self.warehouse_cur.fetchall()
