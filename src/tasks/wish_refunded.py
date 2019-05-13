@@ -25,8 +25,9 @@ class WishRefund(BaseService):
             yield row
 
     def get_wish_token(self):
-        sql = "SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " \
-              "datediff(DAY,LastSyncTime,getdate())<5 and aliasname is not null"
+        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " 
+              "datediff(DAY,LastSyncTime,getdate())<5 and aliasname is not null")
+                # " and  AliasName='WIS07-Rosa'")
         tokens = self.run_sql(sql)
         return tokens
 
@@ -43,7 +44,7 @@ class WishRefund(BaseService):
                     "start": start,
                     "limit": 500,
                     "since": date,
-
+                    # "upto": '2018-03-01'
                 }
                 r = requests.get(url, params=data)
                 res_dict = json.loads(r.content)
@@ -62,7 +63,7 @@ class WishRefund(BaseService):
                 else:
                     break
         except Exception as e:
-            self.logger.error(e)
+            self.logger.error('{} fails cause of {}'.format(token['aliasname'], e))
 
     def save_data(self, row):
         sql = ("if not EXISTS (select id from y_refunded(nolock) where "
@@ -79,7 +80,7 @@ class WishRefund(BaseService):
                               row['order_id'], row['refunded_time'], row['merchant_responsible_refund_amount'], 'USD',
                               row['merchant_responsible_refund_amount'], row['order_id'], row['refunded_time']))
             self.con.commit()
-            self.logger.info('save %s' % row['order_id'])
+            # self.logger.info('save %s' % row['order_id'])
         except Exception as e:
             self.logger.error('fail to save %s cause of duplicate key' % (row['order_id']))
 
