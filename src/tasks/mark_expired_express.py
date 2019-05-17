@@ -11,7 +11,7 @@ import datetime
 class Checker(BaseService):
 
     def get_trades(self):
-        sql = ("select pt.nid, logs,name from p_tradeun(nolock) as pt"
+        sql = ("select pt.nid, logs,addressOwner,name from p_tradeun(nolock) as pt"
                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid "
                "LEFT JOIN b_logisticWay as bw on pt.logicsWayNid = bw.nid "
                "where PROTECTIONELIGIBILITYTYPE='缺货订单'  and (pt.trackNo is not null "
@@ -37,10 +37,10 @@ class Checker(BaseService):
         for row in trades:
             date = re.search(r'\d{4}-\d{2}-\d{2}', row['logs']).group(0)
             if row['nid'] not in out:
-                out[row['nid']] = {'express': row['name'], 'date': date}
+                out[row['nid']] = {'express': row['name'], 'date': date, 'addressOwner': row['addressOwner']}
             else:
                 if out[row['nid']]['date'] < date:
-                    out[row['nid']] = {'express': row['name'], 'date': date}
+                    out[row['nid']] = {'express': row['name'], 'date': date, 'addressOwner': row['addressOwner']}
         return out
 
     def mark(self, nid):
@@ -74,10 +74,16 @@ class Checker(BaseService):
             date = row[1]['date']
             express = row[1]['express']
             if express in express_info:
-                if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
-                    self.mark(nid)
+                if row[1]['addressOwner'] == 'aliexpress':
+                    if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                        self.mark(nid)
+                    else:
+                        self.unmark(nid)
                 else:
-                    self.unmark(nid)
+                    if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
+                        self.mark(nid)
+                    else:
+                        self.unmark(nid)
 
     def run(self):
         try:
