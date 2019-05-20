@@ -6,8 +6,14 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+import platform
 
-DRIVER_PATH = r'C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe'
+
+plat = platform.system()
+if plat == 'Windows':
+    DRIVER_PATH = r'C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe'
+else:
+    DRIVER_PATH = '/usr/lib/chromium-browser/chromedriver'
 chrome_options = Options()
 pref = {"profile.managed_default_content_settings.images": 2}
 chrome_options.add_experimental_option("prefs", pref)
