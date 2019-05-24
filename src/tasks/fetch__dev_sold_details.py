@@ -27,6 +27,7 @@ class Fetcher(BaseService):
                    row['tradeNid'],
                    row['plat'],
                    row['suffix'],
+                   int(row['sold']) if row['sold'] else 0,
                    float(row['amt']) if row['amt'] else 0,
                    float(row['profit']) if row['profit'] else 0,
                    row['dateFlag'],
@@ -35,9 +36,9 @@ class Fetcher(BaseService):
 
     def push(self, rows):
         sql = ('insert into cache_devGoodsSoldDetail('
-               'developer,goodsCode,developDate,goodsStatus,tradeNid,plat,suffix,amt,profit,dateFlag,orderTime) '
-               'values(%s,%s,%s, %s,%s,%s,%s,%s,%s,%s,%s)'
-                ' ON DUPLICATE KEY UPDATE amt=values(amt),profit=values(profit)'
+               'developer,goodsCode,developDate,goodsStatus,tradeNid,plat,suffix,sold,amt,profit,dateFlag,orderTime) '
+               'values(%s,%s,%s, %s,%s,%s,%s,%s,%s,%s,%s,%s)'
+                ' ON DUPLICATE KEY UPDATE sold=values(sold),amt=values(amt),profit=values(profit)'
                )
         self.warehouse_cur.executemany(sql, list(rows))
         self.warehouse_con.commit()
