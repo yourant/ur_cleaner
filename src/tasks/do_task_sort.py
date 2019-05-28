@@ -41,7 +41,7 @@ class Sorter(BaseService):
             self.logger.error('{} failed to sort {} cause of {}'.format(row['tradeNid'], row['batchNumber'], why))
 
     def after_task(self, row):
-        status_sql = 'update task_pick set updatedTime=now(),isDone=1 where batchNumber=%s'
+        status_sql = 'update task_sort set updatedTime=now(),isDone=1 where batchNumber=%s'
         try:
             self.warehouse_cur.execute(status_sql, (row['batchNumber']))
             self.warehouse_con.commit()
