@@ -60,10 +60,10 @@ class Fetcher(BaseService):
 
     def work(self):
         try:
-            today = str(datetime.datetime.today())
+            today = str(datetime.datetime.today())[:10]
             four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, four_days_ago, today[:10])
+                rows = self.fetch(date_flag, four_days_ago, today)
                 self.push(rows)
                 self.logger.info('success to fetch dev goods profit details')
         except Exception as why:
