@@ -8,10 +8,13 @@ import datetime
 
 
 def get_sentence():
+    """
+    金山api
+    :return:
+    """
     today = str(datetime.datetime.now())[:10]
-    date = str(int(today[0:4]) - 7) + today[4:]
-    print(date)
-    base_url = 'http://open.iciba.com/dsapi/?date={}'.format(date)
+    # date = str(int(today[0:4]) - ) + today[4:]
+    base_url = 'http://open.iciba.com/dsapi/?date={}'.format(today)
     try:
         res = requests.get(base_url)
         ret = res.json()
@@ -20,5 +23,20 @@ def get_sentence():
         return 'this is a beautiful day'
 
 
+def get_quote():
+    """
+    天行api
+    :return:
+    """
+    key = '186b6eeac08d0529bc3d073f50d776f3'
+    base_url = 'http://api.tianapi.com/txapi/ensentence/?key={}'.format(key)
+    try:
+        res = requests.get(base_url)
+        ret = res.json()
+        return ret['newslist'][0]['en']
+    except:
+        return 'this is a wonderful day'
+
+
 if __name__ == "__main__":
-    print(get_sentence())
+    get_quote()
