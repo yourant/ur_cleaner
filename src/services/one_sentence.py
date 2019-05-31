@@ -39,7 +39,7 @@ def get_quote():
         ret = res.json()
         return ret['newslist'][0]['en']
     except:
-        return 'this is a wonderful day'
+        return 'where amazing happens'
 
 
 def get_you_dao():
