@@ -42,7 +42,7 @@ class Fetcher(BaseService):
                    row['orderTime']
                    )
 
-    def push(self, rows):
+    def push(self, row):
         sql = ('insert into cache_devGoodsProfit('
                'developer,goodsCode,devDate,goodsStatus,sold,amt,profit,rate,ebaySold,ebayProfit,wishSold,wishProfit,'
                'smtSold,smtProfit,joomSold,joomProfit,amazonSold,amazonProfit,dateFlag,orderTime)'
@@ -52,7 +52,7 @@ class Fetcher(BaseService):
                'wishProfit=values(wishProfit),smtSold=values(smtSold),joomSold=values(joomSold),joomProfit=values(joomProfit),'
                'amazonSold=values(amazonSold),amazonProfit=values(amazonProfit)'
                )
-        self.warehouse_cur.executemany(sql, list(rows))
+        self.warehouse_cur.execut(sql, list(row))
         self.warehouse_con.commit()
 
     def clean(self):
@@ -63,8 +63,9 @@ class Fetcher(BaseService):
             today = str(datetime.datetime.today())[:10]
             four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, four_days_ago, today)
-                self.push(rows)
+                rows = self.fetch(date_flag, '2015-01-01', '2019-01-01')
+                for row in rows:
+                    self.push(row)
                 self.logger.info('success to fetch dev goods profit details')
         except Exception as why:
             self.logger.error('fail to fetch dev goods profit details of {}'.format(why))

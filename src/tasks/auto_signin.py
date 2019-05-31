@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import platform
-from src.services.one_sentence import get_quote
+from src.services.one_sentence import get_you_dao
 from configs.config import Config
 
 yii_user_info = Config().get_config('yii')
@@ -25,7 +25,7 @@ chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--ignore-certificate-errors')
 
 
-def sign_in(username, password):
+def sign_in(username, password, what_to_say):
     base_url = 'https://www.yiichina.com/login'
     driver = webdriver.Chrome(DRIVER_PATH, chrome_options=chrome_options)
     driver.get(base_url)
@@ -43,7 +43,7 @@ def sign_in(username, password):
     try:
         registration_btn = driver.find_element_by_xpath('//a[contains(@class, "btn-registration")]')
         registration_btn.click()
-        time.sleep(5)
+        time.sleep(2)
     except Exception as why:
         print(why)
 
@@ -51,13 +51,16 @@ def sign_in(username, password):
     try:
         feed_ele = driver.find_element_by_id('feed-content')
         publish_btn = driver.find_element_by_xpath('//button[contains(text(), "发布")]')
-        what_to_say = get_quote()
         feed_ele.send_keys(what_to_say)
         publish_btn.click()
         time.sleep(1)
     except Exception as why:
         print(why)
 
+    finally:
+        driver.close()
+
 
 if __name__ == "__main__":
-    sign_in(yii_user_info['username'], yii_user_info['password'])
+    what_to_say = get_you_dao()
+    sign_in(yii_user_info['username'], yii_user_info['password'], what_to_say)

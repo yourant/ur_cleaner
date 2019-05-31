@@ -5,6 +5,10 @@
 
 import requests
 import datetime
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import platform
+import time
 
 
 def get_sentence():
@@ -38,5 +42,35 @@ def get_quote():
         return 'this is a wonderful day'
 
 
+def get_you_dao():
+    """
+    有道每日一句
+    :return:
+    """
+
+    plat = platform.system()
+    if plat == 'Windows':
+        DRIVER_PATH = r'C:\Program Files (x86)\Google\Chrome\Application\chromedriver.exe'
+    else:
+        DRIVER_PATH = '/usr/lib/chromium-browser/chromedriver'
+    chrome_options = Options()
+    pref = {"profile.managed_default_content_settings.images": 2}
+    chrome_options.add_experimental_option("prefs", pref)
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--ignore-certificate-errors')
+    base_url = 'http://dict.youdao.com'
+    driver = webdriver.Chrome(DRIVER_PATH, chrome_options=chrome_options)
+    try:
+        driver.get(base_url)
+        time.sleep(0.5)
+        sentence_ele = driver.find_element_by_xpath('//*[@id="vista"]/div[1]/div/h3/a')
+        sentence = sentence_ele.text
+        driver.close()
+        return sentence
+    except:
+        return 'this is why we play'
+
+
 if __name__ == "__main__":
-    get_quote()
+    print(get_you_dao())
