@@ -62,5 +62,5 @@ def sign_in(username, password, what_to_say):
 
 
 if __name__ == "__main__":
-    what_to_say = get_you_dao()
-    sign_in(yii_user_info['username'], yii_user_info['password'], what_to_say)
+    say = get_you_dao()
+    sign_in(yii_user_info['username'], yii_user_info['password'], say)

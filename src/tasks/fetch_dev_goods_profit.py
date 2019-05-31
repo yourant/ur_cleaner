@@ -63,7 +63,7 @@ class Fetcher(BaseService):
             today = str(datetime.datetime.today())[:10]
             four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, '2015-01-01', '2019-01-01')
+                rows = self.fetch(date_flag, four_days_ago, today)
                 for row in rows:
                     self.push(row)
                 self.logger.info('success to fetch dev goods profit details')
