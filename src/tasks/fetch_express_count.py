@@ -20,13 +20,13 @@ class OrderCounter(BaseService):
         self.cur.execute(sql, (date_flag, begin_date, end_date))
         ret = self.cur.fetchall()
         for row in ret:
-            yield (row['expressName'], row['orderTime'], row['expressCount'], row['dateFlag'])
+            yield (row['suffix'], row['expressName'], row['orderTime'], row['expressCount'], row['dateFlag'])
 
     def push(self, rows):
         sql = ["insert into cache_expressCount",
-               "(expressName,orderTime,expressCount,dateFlag)",
+               "(suffix, expressName,orderTime,expressCount,dateFlag)",
                "values",
-               "( %s,%s,%s,%s)",
+               "( %s,%s,%s,%s, %s)",
                "on duplicate key update expressCount=values(expressCount)"]
         self.warehouse_cur.executemany(''.join(sql), rows)
         self.warehouse_con.commit()
