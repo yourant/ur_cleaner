@@ -9,6 +9,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import platform
 import time
+import json
+import re
 
 
 def get_sentence():
@@ -56,21 +58,41 @@ def get_you_dao():
     chrome_options = Options()
     pref = {"profile.managed_default_content_settings.images": 2}
     chrome_options.add_experimental_option("prefs", pref)
-    chrome_options.add_argument("--headless")
+    # chrome_options.add_argument("--headless")
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--ignore-certificate-errors')
     base_url = 'http://dict.youdao.com'
     driver = webdriver.Chrome(DRIVER_PATH, chrome_options=chrome_options)
     try:
         driver.get(base_url)
-        time.sleep(0.5)
-        sentence_ele = driver.find_element_by_xpath('//*[@id="vista"]/div[1]/div/h3/a')
-        sentence = sentence_ele.text
-        driver.close()
-        return sentence
+        time.sleep(2)
+        driver.execute_script('window.scrollBy(0,10000)')
+        time.sleep(1)
+        sentence_ele = driver.find_element_by_xpath('//span[contains(text(), "壹句")]/parent::div/parent::div/child::h3/child::a')
+        print(sentence_ele.text)
+        # sentence_ele = driver.find_element_by_css_selector('#vista > div:nth-child(3) > div > h3 > a')
+        # sentence = sentence_ele.text
+        # driver.close()
+        # return sentence
+    except Exception as why:
+        print(why)
+        return 'this is why we play'
+
+
+def get_you_dao_api():
+    today = str(datetime.datetime.now())[:10]
+    base_url = ('http://dict.youdao.com/infoline/web?mode=publish&client=web&keyfrom=dict2.index&startDate={}'
+                '&callback=vistaCallback').format(today)
+    try:
+        res = requests.get(base_url)
+        ret = json.loads(re.findall(r'vistaCallback\((.*?)\)', res.text)[0])
+        data = ret[today]
+        for row in data:
+            if row['type'] == '壹句':
+                return row['title']
     except:
         return 'this is why we play'
 
 
 if __name__ == "__main__":
-    print(get_you_dao())
+    print(get_you_dao_api())
