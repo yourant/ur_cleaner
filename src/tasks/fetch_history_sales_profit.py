@@ -66,7 +66,8 @@ class Fetcher(BaseService):
     def work(self):
         try:
             exchange_rate = self.get_exchange()
-            for month in self.get_month('2019-01-01', '2019-05-01'):
+            today = str(datetime.datetime.now())[:10]
+            for month in self.get_month('2019-01-01', today):
                 rows = self.fetch(exchange_rate, month)
                 self.push(rows)
                 self.logger.info('success to fetch dev goods profit details')
