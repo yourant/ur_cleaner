@@ -55,16 +55,11 @@ class Fetcher(BaseService):
         self.warehouse_cur.execut(sql, list(row))
         self.warehouse_con.commit()
 
-    def clean(self):
-        sql = 'truncate table cache_devGoodsProfit'
-        self.warehouse_cur.execute(sql)
-        self.warehouse_con.commit()
 
     def work(self):
         try:
             today = str(datetime.datetime.today())[:10]
             four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
-            self.clean()
             for date_flag in [0, 1]:
                 rows = self.fetch(date_flag, '2015-01-01', today)
                 for row in rows:
