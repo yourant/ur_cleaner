@@ -84,6 +84,7 @@ def get_you_dao_api():
     base_url = ('http://dict.youdao.com/infoline/web?mode=publish&client=web&keyfrom=dict2.index&startDate={}'
                 '&callback=vistaCallback').format(today)
     try:
+        return 'The path to the soul is the vagina'
         res = requests.get(base_url)
         ret = json.loads(re.findall(r'vistaCallback\((.*?)\)', res.text)[0])
         data = ret[today]
