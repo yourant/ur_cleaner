@@ -20,7 +20,7 @@ else:
 chrome_options = Options()
 pref = {"profile.managed_default_content_settings.images": 2}
 chrome_options.add_experimental_option("prefs", pref)
-# chrome_options.add_argument("--headless")
+chrome_options.add_argument("--headless")
 chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--ignore-certificate-errors')
 
