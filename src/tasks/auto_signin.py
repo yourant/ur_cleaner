@@ -20,7 +20,7 @@ else:
 chrome_options = Options()
 pref = {"profile.managed_default_content_settings.images": 2}
 chrome_options.add_experimental_option("prefs", pref)
-chrome_options.add_argument("--headless")
+# chrome_options.add_argument("--headless")
 chrome_options.add_argument('--disable-gpu')
 chrome_options.add_argument('--ignore-certificate-errors')
 
@@ -52,6 +52,7 @@ def sign_in(username, password, what_to_say):
         feed_ele = driver.find_element_by_id('feed-content')
         publish_btn = driver.find_element_by_xpath('//button[contains(text(), "发布")]')
         feed_ele.send_keys(what_to_say)
+        time.sleep(1)
         publish_btn.click()
         time.sleep(1)
     except Exception as why:
