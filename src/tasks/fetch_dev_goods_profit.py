@@ -42,7 +42,7 @@ class Fetcher(BaseService):
                    row['orderTime']
                    )
 
-    def push(self, row):
+    def push(self, rows):
         sql = ('insert into cache_devGoodsProfit('
                'developer,goodsCode,devDate,goodsStatus,sold,amt,profit,rate,ebaySold,ebayProfit,wishSold,wishProfit,'
                'smtSold,smtProfit,joomSold,joomProfit,amazonSold,amazonProfit,dateFlag,orderTime)'
@@ -52,18 +52,54 @@ class Fetcher(BaseService):
                'wishProfit=values(wishProfit),smtSold=values(smtSold),joomSold=values(joomSold),joomProfit=values(joomProfit),'
                'amazonSold=values(amazonSold),amazonProfit=values(amazonProfit)'
                )
-        self.warehouse_cur.execut(sql, list(row))
+        self.warehouse_cur.executemany(sql, list(rows))
         self.warehouse_con.commit()
+
+    @staticmethod
+    def date_range(begin_date, end_date):
+        dt = datetime.datetime.strptime(begin_date, "%Y-%m-%d")
+        date = begin_date[:]
+        while date <= end_date:
+            dt = dt + datetime.timedelta(1)
+            date = dt.strftime("%Y-%m-%d")
+            yield date
+
+    def get_month(self, begin_date, end_date):
+        month = []
+        for date in self.date_range(begin_date, end_date):
+            if date[:7] not in month:
+                month.append(date[:7])
+        return month
+
+    @staticmethod
+    def next_month(month):
+        (year, month) = month.split('-')
+        month = int(month)
+        year = int(year)
+        if month >= 10 and month < 12:
+            month += 1
+        elif month >= 1 and month < 10:
+            month += 1
+            month = '0' + str(month)
+        else:
+            year += 1
+            month = '01'
+        return str(year) + '-' + str(month)
 
     def work(self):
         try:
-            today = str(datetime.datetime.today())[:10]
-            four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+            begin_date = '2018-05-01'
+            end_date = '2018-10-01'
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, four_days_ago, today)
-                for row in rows:
-                    self.push(row)
-                self.logger.info('success to fetch dev goods profit details')
+                month = self.get_month(begin_date, end_date)
+                for mon in month:
+                    begin = mon
+                    end = self.next_month(begin)
+                    self.fetch(date_flag, begin, end)
+                    rows = self.fetch(date_flag, begin_date, end_date)
+                    self.push(rows)
+                    self.logger.info('success to fetch dev goods profit details between {} and {}'
+                                     .format(begin, end))
         except Exception as why:
             self.logger.error('fail to fetch dev goods profit details of {}'.format(why))
         finally:
