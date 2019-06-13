@@ -15,7 +15,7 @@ class Fetcher(BaseService):
     def __init__(self):
         super().__init__()
 
-    def fetch(self, date_flag, begin_date, end_date):
+    def fetch(self, begin_date, end_date, date_flag):
         sql = 'call report_devGoodsProfit (%s, %s, %s)'
         self.warehouse_cur.execute(sql, (begin_date, end_date, date_flag))
         ret = self.warehouse_cur.fetchall()
@@ -52,7 +52,7 @@ class Fetcher(BaseService):
                'wishProfit=values(wishProfit),smtSold=values(smtSold),joomSold=values(joomSold),joomProfit=values(joomProfit),'
                'amazonSold=values(amazonSold),amazonProfit=values(amazonProfit)'
                )
-        self.warehouse_cur.executemany(sql, list(rows))
+        self.warehouse_cur.executemany(sql, rows)
         self.warehouse_con.commit()
 
     @staticmethod
@@ -76,27 +76,26 @@ class Fetcher(BaseService):
         (year, month) = month.split('-')
         month = int(month)
         year = int(year)
-        if month >= 10 and month < 12:
+        if month >= 9 and month < 12:
             month += 1
-        elif month >= 1 and month < 10:
+        elif month >= 1 and month < 9:
             month += 1
             month = '0' + str(month)
         else:
             year += 1
             month = '01'
-        return str(year) + '-' + str(month)
+        return str(year) + '-' + str(month) + '-' + '01'
 
     def work(self):
         try:
-            begin_date = '2018-05-01'
-            end_date = '2018-10-01'
+            end_date = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+            begin_date = str(datetime.datetime.strptime(end_date[:8] + '01', '%Y-%m-%d'))[:10]
             for date_flag in [0, 1]:
                 month = self.get_month(begin_date, end_date)
                 for mon in month:
-                    begin = mon
-                    end = self.next_month(begin)
-                    self.fetch(date_flag, begin, end)
-                    rows = self.fetch(date_flag, begin_date, end_date)
+                    begin = mon + '-01'
+                    end = self.next_month(mon)
+                    rows = self.fetch(begin, end, date_flag)
                     self.push(rows)
                     self.logger.info('success to fetch dev goods profit details between {} and {}'
                                      .format(begin, end))
