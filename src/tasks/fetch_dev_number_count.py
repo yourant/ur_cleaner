@@ -17,7 +17,7 @@ class Fetcher(BaseService):
 
     def fetch(self):
         sql = ("select salerName as developer, count(nid) as hasNumber "
-               "from b_goods(nolock)  where goodsStatus not like '%清仓%' "
+               "from b_goods(nolock)  where goodsStatus in ('爆款', '旺款', '浮动款', '在售') "
                " and isnull(salerName,'') != '' "
                "group by salerName")
         self.cur.execute(sql)
