@@ -109,7 +109,7 @@ class WishRefund(BaseService):
 
 if __name__ == "__main__":
     worker = WishRefund()
-    print(worker.get_wish_token())
+    worker.run()
 
 
 
