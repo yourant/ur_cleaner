@@ -26,9 +26,9 @@ class WishRefund(BaseService):
 
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " 
-              "datediff(DAY,LastSyncTime,getdate())<5 and aliasname is not null")
-                # " and  AliasName='WISE106-wisdomhe'")
-        # WISE28 - Foreverbeauty521
+              "datediff(DAY,LastSyncTime,getdate())<5 and aliasname is not null"
+                " and  AliasName not in "
+               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish')")
         tokens = self.run_sql(sql)
         return tokens
 
@@ -109,7 +109,7 @@ class WishRefund(BaseService):
 
 if __name__ == "__main__":
     worker = WishRefund()
-    worker.run()
+    print(worker.get_wish_token())
 
 
 
