@@ -11,6 +11,9 @@ import platform
 import time
 import json
 import re
+from bs4 import BeautifulSoup
+import codecs
+import random
 
 
 def get_sentence():
@@ -94,5 +97,35 @@ def get_you_dao_api():
         return 'this is why we play'
 
 
+def collect_one_piece():
+    # base_url = 'http://www.yuluju.com/mingrenmingyan/11186.html'
+    headers = {'User-Agent': 'PostmanRuntime/7.15.0'}
+    base_url = 'http://www.pc841.com/yuedu/yulu/91213_all.html'
+    ret = requests.get(base_url, headers=headers)
+    soup = BeautifulSoup(ret.content.decode('utf-8'), 'lxml')
+    p_elements = soup.find_all('p')
+    with codecs.open('../../runtime/sentence.csv', 'a+', 'utf-8') as f:
+        for ele in p_elements:
+            print(ele.text)
+            f.write(ele.text + '\n')
+
+
+def get_one_piece():
+    try:
+        with codecs.open('../../runtime/sentence.csv', 'r', 'utf-8') as f:
+            sentences = f.readlines()
+            count = len(sentences)
+            index = random.randint(0, count)
+            ret = (sentences[index])
+        with codecs.open('../../runtime/sentence.csv', 'w', 'utf-8') as f:
+            for sec in sentences:
+                if ret in sec:
+                    continue
+                f.write(sec)
+        return ret
+    except:
+        return '要按照自己喜欢的去做，得不到别人的赞赏也没关系，不要怨恨自己出生的时代。'
+
+
 if __name__ == "__main__":
-    print(get_you_dao_api())
+    collect_one_piece()

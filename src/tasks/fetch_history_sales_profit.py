@@ -74,6 +74,7 @@ class Fetcher(BaseService):
         except Exception as why:
             self.logger.error('fail to fetch dev goods profit details of {}'.format(why))
         finally:
+
             self.close()
 
 

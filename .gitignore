@@ -9,3 +9,5 @@
 # pyc
 *.pyc
 /configs/dev/ebay.yaml
+/runtime/sentence.txt
+/runtime/sentence.csv
