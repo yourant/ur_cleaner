@@ -123,7 +123,7 @@ class EbayFee(BaseService):
         for row in ret:
             fee_type = row.AccountDetailsEntryType
             if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping',
-                                'PayPalOTPSucc',
+                                'PayPalOTPSucc', 'PaymentCCOnce',
                                 'PaymentCC', 'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown'
                                 ):
                 fee = dict()
