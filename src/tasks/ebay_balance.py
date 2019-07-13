@@ -83,7 +83,7 @@ class EbayBalance(BaseService):
 
     def save_data(self, row):
         sql = ('insert into ebay_balance(accountName,balance,currency,updatedDate)'
-              ' values(%s,%s,%s,now()) on duplicate key update balance=values(balance)')
+              ' values(%s,%s,%s,now()) on duplicate key update balance=values(balance), updatedDate=now()')
         try:
             self.warehouse_cur.execute(sql, (row['accountName'], row['balance'], row['currency'],))
             self.logger.info("putting %s" % row['accountName'])
