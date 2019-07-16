@@ -8,6 +8,7 @@ import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
+from ebaysdk.exception import ConnectionError
 from ebaysdk import exception
 from src.services.base_service import BaseService
 from configs.config import Config
@@ -25,7 +26,7 @@ class EbayBalance(BaseService):
     def get_ebay_token(self):
         sql = ("SELECT noteName,max(ebaytoken) AS ebaytoken "
                "FROM S_PalSyncInfo  GROUP BY notename")
-               # " having notename='eBay-A6-vitalityang1'")
+               # " having notename='eBay-63-personalha1'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -60,25 +61,34 @@ class EbayBalance(BaseService):
         api = Trading(siteid=0, config_file=self.config, timeout=40)
         currency = ['GBP', 'USD', 'HKD']
         for cur in currency:
-            try:
-                par['Currency'] = cur
-                response = api.execute('GetAccount', par)
+            for _ in range(2):
                 try:
-                    ret = response.reply.AccountSummary.AdditionalAccount[0]
-                    yield ret
-
-                except Exception as why:
-                    self.logger.error('error while getting accountEntry cause of {}'.format(why))
+                    par['Currency'] = cur
+                    response = api.execute('GetAccount', par)
+                    try:
+                        summary = response.reply.AccountSummary
+                        if hasattr(summary, 'InvoiceBalance'):
+                            yield summary.InvoiceBalance
+                        else:
+                            ret = summary.AdditionalAccount[0].Balance
+                            yield ret
+                        break
+                    except Exception as why:
+                        self.logger.error('error while getting accountEntry cause of {}'.format(why))
                 # to-do read time out exception
-            except Exception as why:
-                self.logger.error(why)
+                except ConnectionError:
+                    yield None
+                    break
+                except Exception as why:
+                    self.logger.error(why)
 
     def _parse_response(self, ret, ebay_token):
         # return ret
-        out = dict()
-        out['currency'] = ret.Currency
-        out['balance'] = ret.Balance.value
-        out['accountName'] = ebay_token['noteName']
+        out = {'currency': 'unknown', 'balance': 0, 'accountName': ebay_token['noteName']}
+        if ret:
+            out['currency'] = ret._currencyID
+            out['balance'] = ret.value
+            out['accountName'] = ebay_token['noteName']
         return out
 
     def save_data(self, row):
