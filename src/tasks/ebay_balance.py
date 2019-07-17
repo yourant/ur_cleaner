@@ -26,7 +26,7 @@ class EbayBalance(BaseService):
     def get_ebay_token(self):
         sql = ("SELECT noteName,max(ebaytoken) AS ebaytoken "
                "FROM S_PalSyncInfo  GROUP BY notename")
-               # " having notename='eBay-63-personalha1'")
+               # " having notename='eBay-66-engineerya4'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -59,37 +59,48 @@ class EbayBalance(BaseService):
 
     def _get_ebay_balance(self, par):
         api = Trading(siteid=0, config_file=self.config, timeout=40)
-        currency = ['GBP', 'USD', 'HKD']
+        currency = ['GBP', 'USD']
         for cur in currency:
-            for _ in range(2):
+            response = None
+            ret = None
+            for _ in range(3):
                 try:
                     par['Currency'] = cur
                     response = api.execute('GetAccount', par)
-                    try:
-                        summary = response.reply.AccountSummary
-                        if hasattr(summary, 'InvoiceBalance'):
-                            yield summary.InvoiceBalance
-                        else:
-                            ret = summary.AdditionalAccount[0].Balance
-                            yield ret
-                        break
-                    except Exception as why:
-                        self.logger.error('error while getting accountEntry cause of {}'.format(why))
-                # to-do read time out exception
-                except ConnectionError:
-                    yield None
                     break
-                except Exception as why:
-                    self.logger.error(why)
+                except ConnectionError:
+                    ret = {'currency': cur, 'balance': 0}
+                    break
+                except:
+                    pass
+
+            try:
+                if response:
+                    summary = response.reply.AccountSummary
+                    if hasattr(summary, 'AdditionalAccount'):
+                        ret = summary.AdditionalAccount[0].Balance
+                        yield ret
+                    elif hasattr(summary, 'InvoiceBalance'):
+                        ret = {'currency': summary.InvoiceBalance._currencyID, 'balance': 0}
+                        yield ret
+                else:
+                    yield ret
+            # to-do read time out exception
+            except Exception as why:
+                self.logger.error(why)
 
     def _parse_response(self, ret, ebay_token):
         # return ret
-        out = {'currency': 'unknown', 'balance': 0, 'accountName': ebay_token['noteName']}
+        out = {'accountName': ebay_token['noteName']}
         if ret:
-            out['currency'] = ret._currencyID
-            out['balance'] = ret.value
-            out['accountName'] = ebay_token['noteName']
-        return out
+            if isinstance(ret, dict):
+               out['currency'] = ret['currency']
+               out['balance'] = ret['balance']
+            else:
+                out['currency'] = ret._currencyID
+                out['balance'] = ret.value
+                out['accountName'] = ebay_token['noteName']
+            return out
 
     def save_data(self, row):
         sql = ('insert into ebay_balance(accountName,balance,currency,updatedDate)'
