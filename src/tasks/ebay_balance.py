@@ -24,9 +24,11 @@ class EbayBalance(BaseService):
         self.config = Config().get_config('ebay.yaml')
 
     def get_ebay_token(self):
-        sql = ("SELECT noteName,max(ebaytoken) AS ebaytoken "
-               "FROM S_PalSyncInfo  GROUP BY notename")
-               # " having notename='eBay-66-engineerya4'")
+        sql = ("select sp.noteName,max(sp.ebaytoken) AS ebaytoken, bd.Used "
+               "from S_PalSyncInfo  as sp LEFT JOIN B_Dictionary as bd "
+               "on sp.NoteName = bd.DictionaryName "
+               "where  bd.cateGoryId=12 and bd.fitCode='eBay' "
+               "GROUP BY sp.noteName, bd.Used")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -43,16 +45,16 @@ class EbayBalance(BaseService):
         get the ebay balance of yesterday in local time
         """
 
-        end_date = str(datetime.datetime.now())[:10]
-        # begin_date = str(datetime.datetime.now() - datetime.timedelta(days=-1))[:10]
-        begin_date = end_date
-        begin_date += "T00:00:00.000Z"
-        end_date += "T01:00:00.000Z"  # utc time
+        now = datetime.datetime.utcnow()
+        begin_date = now - datetime.timedelta(hours=2)
+        now = now.strftime("%Y-%m-%dT%H:%M:%S") + '.000Z'
+        begin_date = begin_date.strftime("%Y-%m-%dT%H:%M:%S") + '.000Z'
         par = {
             "RequesterCredentials": {"eBayAuthToken": ebay_token['ebaytoken']},
             "BeginDate": begin_date,
-            "EndDate": end_date,
-            "Pagination": {"EntriesPerPage": 2000, "PageNumber": 1}
+            "EndDate": now,
+            'ExcludeBalance': 0,
+            "Pagination": {"EntriesPerPage": 100, "PageNumber": 1}
         }
 
         return par
@@ -77,12 +79,8 @@ class EbayBalance(BaseService):
             try:
                 if response:
                     summary = response.reply.AccountSummary
-                    if hasattr(summary, 'AdditionalAccount'):
-                        ret = summary.AdditionalAccount[0].Balance
-                        yield ret
-                    elif hasattr(summary, 'InvoiceBalance'):
-                        ret = {'currency': summary.InvoiceBalance._currencyID, 'balance': 0}
-                        yield ret
+                    ret = summary.CurrentBalance
+                    yield ret
                 else:
                     yield ret
             # to-do read time out exception
@@ -91,7 +89,7 @@ class EbayBalance(BaseService):
 
     def _parse_response(self, ret, ebay_token):
         # return ret
-        out = {'accountName': ebay_token['noteName']}
+        out = {'accountName': ebay_token['noteName'], 'isUsed': ebay_token['Used']}
         if ret:
             if isinstance(ret, dict):
                out['currency'] = ret['currency']
@@ -103,10 +101,11 @@ class EbayBalance(BaseService):
             return out
 
     def save_data(self, row):
-        sql = ('insert into ebay_balance(accountName,balance,currency,updatedDate)'
-              ' values(%s,%s,%s,now()) on duplicate key update balance=values(balance), updatedDate=now()')
+        sql = ('insert into ebay_balance(accountName,balance,currency,updatedDate, isUsed)'
+              ' values(%s,%s,%s,now(),%s) on duplicate key '
+               'update balance=values(balance), updatedDate=now(), isUsed=values(isUsed)')
         try:
-            self.warehouse_cur.execute(sql, (row['accountName'], row['balance'], row['currency'],))
+            self.warehouse_cur.execute(sql, (row['accountName'], row['balance'], row['currency'], row['isUsed']))
             self.logger.info("putting %s" % row['accountName'])
             self.warehouse_con.commit()
         except pymssql.IntegrityError as e:
