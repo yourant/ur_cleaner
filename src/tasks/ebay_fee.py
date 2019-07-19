@@ -62,6 +62,8 @@ class EbayFee(BaseService):
 
         begin_date = self.batch_id
         end_date = str(datetime.datetime.now())[:10]
+        if begin_date > end_date:
+            begin_date = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
