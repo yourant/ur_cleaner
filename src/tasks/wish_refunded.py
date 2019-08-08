@@ -6,6 +6,7 @@
 import json
 import datetime
 import requests
+import concurrent
 from concurrent.futures import ThreadPoolExecutor
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
@@ -26,9 +27,11 @@ class WishRefund(BaseService):
 
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " 
-              "datediff(DAY,LastSyncTime,getdate())<5 and aliasname is not null"
+              # "  datediff(DAY,LastSyncTime,getdate())<5 and "
+               "aliasname is not null"
                 " and  AliasName not in "
-               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish')")
+               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
+               )
         tokens = self.run_sql(sql)
         return tokens
 
@@ -47,22 +50,29 @@ class WishRefund(BaseService):
                     "since": date,
                     # "upto": '2018-10-01'
                 }
-                r = requests.get(url, params=data)
-                res_dict = json.loads(r.content)
-                orders = res_dict['data']
-                for order in orders:
-                    try:
-                        order_detail = order["Order"]
-                        if "REFUNDED" in order_detail['refunded_by']:
-                            order_detail['aliasname'] = token['aliasname']
-                            yield order_detail
-                    except Exception as e:
-                        self.logger.debug(e)
-                order_number = len(orders)
-                if order_number >= 500:
-                    start += 500
+                try:
+                    r = requests.get(url, params=data, timeout=10)
+                    res_dict = json.loads(r.content)
+                    orders = res_dict['data']
+                    for order in orders:
+                        try:
+                            order_detail = order["Order"]
+                            if "REFUNDED" in order_detail['refunded_by']:
+                                order_detail['aliasname'] = token['aliasname']
+                                yield order_detail
+                        except Exception as e:
+                            self.logger.debug(e)
+                    order_number = len(orders)
+                    if order_number >= 500:
+                        start += 500
+                    else:
+                        break
+                except Exception as e:
+                    self.logger.debug(e)
+                    break
                 else:
                     break
+
         except Exception as e:
             self.logger.error('{} fails cause of {}'.format(token['aliasname'], e))
 
@@ -73,34 +83,28 @@ class WishRefund(BaseService):
                "values (%s,%s,%s,%s) "
                "else update y_refunded set "
                "total_value=%s where order_id=%s and refund_time= %s")
-        # sql = "INSERT INTO y_refunded (order_id,refund_time,total_value,currencyCode)" \
-        #       " VALUES(%s,%s,%s,%s)"
         try:
             self.cur.execute(sql,
                              (row['order_id'], row['refunded_time'],
                               row['order_id'], row['refunded_time'], row['merchant_responsible_refund_amount'], 'USD',
                               row['merchant_responsible_refund_amount'], row['order_id'], row['refunded_time']))
             self.con.commit()
-            # self.logger.info('save %s' % row['order_id'])
+            self.logger.info('save %s' % row['order_id'])
         except Exception as e:
             self.logger.error('fail to save %s cause of duplicate key' % (row['order_id']))
-
-    def save_trans(self, token):
-        orders = self.get_wish_orders(token)
-        try:
-            for row in orders:
-                self.save_data(row)
-        except Exception as e:
-            self.logger.error(e)
 
     def run(self):
         try:
             tokens = self.get_wish_token()
-            pool = ThreadPoolExecutor()
-            ret = pool.map(self.get_wish_orders, tokens)
-            for order in ret:
-                for row in order:
-                    self.save_data(row)
+            with ThreadPoolExecutor() as pool:
+                ret = {pool.submit(self.get_wish_orders, token): token for token in tokens}
+                for future in concurrent.futures.as_completed(ret):
+                    try:
+                        orders = future.result()
+                        for order in orders:
+                            self.save_data(order)
+                    except Exception as e:
+                        self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
         finally:
