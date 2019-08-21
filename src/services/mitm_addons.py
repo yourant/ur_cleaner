@@ -19,8 +19,8 @@ class Counter:
             try:
                 headers = self.pares_headers(headers)
                 row = dict()
-                print(headers)
                 row['api_token'] = headers['x-api-token']
+                row['x_version'] = headers['x-version']
                 row['access_token'] = 'Bearer ' + self.parse_cookies(headers['cookie'])['accesstoken']
                 self.save(row)
             except Exception as why:
@@ -45,8 +45,8 @@ class Counter:
         con = DataBase('mysql')
         try:
             cur = con.connection.cursor()
-            sql = 'update urTools.sys_joom_token set token=%s, bearerToken=%s,updateTime=now() where id=1'
-            cur.execute(sql, (row['api_token'], row['access_token']))
+            sql = 'update urTools.sys_joom_token set token=%s, bearerToken=%s,x_version=%s, updateTime=now() where id=1'
+            cur.execute(sql, (row['api_token'], row['access_token'], row['x_version']))
             con.connection.commit()
             print('saving {}'.format(row))
         except Exception as why:
