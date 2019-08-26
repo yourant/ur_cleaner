@@ -57,6 +57,8 @@ class ProfitFetcher(BaseService):
         self.warehouse_con.commit()
         self.logger.info('success to clear suffix profit')
 
+
+
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
