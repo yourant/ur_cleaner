@@ -35,10 +35,13 @@ async def request_site(image: str, semaphore):
 
 
 async def run():
-    semaphore = asyncio.Semaphore(100)  # 限制并发量为100
-    images = [site['images'] for site in col.find()]
-    to_get = [request_site(image, semaphore) for image in images]
-    await asyncio.wait(to_get)
+    try:
+        semaphore = asyncio.Semaphore(100)  # 限制并发量为100
+        images = [site['image'] for site in col.find()]
+        to_get = [request_site(image, semaphore) for image in images]
+        await asyncio.wait(to_get)
+    except Exception as e:
+        print('failed to get image cause of {}'.format(e))
 
 
 if __name__ == '__main__':
