@@ -35,9 +35,8 @@ async def request_site(image: str, semaphore):
 
 
 async def run():
-    semaphore = asyncio.Semaphore(100)  # 限制并发量为50
-    sites = [site for site in col.find()]
-    images = [site['image'] for site in sites]
+    semaphore = asyncio.Semaphore(100)  # 限制并发量为100
+    images = [site['images'] for site in col.find()]
     to_get = [request_site(image, semaphore) for image in images]
     await asyncio.wait(to_get)
 
