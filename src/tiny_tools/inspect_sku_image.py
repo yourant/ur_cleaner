@@ -5,17 +5,11 @@
 
 
 import asyncio
-import os
-from datetime import datetime
 
 import aiohttp
-import requests
 
 from pymongo import MongoClient
 
-# MONGO_HOST = os.environ['MONGO_HOST']
-# MONGO_PORT = int(os.environ['MONGO_PORT'])
-# MONGO_DB = os.environ['MONGO_DB']
 MONGO_HOST = '127.0.0.1'
 MONGO_PORT = 27017
 MONGO_DB = 'crawlab_test'
