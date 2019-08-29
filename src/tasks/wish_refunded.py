@@ -57,9 +57,13 @@ class WishRefund(BaseService):
                     for order in orders:
                         try:
                             order_detail = order["Order"]
-                            if "REFUNDED" in order_detail['refunded_by']:
-                                order_detail['aliasname'] = token['aliasname']
-                                yield order_detail
+                            if 'refunds' in order_detail:
+                                all_refunds = order_detail['refunds']
+                                for refunds_info in all_refunds:
+                                    refunds = refunds_info['RefundsInfo']
+                                    refunds['aliasname'] = token['aliasname']
+                                    refunds['order_id'] = order_detail['order_id']
+                                    yield refunds
                         except Exception as e:
                             self.logger.debug(e)
                     order_number = len(orders)
@@ -85,13 +89,14 @@ class WishRefund(BaseService):
                "total_value=%s where order_id=%s and refund_time= %s")
         try:
             self.cur.execute(sql,
-                             (row['order_id'], row['refunded_time'],
-                              row['order_id'], row['refunded_time'], row['merchant_responsible_refund_amount'], 'USD',
-                              row['merchant_responsible_refund_amount'], row['order_id'], row['refunded_time']))
+                             (row['order_id'], row['refund_time'],
+                              row['order_id'], row['refund_time'],
+                              row['merchant_responsible_amount'], row['currency_code'],
+                              row['merchant_responsible_amount'], row['order_id'], row['refund_time']))
             self.con.commit()
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:
-            self.logger.error('fail to save %s cause of duplicate key' % (row['order_id']))
+            self.logger.error(f'fail to save {row["order_id"]} cause of duplicate key or {e}')
 
     def run(self):
         try:
