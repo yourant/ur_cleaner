@@ -46,11 +46,23 @@ class RefundFetcher(BaseService):
         except Exception as why:
             self.logger.error('fail to fetch refund detail case of {}'.format(why))
 
+    def clear(self, begin, end):
+        sql = 'delete  from cache_refund_details where refundTime between %s and %s '
+        self.warehouse_cur.execute(sql, (begin, end))
+        self.warehouse_con.commit()
+        self.logger.info('success to clear refund data between {} and {}'.format(begin, end))
+
     def work(self):
         try:
-            yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
-            rows = self.fetch(month_first_day, yesterday)
+            today = str(datetime.datetime.today())[:10]
+            if today[-2] != '01':
+                month_first_day = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
+            else:
+                yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+                month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
+
+            self.clear(month_first_day, today)
+            rows = self.fetch(month_first_day, today)
             self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch refund detail cause of {}'.format(why))
