@@ -36,8 +36,8 @@ async def request_site(image: str, semaphore):
 
 async def run():
     try:
-        semaphore = asyncio.Semaphore(100)  # 限制并发量为100
-        images = [site['image'] for site in col.find()]
+        semaphore = asyncio.Semaphore()  # 限制并发量为100
+        images = [site['image'] for site in col.find({'http_status': {'$eq': 0}})]
         to_get = [request_site(image, semaphore) for image in images]
         await asyncio.wait(to_get)
     except Exception as e:
