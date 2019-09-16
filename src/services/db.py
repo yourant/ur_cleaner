@@ -15,10 +15,12 @@ class DataBase(object):
     database singleton connection
     """
     connect = None
+    used_count = 0
 
     def __init__(self, base_name):
         self.base_name = base_name
         if not self.connect:
+            self.used_count += 1
             SysLogger().log.info('not existing {} connection...'.format(self.base_name))
             self.connect = self._connect()
 
@@ -45,8 +47,12 @@ class DataBase(object):
         return self.connect
 
     def close(self):
-        SysLogger().log.info('close {}...'.format(self.base_name))
-        self.connect.close()
+        if self.used_count == 1:
+            SysLogger().log.info('close {}...'.format(self.base_name))
+            self.connect.close()
+        if self.used_count > 1:
+            SysLogger().log.info('close {} by decreasing one connection'.format(self.base_name))
+            self.used_count -= 1
 
 
 if __name__ == '__main__':
