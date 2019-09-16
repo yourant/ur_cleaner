@@ -4,7 +4,6 @@
 # Author: turpure
 
 
-import pandas as pda
 from src.services.base_service import BaseService
 
 
