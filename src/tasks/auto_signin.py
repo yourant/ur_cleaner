@@ -8,7 +8,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
 import platform
-from src.services.one_sentence import get_one_piece
+from src.services.one_sentence import get_you_dao_api
 from configs.config import Config
 
 yii_user_info = Config().get_config('yii')
@@ -63,5 +63,5 @@ def sign_in(username, password, what_to_say):
 
 
 if __name__ == "__main__":
-    say = get_one_piece()
+    say = get_you_dao_api()
     sign_in(yii_user_info['username'], yii_user_info['password'], say)

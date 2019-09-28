@@ -128,4 +128,5 @@ def get_one_piece():
 
 
 if __name__ == "__main__":
-    collect_one_piece()
+    # collect_one_piece()
+    print(get_you_dao_api())

@@ -22,7 +22,7 @@ class EbayFee(BaseService):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
         if not self._get_batch_id():
-            self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
+            self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
         else:
             self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
                                 + datetime.timedelta(days=1))[:10]
@@ -63,7 +63,7 @@ class EbayFee(BaseService):
         begin_date = self.batch_id
         end_date = str(datetime.datetime.now())[:10]
         if begin_date > end_date:
-            begin_date = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
+            begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
