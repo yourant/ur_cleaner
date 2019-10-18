@@ -13,7 +13,8 @@ class Updating(BaseService):
         self.rd = redis.Redis(host='192.168.0.150', port='6379', db=0)
 
     def get_products(self):
-        sql = 'select productId from proCenter.joom_cateProduct'
+        sql = ( 'select productId from proCenter.joom_cateProduct '
+               'union select productId from proCenter.joom_storeProduct')
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
         for row in ret:
