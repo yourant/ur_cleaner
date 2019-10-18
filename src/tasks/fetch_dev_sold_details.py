@@ -51,10 +51,10 @@ class Fetcher(BaseService):
     def work(self):
         try:
             today = str(datetime.datetime.today())
-            four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+            some_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
             self.clean()
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, '2015-01-01', today)
+                rows = self.fetch(date_flag, some_days_ago, today)
                 self.push(rows)
                 self.logger.info('success to fetch dev sold details')
         except Exception as why:
