@@ -10,9 +10,9 @@ from src.services.base_service import BaseService
 class Worker(BaseService):
 
     def get_data(self):
-        sql = ('SELECT jp.productId,jp.cateId, jp.productName, jp.price, jp.mainImage,jp.rating,jp.storeId, '
-                'jl.reviewsCount, jl.publishedDate from proCenter.joom_cateProduct as jp LEFT JOIN proCenter.joom_productLog as jl '
-                'on jp.productid = jl.productid limit 1000')
+        sql = ('SELECT jp.productId,jp.storeName, jp.productName, jp.price, jp.mainImage,jp.rating,jp.storeId, '
+                'jl.reviewsCount, jl.procreatedDate as publishedDate from proCenter.joom_storeProduct as jp LEFT JOIN proCenter.joom_product as jl '
+                'on jp.productid = jl.productid where jl.procreatedDate is not null limit 1000')
 
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
