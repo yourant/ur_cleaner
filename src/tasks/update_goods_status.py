@@ -11,9 +11,9 @@ class UpdateGoodsStatus(BaseService):
 
     def run(self):
         try:
-            for i in range(1, 9):
+            for i in range(1, 8):
                 try:
-                    step_sql = 'EXEC [guest].[LY_step' + str(i) + '-UpdateGoodsStatus]'
+                    step_sql = 'EXEC [dbo].[LY_step' + str(i) + '-UpdateGoodsStatus_New]'
                     self.cur.execute(step_sql)
                     self.con.commit()
                     self.logger.info(f'success to update goods status of step {i}')
