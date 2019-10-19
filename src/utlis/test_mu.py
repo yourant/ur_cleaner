@@ -40,7 +40,7 @@ class B(object):
         return m[0].sum(m[1])
 
     def mu_predict(self, k):
-        with Pool(8) as pool:
+        with Pool() as pool:
             ret = pool.map(self._test, [(x, k) for x in self.a_list])
 
         return ret
