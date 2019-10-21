@@ -6,21 +6,29 @@
 
 import requests
 import json
+from pymongo import MongoClient
 from src.services.base_service import BaseService
+from configs.config import Config
 
 
 class Worker(BaseService):
+
+    def __init__(self):
+        super().__init__()
+        config = Config()
+        self.haiying_info = config.get_config('haiying')
+        # self.mongo = MongoClient('localhost', 27017)
+        self.mongo = MongoClient('192.168.0.150', 27017)
 
     def get_rule(self):
         rule = {}
         return rule
 
-    @staticmethod
-    def log_in():
+    def log_in(self):
         base_url = 'http://www.haiyingshuju.com/auth/login'
         form_data = {
-            'username': 'IWj+UaaCx4WpLQ01XoyaNw==',
-            'password': '6SJ2Lmmt0BKKiSWhQipe+Q=='
+            'username': self.haiying_info['username'],
+            'password': self.haiying_info['password']
         }
         ret = requests.post(base_url, data=form_data)
         return ret.headers['token']
@@ -28,7 +36,7 @@ class Worker(BaseService):
     def get_product(self):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         token = self.log_in()
-        payload = {'cids':'', 'index':1, 'title':'','itemId':'','soldEnd':'','country':1,'visitEnd':'','priceEnd':'','soldStart':'','titleType':1,'sort':'DESC','pageSize':20,'priceStart':'','visitStart':'','marketplace':[],'popularStatus':'','sellerOrStore':'','storeLocation':[],'salesThreeDayFlag':'','orderColumn':'last_modi_time','listedTime':['2019-10-19','2019-10-18','2019-10-17'],'itemLocation':['CH']}
+        payload = {"cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":5,"visitEnd":"","priceEnd":"","soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"","marketplace":["EBAY_GB"],"popularStatus":"","sellerOrStore":"","storeLocation":["China"],"salesThreeDayFlag":"","orderColumn":"last_modi_time","listedTime":["2019-10-21","2019-10-20","2019-10-19"],"itemLocation":[]}
         headers = {
             'Accept': "application/json, text/plain, */*",
             'Accept-Encoding': "gzip, deflate",
@@ -48,16 +56,22 @@ class Worker(BaseService):
 
         response = requests.post(url, data=json.dumps(payload), headers=headers)
 
-        print(response.json()['data'])
+        return response.json()['data']
+
+    def save(self, rows):
+        db = self.mongo["product_engine"]
+        collection = db["ebay_new_product"]
+        collection.insert_many(rows)
 
     def run(self):
         try:
-            self.get_product()
-            # self.log_in()
+            rows = self.get_product()
+            self.save(rows)
         except Exception as why:
             self.logger.error(f'fail to get ebay products cause of {why}')
         finally:
             self.close()
+            self.mongo.close()
 
 
 if __name__ == '__main__':
