@@ -6,6 +6,7 @@
 
 import requests
 import json
+import datetime
 from pymongo import MongoClient
 from src.services.base_service import BaseService
 from configs.config import Config
@@ -21,8 +22,10 @@ class Worker(BaseService):
         self.mongo = MongoClient('192.168.0.150', 27017)
 
     def get_rule(self):
-        rule = {}
-        return rule
+        sql = 'select listedTime from proEngine.recommend_ebayNewProductRule where isUsed=1'
+        self.warehouse_cur.execute(sql)
+        ret = self.warehouse_cur.fetchone()
+        return ret
 
     def log_in(self):
         base_url = 'http://www.haiyingshuju.com/auth/login'
@@ -36,15 +39,20 @@ class Worker(BaseService):
     def get_product(self):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         token = self.log_in()
-        payload = {"cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":5,"visitEnd":"","priceEnd":"","soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"","marketplace":["EBAY_GB"],"popularStatus":"","sellerOrStore":"","storeLocation":["China"],"salesThreeDayFlag":"","orderColumn":"last_modi_time","listedTime":["2019-10-21","2019-10-20","2019-10-19"],"itemLocation":[]}
+        rule = self.get_rule()
+        time_range = rule['listedTime'].split(',')
+        payload = {
+            "cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":5,"visitEnd":"","priceEnd":"",
+            "soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"",
+            "marketplace":["EBAY_GB","EBAY_DE","EBAY_US"],"popularStatus":"","sellerOrStore":"","storeLocation":["China"],
+            "salesThreeDayFlag":"","orderColumn":"last_modi_time",
+            "listedTime":[self._get_date_some_days_ago(i) for i in time_range],"itemLocation":[]}
         headers = {
             'Accept': "application/json, text/plain, */*",
             'Accept-Encoding': "gzip, deflate",
             'Accept-Language': "zh-CN,zh;q=0.9,en;q=0.8",
             'Connection': "keep-alive",
-            # 'Content-Length': "390",
             'Content-Type': "application/json",
-            # 'Cookie': "Hm_lvt_03a80b70183e649c063d5ee13290d51b=1571296557,1571302643,1571363001,1571466012; JSESSIONID=998FFB5792FD290DF29063EF1D9F057E; token=Bearer eyJhbGciOiJIUzUxMiJ9.eyJ1aWQiOjM3MzM5LCJzdWIiOiJ5b3VyYW4wMDEiLCJjcmVhdGVkRGF0ZSI6MTU3MTQ2NjQzNTE3MiwiaXNzIjoiaHlzaiIsImV4cCI6MTU3MTQ3MzYzNSwidXVpZCI6IjlmMGU3YjM3LWFhZTItNDE1NS1hMDhiLTU2N2U0YzgxMjZjMCIsImlhdCI6MTU3MTQ2NjQzNX0.hFZbUvMb2N1Tk6BZ-G6qHgUu87s_3geenrR8aNLE-Zt7MtusfEuzxB423PSRzVrA4QXdVZEIO_r1DHdm_0SBCA; Hm_lpvt_03a80b70183e649c063d5ee13290d51b=1571466435",
             'Host': "www.haiyingshuju.com",
             'Origin': "http://www.haiyingshuju.com",
             'Referer': "http://www.haiyingshuju.com/ebay/index.html",
@@ -57,6 +65,12 @@ class Worker(BaseService):
         response = requests.post(url, data=json.dumps(payload), headers=headers)
 
         return response.json()['data']
+
+    @staticmethod
+    def _get_date_some_days_ago(number):
+        today = datetime.datetime.today()
+        ret = today - datetime.timedelta(days=int(number))
+        return str(ret)[:10]
 
     def save(self, rows):
         db = self.mongo["product_engine"]
