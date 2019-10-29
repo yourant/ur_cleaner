@@ -23,7 +23,7 @@ class Worker(BaseService):
         self.mongo = MongoClient('192.168.0.150', 27017)
 
     def get_rule(self):
-        sql = 'select listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1'
+        sql = 'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1'
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchone()
         return ret
@@ -41,6 +41,7 @@ class Worker(BaseService):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         token = self.log_in()
         rule = self.get_rule()
+        rule_id = 'ebay_new_rule' + '-' + str(rule['id'])
         time_range = rule['listedTime'].split(',')
         marketplace = getattr(rule, 'marketplace', [])
         if marketplace:
@@ -74,21 +75,30 @@ class Worker(BaseService):
         total_page = math.ceil(total / 20)
         if total_page > 1:
             yield ret['data']
-            for i in range(2, total_page + 1):
-                payload['index'] = i
+            for page in range(2, total_page + 1):
+                payload['index'] = page
                 try:
                     response = requests.post(url, data=json.dumps(payload), headers=headers)
-                    yield response.json()['data']
+                    rows = self._mark_rule_id(response.json()['data'], rule_id)
+                    yield rows
+
                 except Exception as why:
-                    self.logger.error(f'error while requesting page {i} cause of {why}')
+                    self.logger.error(f'error while requesting page {page} cause of {why}')
         else:
-            yield ret['data']
+            rows = self._mark_rule_id(ret['data'], rule_id)
+            yield rows
 
     @staticmethod
     def _get_date_some_days_ago(number):
         today = datetime.datetime.today()
         ret = today - datetime.timedelta(days=int(number))
         return str(ret)[:10]
+
+    @staticmethod
+    def _mark_rule_id(rows, rule_id):
+        for row in rows:
+            row['ruleId'] = rule_id
+        return rows
 
     def save(self, rows):
         db = self.mongo["product_engine"]

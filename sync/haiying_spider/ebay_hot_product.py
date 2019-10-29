@@ -40,6 +40,7 @@ class Worker(BaseService):
         url = "http://www.haiyingshuju.com/ebay/product/list"
         token = self.log_in()
         rule = self.get_rule()
+        rule_id = 'ebay_new_rule' + '-' + str(rule['_id'])
         del rule['_id']
         headers = {
             'Accept': "application/json, text/plain, */*",
@@ -63,12 +64,21 @@ class Worker(BaseService):
                 try:
                         rule['index'] = page
                         response = requests.post(url, data=json.dumps(rule), headers=headers)
-                        yield response.json()['data']
+                        rows = self._mark_rule_id(response.json()['data'], rule_id)
+                        yield rows
+
                 except Exception as why:
                     self.logger.error(f'fail to get page {page} cause of {why}')
 
         else:
-            yield ret['data']
+            rows = self._mark_rule_id(ret['data'], rule_id)
+            yield rows
+
+    @staticmethod
+    def _mark_rule_id(rows, rule_id):
+        for row in rows:
+            row['ruleId'] = rule_id
+        return rows
 
     def save(self, rows):
         collection = self.mongodb["ebay_hot_product"]
