@@ -47,11 +47,12 @@ class Worker(BaseService):
             marketplace = marketplace.split(',')
 
         payload = {
-            "cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":5,"visitEnd":"","priceEnd":"",
+            "cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":1,"visitEnd":"","priceEnd":"",
             "soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"",
-            "marketplace": marketplace,"popularStatus":"","sellerOrStore":"","storeLocation":["China"],
+            "marketplace": marketplace,"popularStatus":"","sellerOrStore":"","storeLocation":["中国"],
             "salesThreeDayFlag":"","orderColumn":"last_modi_time",
             "listedTime":[self._get_date_some_days_ago(i) for i in time_range],"itemLocation":[]}
+
         headers = {
             'Accept': "application/json, text/plain, */*",
             'Accept-Encoding': "gzip, deflate",
