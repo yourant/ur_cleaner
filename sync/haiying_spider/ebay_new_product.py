@@ -7,6 +7,7 @@
 import requests
 import json
 import datetime
+import math
 from pymongo import MongoClient
 from src.services.base_service import BaseService
 from configs.config import Config
@@ -22,7 +23,7 @@ class Worker(BaseService):
         self.mongo = MongoClient('192.168.0.150', 27017)
 
     def get_rule(self):
-        sql = 'select listedTime from proEngine.recommend_ebayNewProductRule where isUsed=1'
+        sql = 'select listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1'
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchone()
         return ret
@@ -41,10 +42,14 @@ class Worker(BaseService):
         token = self.log_in()
         rule = self.get_rule()
         time_range = rule['listedTime'].split(',')
+        marketplace = getattr(rule, 'marketplace', [])
+        if marketplace:
+            marketplace = marketplace.split(',')
+
         payload = {
             "cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":5,"visitEnd":"","priceEnd":"",
             "soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"",
-            "marketplace":["EBAY_GB","EBAY_DE","EBAY_US"],"popularStatus":"","sellerOrStore":"","storeLocation":["China"],
+            "marketplace": marketplace,"popularStatus":"","sellerOrStore":"","storeLocation":["China"],
             "salesThreeDayFlag":"","orderColumn":"last_modi_time",
             "listedTime":[self._get_date_some_days_ago(i) for i in time_range],"itemLocation":[]}
         headers = {
@@ -63,8 +68,20 @@ class Worker(BaseService):
         }
 
         response = requests.post(url, data=json.dumps(payload), headers=headers)
-
-        return response.json()['data']
+        ret = response.json()
+        total = ret['total']
+        total_page = math.ceil(total / 20)
+        if total_page > 1:
+            yield ret['data']
+            for i in range(2, total_page + 1):
+                payload['index'] = i
+                try:
+                    response = requests.post(url, data=json.dumps(payload), headers=headers)
+                    yield response.json()['data']
+                except Exception as why:
+                    self.logger.error(f'error while requesting page {i} cause of {why}')
+        else:
+            yield ret['data']
 
     @staticmethod
     def _get_date_some_days_ago(number):
@@ -79,8 +96,12 @@ class Worker(BaseService):
 
     def run(self):
         try:
-            rows = self.get_product()
-            self.save(rows)
+            products = self.get_product()
+            page = 1
+            for rows in products:
+                self.save(rows)
+                self.logger.info(f'success to save page {page} ')
+                page += 1
         except Exception as why:
             self.logger.error(f'fail to get ebay products cause of {why}')
         finally:
