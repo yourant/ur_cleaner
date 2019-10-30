@@ -30,3 +30,7 @@ def get_ebay_recommend_products():
     else:
         ret = {'code': 400, 'message': 'only post method is allowed'}
     return json.dumps(ret)
+
+
+if __name__ == "__main__":
+    app.run(host='0.0.0.0')
