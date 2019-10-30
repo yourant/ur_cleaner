@@ -8,14 +8,16 @@ import requests
 import json
 import math
 from pymongo import MongoClient
+from bson.objectid import ObjectId
 from src.services.base_service import BaseService
 from configs.config import Config
 
 
 class Worker(BaseService):
 
-    def __init__(self):
+    def __init__(self, rule_id=None):
         super().__init__()
+        self.rule_id = rule_id
         config = Config()
         self.haiying_info = config.get_config('haiying')
         # self.mongo = MongoClient('localhost', 27017)
@@ -24,7 +26,10 @@ class Worker(BaseService):
 
     def get_rule(self):
         col = self.mongodb['ebay_hot_rule']
-        rule = col.find_one()
+        if self.rule_id:
+            rule = col.find_one(ObjectId(self.rule_id))
+        else:
+            rule = col.find_one()
         return rule
 
     def log_in(self):
@@ -85,9 +90,9 @@ class Worker(BaseService):
         for row in rows:
             try:
                 collection.insert(row)
-                self.logger.info(f'success to save {row["itemId"]}')
+                self.logger.debug(f'success to save {row["itemId"]}')
             except Exception as why:
-                self.logger.error(f'fail to save {row["itemId"]} cause of {why}')
+                self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
 
     def run(self):
         try:
@@ -105,5 +110,5 @@ class Worker(BaseService):
 
 
 if __name__ == '__main__':
-    worker = Worker()
+    worker = Worker(rule_id='5dafe65638fb930f1c7dbeca')
     worker.run()

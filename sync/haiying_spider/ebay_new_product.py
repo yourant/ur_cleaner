@@ -15,15 +15,20 @@ from configs.config import Config
 
 class Worker(BaseService):
 
-    def __init__(self):
+    def __init__(self, rule_id=None):
         super().__init__()
+        self.rule_id = rule_id
         config = Config()
         self.haiying_info = config.get_config('haiying')
         # self.mongo = MongoClient('localhost', 27017)
         self.mongo = MongoClient('192.168.0.150', 27017)
 
     def get_rule(self):
-        sql = 'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1'
+        if self.rule_id:
+            sql = (f'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule '
+                   f'where isUsed=1 and id={self.rule_id}')
+        else:
+            sql = 'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1 limit 1'
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchone()
         return ret
@@ -106,10 +111,9 @@ class Worker(BaseService):
         for row in rows:
             try:
                 collection.insert(row)
-                self.logger.info(f'success to save {row["itemId"]}')
+                self.logger.debug(f'success to save {row["itemId"]}')
             except Exception as why:
-                pass
-                # self.logger.error(f'fail to save {row["itemId"]} cause fo {why}')
+                self.logger.debug(f'fail to save {row["itemId"]} cause fo {why}')
 
     def run(self):
         try:
@@ -127,5 +131,5 @@ class Worker(BaseService):
 
 
 if __name__ == '__main__':
-    worker = Worker()
+    worker = Worker(rule_id=4)
     worker.run()
