@@ -82,7 +82,12 @@ class Worker(BaseService):
 
     def save(self, rows):
         collection = self.mongodb["ebay_hot_product"]
-        collection.insert_many(rows)
+        for row in rows:
+            try:
+                collection.insert(row)
+                self.logger.info(f'success to save {row["itemId"]}')
+            except Exception as why:
+                self.logger.error(f'fail to save {row["itemId"]} cause of {why}')
 
     def run(self):
         try:
