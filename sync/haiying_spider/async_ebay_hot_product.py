@@ -96,13 +96,13 @@ class Worker(BaseService):
                 self.logger.debug(f'success to save {row["itemId"]}')
             except Exception as why:
                 self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
-        self.logger.info(f'success to get ebay page {page} hot products ')
+        self.logger.info(f'success to get ebay page {page} hot products in async way ')
 
     async def run(self):
         try:
             await self.get_product()
         except Exception as why:
-            self.logger.error(f'fail to get ebay products cause of {why}')
+            self.logger.error(f'fail to get ebay products cause of {why} in async way')
         finally:
             self.close()
             self.mongo.close()

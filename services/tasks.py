@@ -5,8 +5,10 @@
 
 import json
 from flask import Flask, request
-from sync.haiying_spider.ebay_hot_product import Worker as HotWorker
-from sync.haiying_spider.ebay_new_product import Worker as NewWorker
+from sync.haiying_spider.async_ebay_hot_product import Worker as HotWorker
+from sync.haiying_spider.async_ebay_new_product import Worker as NewWorker
+import asyncio
+
 app = Flask(__name__)
 
 
@@ -17,15 +19,16 @@ def get_ebay_recommend_products():
         content = request.json
         rule_type = content.get('ruleType', '')
         rule_id = content.get('ruleId', '')
-        print(rule_type, rule_id)
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         if rule_type == 'new':
             worker = NewWorker(rule_id)
-            worker.run()
+            loop.run_until_complete(worker.run())
             ret = {'code': 200, 'message': 'success', 'data': []}
             pass
         if rule_type == 'hot':
             worker = HotWorker(rule_id)
-            worker.run()
+            loop.run_until_complete(worker.run())
             ret = {'code': 200, 'message': 'success', 'data': []}
     else:
         ret = {'code': 400, 'message': 'only post method is allowed'}
