@@ -110,5 +110,9 @@ class Worker(BaseService):
 
 
 if __name__ == '__main__':
+    import time
+    start = time.time()
     worker = Worker(rule_id='5dafe65638fb930f1c7dbeca')
     worker.run()
+    end = time.time()
+    print(f'it takes {end - start} seconds')

@@ -131,5 +131,9 @@ class Worker(BaseService):
 
 
 if __name__ == '__main__':
+    import time
+    start = time.time()
     worker = Worker(rule_id=4)
     worker.run()
+    end = time.time()
+    print(f'it takes {end - start} seconds')
