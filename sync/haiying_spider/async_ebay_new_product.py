@@ -10,6 +10,7 @@ import datetime
 import math
 from pymongo import MongoClient
 import motor.motor_asyncio
+from bson.objectid import ObjectId
 from src.services.base_service import BaseService
 from configs.config import Config
 import asyncio
@@ -25,17 +26,15 @@ class Worker(BaseService):
         self.haiying_info = config.get_config('haiying')
         self.mongo = MongoClient('192.168.0.150', 27017)
         self.mongo = motor.motor_asyncio.AsyncIOMotorClient('192.168.0.150', 27017)
-        self.rule = self.get_rule()
+        self.mongodb = self.mongo['product_engine']
 
-    def get_rule(self):
+    async def get_rule(self):
+        col = self.mongodb['ebay_new_rule']
         if self.rule_id:
-            sql = (f'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule '
-                   f'where isUsed=1 and id={self.rule_id}')
+            rule = await col.find_one(ObjectId(self.rule_id))
         else:
-            sql = 'select id, listedTime,marketplace from proEngine.recommend_ebayNewProductRule where isUsed=1 limit 1'
-        self.warehouse_cur.execute(sql)
-        ret = self.warehouse_cur.fetchone()
-        return ret
+            rule = await col.find_one()
+        return rule
 
     async def log_in(self, session):
         base_url = 'http://www.haiyingshuju.com/auth/login'
@@ -48,20 +47,14 @@ class Worker(BaseService):
 
     async def get_product(self):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
-        rule = self.rule
         async with aiohttp.ClientSession() as session:
             token = await self.log_in(session)
-            rule_id = 'ebay_new_rule' + '-' + str(rule['id'])
-            time_range = rule['listedTime'].split(',')
-            marketplace = getattr(rule, 'marketplace', [])
-            if marketplace:
-                marketplace = marketplace.split(',')
-            payload = {
-                "cids":"","index":1,"title":"","itemId":"","soldEnd":"","country":1,"visitEnd":"","priceEnd":"",
-                "soldStart":"","titleType":"","sort":"DESC","pageSize":20,"priceStart":"","visitStart":"",
-                "marketplace": marketplace,"popularStatus":"","sellerOrStore":"","storeLocation":["中国"],
-                "salesThreeDayFlag":"","orderColumn":"last_modi_time",
-                "listedTime":[self._get_date_some_days_ago(i) for i in time_range],"itemLocation":[]}
+            rule = await self.get_rule()
+            rule_id = 'ebay_new_rule' + '-' + str(rule['_id'])
+            del rule['_id']
+            time_range = rule['listedTime']
+            rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
+            payload = rule
 
             headers = {
                 'Accept': "application/json, text/plain, */*",
@@ -108,8 +101,7 @@ class Worker(BaseService):
         return rows
 
     async def save(self, rows, page):
-        db = self.mongo["product_engine"]
-        collection = db["ebay_new_product"]
+        collection = self.mongodb["ebay_new_product"]
         for row in rows:
             try:
                 await collection.insert(row)
@@ -131,7 +123,7 @@ class Worker(BaseService):
 if __name__ == '__main__':
     import time
     start = time.time()
-    worker = Worker(rule_id=4)
+    worker = Worker(rule_id='5dbd4105b4cc341990006b83')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
     end = time.time()

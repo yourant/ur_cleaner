@@ -71,16 +71,14 @@ class Worker(BaseService):
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     try:
-                            rule['index'] = page
-                            response = await session.post(url, data=json.dumps(rule), headers=headers)
-                            res = await response.json()
-                            rows = self._mark_rule_id(res['data'], rule_id)
-                            await self.save(rows, page)
+                        rule['index'] = page
+                        response = await session.post(url, data=json.dumps(rule), headers=headers)
+                        res = await response.json()
+                        rows = self._mark_rule_id(res['data'], rule_id)
+                        await self.save(rows, page)
 
                     except Exception as why:
                         self.logger.error(f'fail to get page {page} cause of {why}')
-
-
 
     @staticmethod
     def _mark_rule_id(rows, rule_id):
@@ -111,7 +109,7 @@ class Worker(BaseService):
 if __name__ == '__main__':
     import time
     start = time.time()
-    worker = Worker(rule_id='5dafe65638fb930f1c7dbeca')
+    worker = Worker(rule_id='5dbd46edb4cc3428d00053a3')
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
     end = time.time()
