@@ -15,6 +15,7 @@ from src.services.base_service import BaseService
 from configs.config import Config
 import asyncio
 import aiohttp
+from pymongo.errors import DuplicateKeyError
 
 
 class Worker(BaseService):
@@ -32,8 +33,9 @@ class Worker(BaseService):
         col = self.mongodb['ebay_new_rule']
         if self.rule_id:
             rule = await col.find_one(ObjectId(self.rule_id))
+            rule = [rule]
         else:
-            rule = await col.find_one()
+            rule = await col.find().to_list(length=None)
         return rule
 
     async def log_in(self, session):
@@ -45,17 +47,15 @@ class Worker(BaseService):
         ret = await session.post(base_url, data=form_data)
         return ret.headers['token']
 
-    async def get_product(self):
+    async def get_product(self, rule):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         async with aiohttp.ClientSession() as session:
             token = await self.log_in(session)
-            rule = await self.get_rule()
-            rule_id = 'ebay_new_rule' + '-' + str(rule['_id'])
+            rule_id = rule['_id']
             del rule['_id']
             time_range = rule['listedTime']
             rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
             payload = rule
-
             headers = {
                 'Accept': "application/json, text/plain, */*",
                 'Accept-Encoding': "gzip, deflate",
@@ -75,16 +75,15 @@ class Worker(BaseService):
             ret = await response.json()
             total = ret['total']
             total_page = math.ceil(total / 20)
-            rows = self._mark_rule_id(ret['data'], rule_id)
-            await self.save(rows, page=1)
+            rows = ret['data']
+            await self.save(rows, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=headers)
                         res = await response.json()
-                        rows = self._mark_rule_id(res['data'], rule_id)
-                        await self.save(rows, page)
+                        await self.save(res['data'], page, rule_id)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
@@ -94,25 +93,27 @@ class Worker(BaseService):
         ret = today - datetime.timedelta(days=int(number))
         return str(ret)[:10]
 
-    @staticmethod
-    def _mark_rule_id(rows, rule_id):
-        for row in rows:
-            row['ruleId'] = rule_id
-        return rows
-
-    async def save(self, rows, page):
-        collection = self.mongodb["ebay_new_product"]
+    async def save(self, rows, page, rule_id):
+        collection = self.mongodb.ebay_new_product
         for row in rows:
             try:
-                await collection.insert(row)
+                row['ruleType'] = "ebay_new_rule",
+                row["rules"] = [rule_id]
+                await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["itemId"]}')
+            except DuplicateKeyError:
+                doc = await  collection.find_one({'itemId': row['itemId']})
+                rules = list(set(doc['rules'] + row['rules']))
+                await collection.find_one_and_update({'itemId': row['itemId']}, {"$set": {"rules": rules}})
             except Exception as why:
-                self.logger.debug(f'fail to save {row["itemId"]} cause fo {why}')
-        self.logger.info(f'success to save page {page} in async way ')
+                self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
+        self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
 
     async def run(self):
         try:
-            await self.get_product()
+            rules = await self.get_rule()
+            for rls in rules:
+                await self.get_product(rls)
         except Exception as why:
             self.logger.error(f'fail to get ebay products cause of {why} in async way')
         finally:
@@ -123,7 +124,7 @@ class Worker(BaseService):
 if __name__ == '__main__':
     import time
     start = time.time()
-    worker = Worker(rule_id='5dbd4105b4cc341990006b83')
+    worker = Worker()
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
     end = time.time()
