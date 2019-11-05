@@ -33,7 +33,7 @@ class Worker(BaseService):
         cats = []
         for row in sub_cats:
             cats.append(row['cname'])
-        return {'marketplace': marketplace, 'cate': main_cat, 'subCate': cats}
+        return {'plat': 'ebay', 'marketplace': marketplace, 'cate': main_cat, 'subCate': cats}
 
     def save(self, row):
         col = self.mdb["ebay_category"]
