@@ -41,11 +41,11 @@ class Worker(BaseService):
 
     def run(self):
         try:
-            markets = ['us', 'uk', 'de']
-            for mk in markets:
-                cats = self.get_main_cate(mk)
+            markets = {'EBAY_US': 'us', 'EBAY_GB': 'uk', 'EBAY_DE': 'de'}
+            for mk, site in markets.items():
+                cats = self.get_main_cate(site)
                 for ct in cats:
-                    sub_cats = self.get_sub_cate(ct['cid'], mk)
+                    sub_cats = self.get_sub_cate(ct['cid'], site)
                     row = self.parse_sub_cate(mk, ct['cname'], sub_cats)
                     self.save(row)
         except Exception as why:
