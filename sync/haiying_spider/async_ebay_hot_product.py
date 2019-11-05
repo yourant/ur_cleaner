@@ -96,10 +96,12 @@ class Worker(BaseService):
 
     async def save(self, rows, page, rule_id):
         collection = self.mongodb.ebay_hot_product
+        today = str(datetime.datetime.now())
         for row in rows:
             try:
                 row['ruleType'] = "ebay_hot_rule",
                 row["rules"] = [rule_id]
+                row['recommendDate'] = today
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["itemId"]}')
             except DuplicateKeyError:
