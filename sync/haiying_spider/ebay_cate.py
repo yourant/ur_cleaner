@@ -7,6 +7,7 @@ from src.services.base_service import BaseService
 from pymongo import MongoClient
 import requests
 
+
 class Worker(BaseService):
 
     def __init__(self):
