@@ -23,7 +23,8 @@ class Worker(BaseService):
             "詹莹莹", "胡小红", "尚显贝", "辜星燕", "毕郑强", "王雪姣", "胡宁", "王丽6", "张崇", "徐胜东", "张杜娟",
             "张小辉", "刘霄敏", "杨晶媛", "邹雅丽", "刘爽", "潘梦晗"]
 
-        return random.sample(person, 2)
+        # return random.sample(person, 2)
+        return ['陈微微', '王慢慢']
 
     def get_to_dispatch_product(self, product_type):
         col = self.mdb[f'ebay_{product_type}_product']
@@ -48,8 +49,8 @@ class Worker(BaseService):
     def run(self):
         try:
             product_types = ['new', 'hot']
-            rule = self.get_dispatch_rule()
             for tp in product_types:
+                rule = self.get_dispatch_rule()
                 products = self.get_to_dispatch_product(tp)
                 self.dispatch(rule, products)
         except Exception as why:

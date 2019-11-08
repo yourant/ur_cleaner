@@ -133,6 +133,7 @@ class Dispatcher(object):
                     developer.product.append((developer.name, pt.name, developer.tag, pt.tag))
                     developer.pool.append(pt.name)
                     ret.append((developer.name, pt.name, developer.tag, pt.tag))
+                    print(f'{developer.name} 选中 {developer.name, pt.name, developer.tag, pt.tag}')
                     break
         return ret
 
@@ -153,8 +154,5 @@ class Dispatcher(object):
 
 
 if __name__ == "__main__":
-
     worker = Dispatcher()
     ret = worker.dispatch()
-    for row in ret:
-        print(row)
