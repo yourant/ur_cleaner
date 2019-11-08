@@ -60,8 +60,8 @@ def gen_product():
 
 def gen_people():
     ret = []
-    name = ['A', 'B', 'C', 'D', 'E']
-    tag = [1, 1, 1, 4, None]
+    name = ['A', 'B', 'C', 'D', 'E', 'C']
+    tag = [1, 1, 1, 4, None, 3]
     for ne, tg in zip(name, tag):
         ele = {ne: tg}
         ret.append(ele)
@@ -80,8 +80,8 @@ class Dispatcher(object):
 
         # 有类目且类目相同的人挑
         ret = []
+        same_dev = self.developer
         turn = 0
-        same_dev = [self.developer[0], self.developer[1], self.developer[2]]
         while turn < 5:
             dev = self.turn_sort(same_dev, turn % 3)
             res = self.pick_up_matched_tag(dev)
@@ -89,7 +89,7 @@ class Dispatcher(object):
             turn += 1
 
         # 没有类目的人轮流挑
-        no_tag_dev = [self.developer[-1]]
+        no_tag_dev = [self.developer[-2]]
         turn = 0
         while turn < 6:
             res = self.pick_up_unmatched_tag(no_tag_dev)
