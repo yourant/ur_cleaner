@@ -4,30 +4,21 @@
 # Author: turpure
 
 
-import requests
-import json
-import datetime
-import math
-from pymongo import MongoClient
-import motor.motor_asyncio
-from bson.objectid import ObjectId
-from src.services.base_service import BaseService
-from configs.config import Config
 import asyncio
+import datetime
+import json
+import math
+
 import aiohttp
+from bson.objectid import ObjectId
+from sync.haiying_spider.spider import BaseSpider
 from pymongo.errors import DuplicateKeyError
 
 
-class Worker(BaseService):
+class Worker(BaseSpider):
 
     def __init__(self, rule_id=None):
         super().__init__()
-        self.rule_id = rule_id
-        config = Config()
-        self.haiying_info = config.get_config('haiying')
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongo = motor.motor_asyncio.AsyncIOMotorClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['product_engine']
 
     async def get_rule(self):
         col = self.mongodb['ebay_new_rule']
@@ -38,40 +29,18 @@ class Worker(BaseService):
             rule = await col.find().to_list(length=None)
         return rule
 
-    async def log_in(self, session):
-        base_url = 'http://www.haiyingshuju.com/auth/login'
-        form_data = {
-            'username': self.haiying_info['username'],
-            'password': self.haiying_info['password']
-        }
-        ret = await session.post(base_url, data=form_data)
-        return ret.headers['token']
-
     async def get_product(self, rule):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         async with aiohttp.ClientSession() as session:
             token = await self.log_in(session)
+            self.headers['token'] = token
             rule_id = rule['_id']
             del rule['_id']
             time_range = rule['listedTime']
             rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
             payload = rule
-            headers = {
-                'Accept': "application/json, text/plain, */*",
-                'Accept-Encoding': "gzip, deflate",
-                'Accept-Language': "zh-CN,zh;q=0.9,en;q=0.8",
-                'Connection': "keep-alive",
-                'Content-Type': "application/json",
-                'Host': "www.haiyingshuju.com",
-                'Origin': "http://www.haiyingshuju.com",
-                'Referer': "http://www.haiyingshuju.com/ebay/index.html",
-                'token': token,
-                'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.120 Safari/537.36",
-                'Cache-Control': "no-cache",
-                'cache-control': "no-cache"
-            }
 
-            response = await session.post(url, data=json.dumps(payload), headers=headers)
+            response = await session.post(url, data=json.dumps(payload), headers=self.headers)
             ret = await response.json()
             total = ret['total']
             total_page = math.ceil(total / 20)
@@ -81,17 +50,11 @@ class Worker(BaseService):
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
-                        response = await session.post(url, data=json.dumps(payload), headers=headers)
+                        response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
                         await self.save(res['data'], page, rule_id)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
-
-    @staticmethod
-    def _get_date_some_days_ago(number):
-        today = datetime.datetime.today()
-        ret = today - datetime.timedelta(days=int(number))
-        return str(ret)[:10]
 
     async def save(self, rows, page, rule_id):
         collection = self.mongodb.ebay_new_product
@@ -110,17 +73,6 @@ class Worker(BaseService):
             except Exception as why:
                 self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
         self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
-
-    async def run(self):
-        try:
-            rules = await self.get_rule()
-            for rls in rules:
-                await self.get_product(rls)
-        except Exception as why:
-            self.logger.error(f'fail to get ebay products cause of {why} in async way')
-        finally:
-            self.close()
-            self.mongo.close()
 
 
 if __name__ == '__main__':
