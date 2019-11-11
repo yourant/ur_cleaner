@@ -8,6 +8,7 @@ import datetime
 from abc import ABCMeta, abstractmethod
 from pymongo import MongoClient
 import motor.motor_asyncio
+import copy
 from src.services.base_service import BaseService
 from configs.config import Config
 from sync.haiying_spider.config import headers
@@ -37,6 +38,19 @@ class BaseSpider(BaseService):
         }
         ret = await session.post(base_url, data=form_data)
         return ret.headers['token']
+
+    @staticmethod
+    async def parse_rule(rules):
+        ret = []
+        for rl in rules:
+            published_site = rl['site']
+            for site in published_site:
+                row = copy.deepcopy(rl)
+                # row['marketplace'] = [list(site.keys())[0]]
+                row['marketplace'] = []
+                row['country'] = list(site.values())[0]
+                ret.append(row)
+        return ret
 
     @abstractmethod
     async def get_product(self, rule):
