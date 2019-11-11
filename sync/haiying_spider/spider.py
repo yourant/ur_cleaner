@@ -44,11 +44,9 @@ class BaseSpider(BaseService):
 
     @staticmethod
     def _get_date_some_days_ago(number):
-        if number:
-            today = datetime.datetime.today()
-            ret = today - datetime.timedelta(days=int(number))
-            return str(ret)[:10]
-        return number
+        today = datetime.datetime.today()
+        ret = today - datetime.timedelta(days=int(number))
+        return str(ret)[:10]
 
     @abstractmethod
     async def save(self, rows, page, rule_id):

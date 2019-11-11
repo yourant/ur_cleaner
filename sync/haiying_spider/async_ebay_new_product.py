@@ -8,6 +8,7 @@ import asyncio
 import datetime
 import json
 import math
+import copy
 
 import aiohttp
 from bson.objectid import ObjectId
@@ -24,18 +25,34 @@ class Worker(BaseSpider):
         col = self.mongodb['ebay_new_rule']
         if self.rule_id:
             rule = await col.find_one(ObjectId(self.rule_id))
-            rule = [rule]
+            rules = [rule]
         else:
-            rule = await col.find().to_list(length=None)
-        return rule
+            rules = await col.find().to_list(length=None)
+        return await self.parse_rule(rules)
+
+    @staticmethod
+    async def parse_rule(rules):
+        ret = []
+        for rl in rules:
+            published_site = rl['site']
+            for site in published_site:
+                row = copy.deepcopy(rl)
+                # row['marketplace'] = [list(site.keys())[0]]
+                row['marketplace'] = []
+                row['country'] = list(site.values())[0]
+                ret.append(row)
+        return ret
 
     async def get_product(self, rule):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
         async with aiohttp.ClientSession() as session:
             token = await self.log_in(session)
             self.headers['token'] = token
-            rule_id = rule['_id']
-            del rule['_id']
+            try:
+                rule_id = rule['_id']
+                del rule['_id']
+            except Exception as why:
+                print(why)
             time_range = rule['listedTime']
             rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
             payload = rule

@@ -61,6 +61,7 @@ class RefundFetcher(BaseService):
                 yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
                 month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
 
+            # month_first_day = '2019-10-01'
             self.clear(month_first_day, today)
             rows = self.fetch(month_first_day, today)
             self.push(rows)
