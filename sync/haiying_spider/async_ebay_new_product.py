@@ -65,6 +65,7 @@ class Worker(BaseSpider):
                 row['ruleType'] = "ebay_new_rule",
                 row["rules"] = [rule_id]
                 row['recommendDate'] = today
+                row['recommendToPersons'] = []
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["itemId"]}')
             except DuplicateKeyError:
