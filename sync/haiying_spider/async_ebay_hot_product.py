@@ -62,17 +62,20 @@ class Worker(BaseSpider):
         collection = self.mongodb.ebay_hot_product
         today = str(datetime.datetime.now())
         for row in rows:
+            row['ruleType'] = "ebay_hot_rule",
+            row["rules"] = [rule_id]
+            row['recommendDate'] = today
+            row['recommendToPersons'] = []
             try:
-                row['ruleType'] = "ebay_hot_rule",
-                row["rules"] = [rule_id]
-                row['recommendDate'] = today
-                row['recommendToPersons'] = []
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["itemId"]}')
             except DuplicateKeyError:
                 doc = await  collection.find_one({'itemId': row['itemId']})
                 rules = list(set(doc['rules'] + row['rules']))
+                row['rules'] = rules
+                del row['_id']
                 await collection.find_one_and_update({'itemId': row['itemId']}, {"$set": {"rules": rules}})
+                self.logger.debug(f'update {row["itemId"]}')
             except Exception as why:
                 self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
         self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
