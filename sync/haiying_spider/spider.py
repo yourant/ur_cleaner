@@ -39,17 +39,32 @@ class BaseSpider(BaseService):
         ret = await session.post(base_url, data=form_data)
         return ret.headers['token']
 
-    @staticmethod
-    async def parse_rule(rules):
+    async def parse_rule(self, rules):
         ret = []
         for rl in rules:
             published_site = rl['site']
             for site in published_site:
                 row = copy.deepcopy(rl)
-                # row['marketplace'] = [list(site.keys())[0]]
+                if not row['popularStatus']:
+                    row['popularStatus'] = ""
                 row['marketplace'] = []
                 row['country'] = list(site.values())[0]
+                row['storeLocation'] = self.parse_store_location(row['country'], row['storeLocation'])
                 ret.append(row)
+        return ret
+
+    @staticmethod
+    def parse_store_location(country, store_locations):
+        location_map = {
+            1: {"中国": "中国", "香港": "香港"},  # 美國
+            5: {"中国": "China", "香港": "Hong Kong"},  # 英国
+            3: {"中国": "China", "香港": "Hong Kong"},  # 德国
+            4: {"中国": "China", "香港": "Hong Kong"},  # 澳大利亚
+        }
+        ret = []
+        for sl in store_locations:
+            ele = location_map[country][sl]
+            ret.append(ele)
         return ret
 
     @abstractmethod
