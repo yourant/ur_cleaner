@@ -24,10 +24,10 @@ class Worker(BaseSpider):
         col = self.mongodb['ebay_hot_rule']
         if self.rule_id:
             rule = await col.find_one(ObjectId(self.rule_id))
-            rule = [rule]
+            rules = [rule]
         else:
-            rule = await col.find().to_list(length=None)
-        return rule
+            rules = await col.find().to_list(length=None)
+        return await self.parse_rule(rules)
 
     async def get_product(self, rule):
         url = "http://www.haiyingshuju.com/ebay/product/list"
