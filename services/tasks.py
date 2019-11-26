@@ -7,6 +7,7 @@ import json
 from flask import Flask, request
 from sync.haiying_spider.async_ebay_hot_product import Worker as HotWorker
 from sync.haiying_spider.async_ebay_new_product import Worker as NewWorker
+from sync.aliyun_image_search.image_worker import Worker as imageWorker
 import asyncio
 
 app = Flask(__name__)
@@ -30,6 +31,22 @@ def get_ebay_recommend_products():
             worker = HotWorker(rule_id)
             loop.run_until_complete(worker.run())
             ret = {'code': 200, 'message': 'success', 'data': []}
+    else:
+        ret = {'code': 400, 'message': 'only post method is allowed'}
+    return json.dumps(ret)
+
+
+@app.route('/image-search', methods=['POST'])
+def image_search():
+    ret = {}
+    if request.method == 'POST':
+        content = request.json
+        image_url = content.get('imageUrl', '')
+        image_content = content.get('imageContent', '')
+        worker = imageWorker()
+        data = worker.request.search(image_url)
+        ret = {'code': 200, 'message': 'success', 'data': json.loads(data)}
+
     else:
         ret = {'code': 400, 'message': 'only post method is allowed'}
     return json.dumps(ret)
