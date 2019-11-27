@@ -21,12 +21,18 @@ class Worker(BaseService):
         ret = self.cur.fetchall()
         return ret
 
-    def run(self):
+    def save(self, rows):
+        col = self.mongodb['ebay_stores']
+        for row in rows:
+            try:
+                col.insert(row)
+            except Exception as why:
+                self.logger.debug(f'fail to save {row["NoteName"]}')
 
+    def run(self):
         try:
             stores = self.get_stores()
-            col = self.mongodb['ebay_stores']
-            col.insert_many(stores)
+            self.save(stores)
             self.logger.info(f'success to sync ebay stores')
 
         except Exception as why:
