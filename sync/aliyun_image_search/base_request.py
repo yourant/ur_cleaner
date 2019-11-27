@@ -51,14 +51,22 @@ class BaseRequest(object):
                 print(f'fail to add image cause of {why}')
             return None
 
-    def search(self, image_url):
+    def search(self, image_url_or_content):
         # 搜索图片
         request = SearchImageRequest.SearchImageRequest()
         request.set_endpoint(f'imagesearch.{self.region}.aliyuncs.com')
         request.set_InstanceName(self.instance)
-        img = self.read_image(image_url)
-        if img:
-            encoded_pic_content = base64.b64encode(img)
+
+        if image_url_or_content.startswith('http'):
+            img = self.read_image(image_url_or_content)
+            if img:
+                encoded_pic_content = base64.b64encode(img)
+            else:
+                encoded_pic_content = None
+        else:
+            encoded_pic_content = image_url_or_content
+
+        if encoded_pic_content:
             request.set_PicContent(encoded_pic_content)
             try:
                 response = self.client.do_action_with_exception(request)

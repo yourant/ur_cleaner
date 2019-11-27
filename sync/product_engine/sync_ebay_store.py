@@ -27,7 +27,7 @@ class Worker(BaseService):
             try:
                 col.insert(row)
             except Exception as why:
-                self.logger.debug(f'fail to save {row["NoteName"]}')
+                self.logger.debug(f'fail to save {row["NoteName"]} cause of {why}')
 
     def run(self):
         try:
