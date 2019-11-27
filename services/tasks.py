@@ -42,7 +42,6 @@ def image_search():
     if request.method == 'POST':
         content = request.json
         image_url = content.get('imageUrl', '')
-        image_content = content.get('imageContent', '')
         worker = imageWorker()
         data = worker.request.search(image_url)
         ret = {'code': 200, 'message': 'success', 'data': json.loads(data)}

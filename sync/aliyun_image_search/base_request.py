@@ -56,25 +56,25 @@ class BaseRequest(object):
         request = SearchImageRequest.SearchImageRequest()
         request.set_endpoint(f'imagesearch.{self.region}.aliyuncs.com')
         request.set_InstanceName(self.instance)
+        try:
 
-        if image_url_or_content.startswith('http'):
-            img = self.read_image(image_url_or_content)
-            if img:
-                encoded_pic_content = base64.b64encode(img)
+            if image_url_or_content.startswith('http'):
+                img = self.read_image(image_url_or_content)
+                if img:
+                    encoded_pic_content = base64.b64encode(img)
+                else:
+                    encoded_pic_content = None
             else:
-                encoded_pic_content = None
-        else:
-            encoded_pic_content = image_url_or_content
+                encoded_pic_content = image_url_or_content.split('base64,')[1]
 
-        if encoded_pic_content:
-            request.set_PicContent(encoded_pic_content)
-            try:
+            if encoded_pic_content:
+                request.set_PicContent(encoded_pic_content)
                 response = self.client.do_action_with_exception(request)
                 print(response)
                 return response
-            except Exception as why:
-                print(f'fail to search image cause of {why}')
-                return None
+        except Exception as why:
+            print(f'fail to search image cause of {why}')
+            return None
 
 
 if __name__ == '__main__':
