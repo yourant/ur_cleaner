@@ -33,7 +33,7 @@ class Worker(object):
         if ren:
             ret = {}
             for key, value in ren.items():
-                if value in reason_map:
+                if value in reason_map.keys():
                     ret[key] = reason_map[value]
                 elif value.startswith('8：其他'):
                     ret[key] = value.replace('8：其他', '8: 其他')
@@ -54,7 +54,7 @@ class Worker(object):
                 ele = self.parse(row)
                 if ele:
                     print(ele)
-                    # self.save(ele)
+                    self.save(ele)
         except Exception as why:
             print(f'fail to update refused reason because of {why}')
 
