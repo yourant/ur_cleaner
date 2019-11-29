@@ -31,25 +31,26 @@ class BaseRequest(object):
         except Exception as why:
             print(f'fail to read image {image_url} cause of {why}')
 
-    def add(self, image_url):
+    def add(self, image_url, image_name):
 
         # 添加图片
         request = AddImageRequest.AddImageRequest()
         request.set_endpoint(f'imagesearch.{self.region}.aliyuncs.com')
         request.set_InstanceName(self.instance)
         request.set_ProductId(image_url)
-        request.set_PicName(image_url)
+        request.set_PicName(image_name)
         img = self.read_image(image_url)
         if img:
             encoded_pic_content = base64.b64encode(img)
             request.set_PicContent(encoded_pic_content)
             try:
                 response = self.client.do_action_with_exception(request)
-                print(response)
-                return response
+                return 'success'
             except Exception as why:
                 print(f'fail to add image cause of {why}')
-            return None
+            return 'fail'
+        else:
+            return 'invalid'
 
     def search(self, image_url_or_content):
         # 搜索图片
