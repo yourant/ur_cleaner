@@ -76,9 +76,20 @@ class BaseRequest(object):
             print(f'fail to search image cause of {why}')
             return None
 
+    def delete(self, url):
+        try:
+            request = DeleteImageRequest.DeleteImageRequest()
+            request.set_endpoint(f"imagesearch.{self.region}.aliyuncs.com")
+            request.set_InstanceName(self.instance)
+            request.set_ProductId(url)
+            response = self.client.do_action_with_exception(request)
+            print(response)
+        except Exception as why:
+            print(f'fail to search image cause of {why}')
+
 
 if __name__ == '__main__':
     worker = BaseRequest()
     url = 'http://121.196.233.153/images/7A471204.jpg'
     # url = 'http://121.196.233.153/images/Q113701.jpg'
-    worker.search(url)
+    worker.delete(url)

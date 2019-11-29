@@ -25,7 +25,8 @@ class Worker(BaseService):
         try:
             images = self.get_image_url()
             for img in images:
-                self.request.add(img)
+                # self.request.add(img)
+                self.request.delete(img)
 
         except Exception as why:
             self.logger.error(f'fail to run image-worker cause of {why}')
