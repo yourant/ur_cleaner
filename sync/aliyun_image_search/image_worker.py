@@ -24,9 +24,12 @@ class Worker(BaseService):
             yield row
 
     def mark_image_task(self, image, status):
-        id = image['_id']
-        self.col.find_one_and_update({"_id": id}, {"$set": {"doneFlag": status}})
-        self.logger.info(f'success to finish task {image["sku"]}')
+        try:
+            id = image['_id']
+            self.col.find_one_and_update({"_id": id}, {"$set": {"doneFlag": status}})
+            self.logger.info(f'success to finish task {image["sku"]}')
+        except Exception as why:
+            self.logger.error(f'fail to save task {image["sku"]} cause of {why}')
 
     def run(self):
         try:
