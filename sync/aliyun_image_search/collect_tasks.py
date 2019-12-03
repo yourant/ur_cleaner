@@ -6,7 +6,7 @@
 
 from pymongo import MongoClient
 from base_service import BaseService
-
+import datetime
 
 class Worker(BaseService):
 
@@ -26,15 +26,22 @@ class Worker(BaseService):
             row['doneFlag'] = 0
             yield row
 
-    def save(self, rows):
+    def save_many(self, rows):
         self.col.insert_many(rows)
+
+    def save_one(self, row):
+        try:
+            self.col.insert(row)
+        except Exception as why:
+            self.logger.debug(f'fail to save {row["sku"]} cause of {why}')
 
     def run(self):
         try:
-            begin_date = '2014-01-01'
-            end_date = '2019-12-10'
-            images = self.get_image(begin_date, end_date)
-            self.save(images)
+            today = str(datetime.datetime.today())[:10]
+            some_days_ago = datetime.datetime.today() - datetime.timedelta(days=4)
+            images = self.get_image(today, some_days_ago)
+            for ele in images:
+                self.save_one(ele)
             self.logger.info('success to collect tasks of image')
 
         except Exception as why:

@@ -42,7 +42,7 @@ def transaction(img):
 def start():
     try:
         images = get_images()
-        with Pool(5) as p:
+        with Pool(3) as p:
             p.map(transaction, images)
 
     except Exception as why:
