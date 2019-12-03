@@ -5,8 +5,9 @@
 
 
 from pymongo import MongoClient
-from base_service import BaseService
+from src.services.base_service import BaseService
 import datetime
+
 
 class Worker(BaseService):
 
