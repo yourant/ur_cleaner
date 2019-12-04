@@ -18,7 +18,7 @@ class Worker(BaseService):
         self.col = self.mongodb['images_tasks']
 
     def get_image(self, begin_date, end_date):
-        sql = ("select  bgs.BmpFileName as img ,bgs.sku, bg.createDate from  b_goodsSku as bgs"
+        sql = ("select  bgs.BmpFileName as img ,bgs.sku, bg.goodsCode, bg.createDate from  b_goodsSku as bgs"
                " LEFT JOIN b_goods as bg on bgs.goodsid=bg.nid where bgs.bmpFileName like 'http%'  "
                "and isnull(bgs.BmpFileName, '') != '' and convert(varchar(10), createDate,121) between %s and  %s")
         self.cur.execute(sql, (begin_date, end_date))
@@ -39,7 +39,7 @@ class Worker(BaseService):
     def run(self):
         try:
             today = str(datetime.datetime.today())[:10]
-            some_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=40))[:10]
+            some_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
             images = self.get_image(some_days_ago, today)
             for ele in images:
                 self.save_one(ele)
