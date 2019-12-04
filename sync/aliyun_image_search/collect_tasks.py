@@ -39,7 +39,7 @@ class Worker(BaseService):
     def run(self):
         try:
             today = str(datetime.datetime.today())[:10]
-            some_days_ago = datetime.datetime.today() - datetime.timedelta(days=4)
+            some_days_ago = datetime.datetime.today() - datetime.timedelta(days=40)
             images = self.get_image(today, some_days_ago)
             for ele in images:
                 self.save_one(ele)
