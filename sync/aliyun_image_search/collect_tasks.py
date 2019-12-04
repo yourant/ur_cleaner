@@ -32,15 +32,15 @@ class Worker(BaseService):
 
     def save_one(self, row):
         try:
-            self.col.insert(row)
+            self.col.update_one({"_id": row.get('_id', '')}, row, upsert=True)
         except Exception as why:
             self.logger.debug(f'fail to save {row["sku"]} cause of {why}')
 
     def run(self):
         try:
             today = str(datetime.datetime.today())[:10]
-            some_days_ago = datetime.datetime.today() - datetime.timedelta(days=40)
-            images = self.get_image(today, some_days_ago)
+            some_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=40))[:10]
+            images = self.get_image(some_days_ago, today)
             for ele in images:
                 self.save_one(ele)
             self.logger.info('success to collect tasks of image')
