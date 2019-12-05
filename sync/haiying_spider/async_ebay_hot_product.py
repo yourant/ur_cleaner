@@ -58,6 +58,14 @@ class Worker(BaseSpider):
                     except Exception as why:
                         self.logger.error(f'fail to get page {page} cause of {why}')
 
+    @staticmethod
+    def _get_date_some_days_ago(number):
+        if number:
+            today = datetime.datetime.today()
+            ret = today - datetime.timedelta(days=int(number))
+            return str(ret)[:10]
+        return number
+
     async def save(self, rows, page, rule_id):
         collection = self.mongodb.ebay_hot_product
         today = str(datetime.datetime.now())
@@ -73,6 +81,8 @@ class Worker(BaseSpider):
                 doc = await  collection.find_one({'itemId': row['itemId']})
                 rules = list(set(doc['rules'] + row['rules']))
                 row['rules'] = rules
+                row['recommendDate'] = today
+                del row['recommendToPersons']
                 del row['_id']
                 await collection.find_one_and_update({'itemId': row['itemId']}, {"$set": row})
                 self.logger.debug(f'update {row["itemId"]}')

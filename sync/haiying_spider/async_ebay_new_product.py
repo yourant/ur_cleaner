@@ -73,6 +73,7 @@ class Worker(BaseSpider):
                 rules = list(set(doc['rules'] + row['rules']))
                 row['rules'] = rules
                 del row['_id']
+                del row['recommendToPersons']
                 await collection.find_one_and_update({'itemId': row['itemId']}, {"$set": row})
                 self.logger.debug(f'update {row["itemId"]}')
             except Exception as why:
