@@ -46,7 +46,7 @@ class WishRefund(BaseService):
                     "access_token": token['AccessToken'],
                     "format": "json",
                     "start": start,
-                    "limit": 500,
+                    "limit": 100,
                     "since": date,
                     # "upto": '2018-10-01'
                 }
@@ -67,8 +67,8 @@ class WishRefund(BaseService):
                         except Exception as e:
                             self.logger.debug(e)
                     order_number = len(orders)
-                    if order_number >= 500:
-                        start += 500
+                    if order_number >= 100:
+                        start += 100
                     else:
                         break
                 except Exception as e:
