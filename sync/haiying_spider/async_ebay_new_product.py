@@ -27,7 +27,7 @@ class Worker(BaseSpider):
             rule = await col.find_one(ObjectId(self.rule_id))
             rules = [rule]
         else:
-            rules = await col.find().to_list(length=None)
+            rules = await col.find({'isUsed': 1}).to_list(length=None)
         return await self.parse_rule(rules)
 
     async def get_product(self, rule):
