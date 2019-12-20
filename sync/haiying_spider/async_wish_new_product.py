@@ -18,7 +18,7 @@ from pymongo.errors import DuplicateKeyError
 
 class Worker(BaseSpider):
 
-    def __init__(self, rule_id=None):
+    def __init__(self,rule_type='new', rule_id=None):
         super().__init__()
 
     async def get_rule(self):
@@ -27,7 +27,7 @@ class Worker(BaseSpider):
             rule = await col.find_one(ObjectId(self.rule_id))
             rules = [rule]
         else:
-            rules = await col.find({'ruleType':'new'}).to_list(length=None)
+            rules = await col.find({'ruleType':self.rule_type}).to_list(length=None)
         return rules
 
     async def get_product(self, rule):
@@ -48,25 +48,28 @@ class Worker(BaseSpider):
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, page=1, rule_id=rule_id)
+            await self.save(rows, session, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], page, rule_id)
+                        await self.save(res['data'], session, page, rule_id)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, page, rule_id):
+    async def save(self, rows, session, page, rule_id):
         collection = self.mongodb.wish_new_product
         today = str(datetime.datetime.now())
         for row in rows:
-            row['ruleType'] = "new"
+            row['ruleType'] = self.rule_type
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
+            url = "http://www.haiyingshuju.com/wish_2.0/product/viewNowChart"
+            response = await session.post(url, data=json.dumps({'pid': row['pid']}), headers=self.headers)
+            row['soldChart'] = await response.json()
             # print(row)
             try:
                 await collection.insert_one(row)
@@ -88,8 +91,10 @@ if __name__ == '__main__':
     import time
     start = time.time()
     worker = Worker()
+    # print(worker.rule_type)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
+
     end = time.time()
     print(f'it takes {end - start} seconds')
 

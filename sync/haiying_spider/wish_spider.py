@@ -16,9 +16,10 @@ from sync.haiying_spider.config import headers
 
 class BaseSpider(BaseService):
 
-    def __init__(self, rule_id=None):
+    def __init__(self, rule_type='new', rule_id=None):
         super().__init__()
         self.rule_id = rule_id
+        self.rule_type = rule_type
         self.headers = headers
         config = Config()
         self.haiying_info = config.get_config('haiying')
@@ -52,20 +53,19 @@ class BaseSpider(BaseService):
         return str(ret)[:10]
 
     @abstractmethod
-    async def save(self, rows, page, rule_id):
+    async def save(self, session, rows, page, rule_id):
         pass
 
     async def run(self):
-        #try:
+        try:
             rules = await self.get_rule()
-            self.logger.error(rules)
             for rls in rules:
                 await self.get_product(rls)
-        #except Exception as why:
-        #    self.logger.error(f'fail to get wish products cause of {why} in async way')
-        #finally:
-        #    self.close()
-        #    self.mongo.close()
+        except Exception as why:
+            self.logger.error(f'fail to get wish products cause of {why} in async way')
+        finally:
+            self.close()
+            self.mongo.close()
 
 
 
