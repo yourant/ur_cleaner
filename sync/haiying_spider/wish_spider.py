@@ -16,7 +16,7 @@ from sync.haiying_spider.config import headers
 
 class BaseSpider(BaseService):
 
-    def __init__(self, rule_type='new', rule_id=None):
+    def __init__(self, rule_type='', rule_id=None):
         super().__init__()
         self.rule_id = rule_id
         self.rule_type = rule_type

@@ -20,6 +20,7 @@ class Worker(BaseSpider):
 
     def __init__(self,rule_type='new', rule_id=None):
         super().__init__()
+        self.rule_type=rule_type
 
     async def get_rule(self):
         col = self.mongodb['wish_rule']
@@ -38,13 +39,14 @@ class Worker(BaseSpider):
             rule_id = rule['_id']
             del rule['_id']
             time_range = rule['listedTime']
-            listedTime = [self._get_date_some_days_ago(i) for i in time_range]
-            rule['genTimeStart'] = listedTime[-1]
-            rule['genTimeEnd'] = listedTime[0]
+            if time_range :
+                listedTime = [self._get_date_some_days_ago(i) for i in time_range]
+                rule['genTimeStart'] = listedTime[-1]
+                rule['genTimeEnd'] = listedTime[0]
             payload = rule
 
             response = await session.post(url, data=json.dumps(payload), headers=self.headers)
-            ret = await response.json()
+            ret = await response.json(content_type='application/json')
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
@@ -79,6 +81,7 @@ class Worker(BaseSpider):
                 rules = list(set(doc['rules'] + row['rules']))
                 row['rules'] = rules
                 del row['_id']
+                del row['recommendToPersons']
                 await collection.find_one_and_update({'pid': row['pid']}, {"$set": row})
                 self.logger.debug(f'update {row["pid"]}')
             except Exception as why:
@@ -94,6 +97,11 @@ if __name__ == '__main__':
     # print(worker.rule_type)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
+
+    workerH = Worker('hot')
+    # print(worker.rule_type)
+    loopH = asyncio.get_event_loop()
+    loopH.run_until_complete(workerH.run())
 
     end = time.time()
     print(f'it takes {end - start} seconds')
