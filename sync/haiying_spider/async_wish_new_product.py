@@ -18,9 +18,8 @@ from pymongo.errors import DuplicateKeyError
 
 class Worker(BaseSpider):
 
-    def __init__(self,rule_type='new', rule_id=None):
+    def __init__(self, rule_id=None):
         super().__init__()
-        self.rule_type=rule_type
 
     async def get_rule(self):
         col = self.mongodb['wish_rule']
@@ -28,7 +27,7 @@ class Worker(BaseSpider):
             rule = await col.find_one(ObjectId(self.rule_id))
             rules = [rule]
         else:
-            rules = await col.find({'ruleType':self.rule_type}).to_list(length=None)
+            rules = await col.find().to_list(length=None)
         return rules
 
     async def get_product(self, rule):
@@ -98,10 +97,6 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
 
-    workerH = Worker('hot')
-    # print(worker.rule_type)
-    loopH = asyncio.get_event_loop()
-    loopH.run_until_complete(workerH.run())
 
     end = time.time()
     print(f'it takes {end - start} seconds')
