@@ -36,6 +36,7 @@ class Worker(BaseSpider):
             token = await self.log_in(session)
             self.headers['token'] = token
             rule_id = rule['_id']
+            rule_type = rule['ruleType']
             del rule['_id']
             time_range = rule['listedTime']
             if time_range :
@@ -49,22 +50,22 @@ class Worker(BaseSpider):
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, session, page=1, rule_id=rule_id)
+            await self.save(rows, session, page=1, rule_id=rule_id, rule_type=rule_type)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], session, page, rule_id)
+                        await self.save(res['data'], session, page, rule_id, rule_type=rule_type)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, session, page, rule_id):
+    async def save(self, rows, session, page, rule_id, rule_type):
         collection = self.mongodb.wish_new_product
         today = str(datetime.datetime.now())
         for row in rows:
-            row['ruleType'] = self.rule_type
+            row['ruleType'] = rule_type
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
@@ -93,11 +94,8 @@ if __name__ == '__main__':
     import time
     start = time.time()
     worker = Worker()
-    # print(worker.rule_type)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
-
-
     end = time.time()
     print(f'it takes {end - start} seconds')
 

@@ -63,8 +63,28 @@ class Fetcher(BaseService):
                 month.append(date[:7])
         return month
 
+    def get_suffix(self):
+        self.warehouse_cur.execute('TRUNCATE TABLE `cache_suffix`;')
+        self.warehouse_con.commit()
+
+        sql = 'SELECT DictionaryName AS suffix,FitCode AS plat FROM [dbo].[B_Dictionary] WHERE CategoryID=12 AND Used=0 ORDER BY DictionaryName;'
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+
+        for row in ret:
+            # yield (row['suffix'], row['plat'])
+
+            item = (row['suffix'], row['plat'])
+            insertSql = 'insert into cache_suffix(suffix,plat) values(%s,%s) '
+
+            self.warehouse_cur.execute(insertSql, item)
+            self.warehouse_con.commit()
+
+
     def work(self):
         try:
+            self.get_suffix()
+
             exchange_rate = self.get_exchange()
             today = str(datetime.datetime.now())[:10]
             for month in self.get_month('2019-01-01', today):
