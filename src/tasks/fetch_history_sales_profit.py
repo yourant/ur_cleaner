@@ -67,7 +67,7 @@ class Fetcher(BaseService):
         self.warehouse_cur.execute('TRUNCATE TABLE `cache_suffix`;')
         self.warehouse_con.commit()
 
-        sql = 'SELECT DictionaryName AS suffix,FitCode AS plat FROM [dbo].[B_Dictionary] WHERE CategoryID=12 AND Used=0 ORDER BY DictionaryName;'
+        sql = "SELECT DictionaryName AS suffix,case when FitCode='SMT' then 'Aliexpress' else FitCode end AS plat FROM [dbo].[B_Dictionary] WHERE CategoryID=12 AND Used=0 ORDER BY DictionaryName;"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
 
