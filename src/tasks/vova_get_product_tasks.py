@@ -5,7 +5,6 @@
 
 from src.services.base_service import BaseService
 import aiohttp
-import requests
 import json
 import asyncio
 
@@ -13,7 +12,6 @@ import asyncio
 class Uploading(BaseService):
     def __init__(self):
         super().__init__()
-
 
     async def clean(self):
         sql = 'truncate table ibay365_vova_list'
@@ -26,7 +24,6 @@ class Uploading(BaseService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         return ret
-
 
     async def get_products(self, token):
         url = 'https://merchant.vova.com.hk/api/v1/product/productList'
@@ -60,24 +57,19 @@ class Uploading(BaseService):
                     try:
                         response = await session.post(url, data=json.dumps(param))
                         res = await response.json()
-                        resData = self.deal_products(token, res['product_list'])
-                        await self.save(resData, token, page)
+                        res_data = self.deal_products(token, res['product_list'])
+                        await self.save(res_data, token, page)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-
-
-    def deal_products(self, token, rows):
+    @staticmethod
+    def deal_products(token, rows):
         for row in rows:
             for item in row['sku_list']:
                 index = item['goods_sku'].find('@#')
-                newsku = item['goods_sku'][0:index] if(index >=0) else item['goods_sku']
-                yield (row['parent_sku'], item['goods_sku'],  newsku,
+                new_sku = item['goods_sku'][0:index] if(index >= 0) else item['goods_sku']
+                yield (row['parent_sku'], item['goods_sku'],  new_sku,
                 row['product_id'], token['suffix'], token['selleruserid'], item['storage'])
-
-
-
-
 
     async def save(self, rows, token, page):
         sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage) values (%s,%s,%s,%s,%s,%s,%s)'
@@ -85,15 +77,12 @@ class Uploading(BaseService):
         self.con.commit()
         self.logger.info(f"success to save data page {page} in async way of suffix {token['suffix']} ")
 
-
-
     async def run(self):
         try:
             await self.clean()
             tokens = await self.get_vova_token()
             for token in tokens:
                 await self.get_products(token)
-
 
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')

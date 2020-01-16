@@ -4,10 +4,8 @@
 # Author: turpure
 
 from src.services.base_service import BaseService
-import aiohttp
 import requests
 import json
-import asyncio
 
 
 class OffShelf(BaseService):
@@ -33,7 +31,6 @@ class OffShelf(BaseService):
         # ]
         return ret
 
-
     def off_shelf_products(self, token):
         url = 'https://merchant.vova.com.hk/api/v1/product/disableSale'
         param = {
@@ -42,14 +39,11 @@ class OffShelf(BaseService):
         }
         response = requests.post(url, data=json.dumps(param))
         res = response.json()
-        if res['execute_status'] == 'success' :
+        if res['execute_status'] == 'success':
             message = f"success to off shelf vova product itemid '{token['itemid']}'"
-        else :
+        else:
             message = f"failed to off shelf vova product because of itemid {token['itemid']} '{res['data']['errors_list'][0]['message']}'"
         self.logger.info(message)
-
-
-
 
     def run(self):
         try:
