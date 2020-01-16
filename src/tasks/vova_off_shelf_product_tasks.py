@@ -22,27 +22,38 @@ class OffShelf(BaseService):
         # ret = [
         #     {
         #         'token':'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NzQxNDc0NDUsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzY1NDMiLCJ1TmFtZSI6IlB1eXVhbiJ9.BJtBIYwJ3O_OfSMeIIrQ3BDYWXs_iYCLuY5tMNXr_k0',
-        #         'itemid':'15934717'
+        #         'sku':'6C328903@#Q1',
+        #         'storage':0,
+        #         'itemid':'15449465'
         #     },
         #     {
-        #         'token': 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NzQxNDc0NDUsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzY1NDMiLCJ1TmFtZSI6IlB1eXVhbiJ9.BJtBIYwJ3O_OfSMeIIrQ3BDYWXs_iYCLuY5tMNXr_k0',
-        #         'itemid': '15934718'
+        #         'token':'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NzQxNDc0NDUsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzY1NDMiLCJ1TmFtZSI6IlB1eXVhbiJ9.BJtBIYwJ3O_OfSMeIIrQ3BDYWXs_iYCLuY5tMNXr_k0',
+        #         'sku': '6C328906@#Q1',
+        #         'storage': 0,
+        #         'itemid': '15449465'
         #     }
         # ]
         return ret
 
     def off_shelf_products(self, token):
-        url = 'https://merchant.vova.com.hk/api/v1/product/disableSale'
+        url = 'https://merchant.vova.com.hk/api/v1/product/updateGoodsData'
+        goods_info = {
+            "product_id": token["itemid"],
+            "goods_sku": token["sku"],
+            "attrs": {
+                "storage": token["storage"]
+            }
+        }
         param = {
             "token": token['token'],
-            "goods_list": [token['itemid']]
+            "goods_info": [goods_info]
         }
         response = requests.post(url, data=json.dumps(param))
         res = response.json()
         if res['execute_status'] == 'success':
-            message = f"success to off shelf vova product itemid '{token['itemid']}'"
+            message = f"success to off shelf vova product itemid:{token['itemid']},sku:{token['sku']}"
         else:
-            message = f"failed to off shelf vova product because of itemid {token['itemid']} '{res['data']['errors_list'][0]['message']}'"
+            message = f"failed to off shelf vova product itemid:{token['itemid']},sku:{token['sku']} because of {res['message']}"
         self.logger.info(message)
 
     def run(self):
