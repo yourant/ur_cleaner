@@ -33,15 +33,19 @@ class Fetcher(BaseService):
         self.warehouse_cur.executemany(sql, list(rows))
         self.warehouse_con.commit()
 
-    def clean(self):
-        pass
+    def clean(self, begin_date, end_date):
+        sql = 'delete from cache_suffixSales where orderTime between %s and %s'
+        self.warehouse_cur.execute(sql, (begin_date, end_date))
+        self.warehouse_con.commit()
+        self.logger.info(f'success to clear sales data between {begin_date} and {end_date}')
 
     def work(self):
         try:
             today = str(datetime.datetime.today())
-            four_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+            some_days_ago = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
+            self.clean(some_days_ago, str(today)[:10])
             for date_flag in [0, 1]:
-                rows = self.fetch(date_flag, four_days_ago, today)
+                rows = self.fetch(date_flag, some_days_ago, str(today)[:10])
                 self.push(rows)
                 self.logger.info('success to fetch suffix sales')
         except Exception as why:
