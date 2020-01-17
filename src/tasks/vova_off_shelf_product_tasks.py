@@ -51,7 +51,6 @@ class OffShelf(BaseService):
         }
         response = requests.post(url, data=json.dumps(param))
         res = response.json()
-        print(res)
         if 'execute_status' in res and res['execute_status'] == 'success':
             message = f"success to update vova product itemid:{token['itemid']},sku:{token['sku']}"
         elif 'execute_status' in res:
@@ -61,14 +60,14 @@ class OffShelf(BaseService):
         self.logger.info(message)
 
     async def run(self):
-        # try:
+        try:
             tokens = await self.get_vova_token()
             for token in tokens:
                 await self.off_shelf_products(token)
-        # except Exception as why:
-        #     self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
-        # finally:
-        #     self.close()
+        except Exception as why:
+            self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
+        finally:
+            self.close()
 
 
 if __name__ == '__main__':
