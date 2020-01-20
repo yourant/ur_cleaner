@@ -33,7 +33,7 @@ class OffShelf(BaseService):
             "product_id": token["itemid"],
             "goods_sku": token["sku"],
             "attrs": {
-                "storage": token["storage"]
+                "storage": int(token["quantity"])
             }
         }
         param = {
