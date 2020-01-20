@@ -6,6 +6,7 @@
 from src.services.base_service import BaseService
 import requests
 import json
+import re
 
 
 class OffShelf(BaseService):
@@ -19,23 +20,14 @@ class OffShelf(BaseService):
 
         self.cur.execute(sql)
         ret = self.cur.fetchall()
-        # ret = [
-        #     {
-        #         'token':'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NzQxNDc0NDUsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzY1NDMiLCJ1TmFtZSI6IlB1eXVhbiJ9.BJtBIYwJ3O_OfSMeIIrQ3BDYWXs_iYCLuY5tMNXr_k0',
-        #         'sku':'6C328903@#Q1',
-        #         'storage':0,
-        #         'itemid':'15449465'
-        #     },
-        #     {
-        #         'token':'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE1NzQxNDc0NDUsInNjb3BlIjpbImdldCIsInBvc3QiXSwidWlkIjoiMzY1NDMiLCJ1TmFtZSI6IlB1eXVhbiJ9.BJtBIYwJ3O_OfSMeIIrQ3BDYWXs_iYCLuY5tMNXr_k0',
-        #         'sku': '6C328906@#Q1',
-        #         'storage': 0,
-        #         'itemid': '15449465'
-        #     }
-        # ]
         return ret
 
-    def off_shelf_products(self, token):
+    def update_products_storage(self, token):
+        """
+        1. 所有SKu都为0，就改成1
+        2. 参见活动的产品，数量改为顾客指定数量
+        3. 并发
+        """
         url = 'https://merchant.vova.com.hk/api/v1/product/updateGoodsData'
         goods_info = {
             "product_id": token["itemid"],
@@ -48,19 +40,46 @@ class OffShelf(BaseService):
             "token": token['token'],
             "goods_info": [goods_info]
         }
-        response = requests.post(url, data=json.dumps(param))
-        res = response.json()
-        if res['execute_status'] == 'success':
-            message = f"success to off shelf vova product itemid:{token['itemid']},sku:{token['sku']}"
-        else:
-            message = f"failed to off shelf vova product itemid:{token['itemid']},sku:{token['sku']} because of {res['message']}"
-        self.logger.info(message)
+        try:
+            response = requests.post(url, data=json.dumps(param))
+            res = response.json()
+            if res['execute_status'] == 'success':
+                self.logger.info(f"success to off shelf vova product itemid:{token['itemid']},sku:{token['sku']}")
+            else:
+                if '存在被顾客预定' in res['message']:
+                    find_number = re.findall(r'存在被顾客预定(\d)件', res['message'])
+                    if find_number:
+                        token['storage'] = find_number[0]
+                        self.update_products_storage(token)
+                if '标准库存不能全为0' in res['message']:
+                    self.disable_product(token)
+
+                self.logger.error(f"failed to off shelf vova product itemid:{token['itemid']},"
+                                  f"sku:{token['sku']} because of {res['message']}")
+        except Exception as error:
+            self.logger.error(f'fail to update products  of {token["sku"]} cause of {error}')
+
+    def disable_product(self, token):
+        item = {
+                    "token": token['token'],
+                    "goods_list": [token['itemid']]
+        }
+        url = 'https://merchant.vova.com.hk/api/v1/product/disableSale'
+        try:
+            response = requests.post(url, data=json.dumps(item))
+            res = response.json()
+            self.logger.info(f"{res['execute_status']} to disable product {token['itemid']}")
+        except Exception as why:
+            self.logger.error(f'fail to disable {token["itemid"]} casue of {why}')
 
     def run(self):
         try:
             tokens = self.get_vova_token()
             for token in tokens:
-                self.off_shelf_products(token)
+                try:
+                    self.update_products_storage(token)
+                except Exception as error:
+                    self.logger.error(f'fail to update products  of {token["sku"]} cause of {error}')
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
         finally:
