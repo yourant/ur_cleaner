@@ -54,8 +54,9 @@ class OffShelf(BaseService):
                 if '标准库存不能全为0' in res['message']:
                     self.disable_product(token)
 
-                self.logger.error(f"failed to off shelf vova product itemid:{token['itemid']},"
-                                  f"sku:{token['sku']} because of {res['message']}")
+                else:
+                    self.logger.error(f"failed to off shelf vova product itemid:{token['itemid']},"
+                                      f"sku:{token['sku']} because of {res['message']}")
         except Exception as error:
             self.logger.error(f'fail to update products  of {token["sku"]} cause of {error}')
 
