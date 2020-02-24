@@ -41,8 +41,10 @@ class EbayFee(BaseService):
             self.logger.error('fail to get max batchId cause of {}'.format(why))
 
     def get_ebay_token(self):
-        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken "
-               "FROM S_PalSyncInfo  GROUP BY notename")
+        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
+               " where notename in (select dictionaryName from B_Dictionary "
+               "where  CategoryID=12 and FitCode ='eBay' and used = 0)  "
+               "  GROUP BY notename")
                # " having notename='eBay-A6-vitalityang1'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
