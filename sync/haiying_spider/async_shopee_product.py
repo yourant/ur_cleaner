@@ -1,6 +1,6 @@
 #! usr/bin/env/python3
 # coding:utf-8
-# @Time: 2019-10-19 14:23
+# @Time: 2019-11-19 14:23
 # Author: turpure
 
 
@@ -8,7 +8,6 @@ import asyncio
 import datetime
 import json
 import math
-import copy
 
 import aiohttp
 from bson.objectid import ObjectId
@@ -67,7 +66,6 @@ class Worker(BaseSpider):
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
-            # print(row)
             try:
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["pid"]}')
@@ -82,7 +80,6 @@ class Worker(BaseSpider):
             except Exception as why:
                 self.logger.debug(f'fail to save {row["pid"]} cause of {why}')
         self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
-
 
 
 if __name__ == '__main__':
