@@ -98,5 +98,6 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
     end = time.time()
-    print(f'it takes {end - start} seconds')
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
 

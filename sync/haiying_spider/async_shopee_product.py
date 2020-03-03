@@ -42,27 +42,31 @@ class Worker(BaseSpider):
                 rule['genTimeStart'] = listedTime[-1]
                 rule['genTimeEnd'] = listedTime[0]
             payload = rule
+            countries = {1: 'Malaysia', 2: 'Indonesia', 3: 'Thailand', 4: 'Philippines', 5: 'Taiwan',6: 'Singapore', 7: 'Vietnam'}
 
+            # print(rule['country'])
+            # print(countries[rule['country']])
             response = await session.post(url, data=json.dumps(payload), headers=self.headers)
             ret = await response.json(content_type='application/json')
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, session, page=1, rule_id=rule_id)
+            await self.save(rows, countries[rule['country']], session, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], session, page, rule_id)
+                        await self.save(res['data'], countries[rule['country']], session, page, rule_id)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, session, page, rule_id):
+    async def save(self, rows, country, session, page, rule_id):
         collection = self.mongodb.shopee_product
         today = str(datetime.datetime.now())
         for row in rows:
+            row["country"] = country
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
@@ -89,5 +93,6 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(worker.run())
     end = time.time()
-    print(f'it takes {end - start} seconds')
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
 
