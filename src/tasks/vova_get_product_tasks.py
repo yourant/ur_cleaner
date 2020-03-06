@@ -7,6 +7,7 @@ from src.services.base_service import BaseService
 import aiohttp
 import json
 import asyncio
+import datetime
 
 
 class Uploading(BaseService):
@@ -69,10 +70,10 @@ class Uploading(BaseService):
                 index = item['goods_sku'].find('@#')
                 new_sku = item['goods_sku'][0:index] if(index >= 0) else item['goods_sku']
                 yield (row['parent_sku'], item['goods_sku'],  new_sku,
-                row['product_id'], token['suffix'], token['selleruserid'], item['storage'])
+                row['product_id'], token['suffix'], token['selleruserid'], item['storage'], str(datetime.datetime.today())[:19])
 
     async def save(self, rows, token, page):
-        sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage) values (%s,%s,%s,%s,%s,%s,%s)'
+        sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
         self.cur.executemany(sql, rows)
         self.con.commit()
         self.logger.info(f"success to save data page {page} in async way of suffix {token['suffix']} ")

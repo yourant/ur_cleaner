@@ -9,12 +9,9 @@ import json
 import asyncio
 import re
 
-
-
 class OffShelf(BaseService):
     def __init__(self):
         super().__init__()
-
 
     def get_vova_token(self):
         sql = ("EXEC B_VovaOffShelfProducts  '侵权,清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +
@@ -24,7 +21,6 @@ class OffShelf(BaseService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         return ret
-
 
     def update_products_storage(self, token):
         """
@@ -44,7 +40,6 @@ class OffShelf(BaseService):
             "token": token['token'],
             "goods_info": [goods_info]
         }
-
         try:
             response = requests.post(url, data=json.dumps(param))
             res = response.json()
@@ -80,9 +75,8 @@ class OffShelf(BaseService):
 
     async def run(self):
         try:
-            tokens = await self.get_vova_token()
+            tokens = self.get_vova_token()
             for token in tokens:
-
                 try:
                     self.update_products_storage(token)
                 except Exception as error:
