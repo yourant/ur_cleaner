@@ -5,6 +5,8 @@
 
 import requests
 import json
+import os
+import sys
 from src.services.base_service import BaseService
 from configs.config import Config
 
@@ -20,6 +22,13 @@ class Worker(BaseService):
         config = Config().config
         self.token = config['ur_center']['token']
         super().__init__()
+
+    def clear(self):
+        plat = sys.platform
+        if not plat.startswith('win'):
+            kill_chrome_cmd = "ps -ef |grep chrome | awk '{print $2}' | xargs kill -9"
+            os.system(kill_chrome_cmd)
+            self.logger.info('success to kill chrome ps')
 
     def get_tasks(self):
         """
@@ -48,6 +57,7 @@ class Worker(BaseService):
     def run(self):
         try:
             tasks = self.get_tasks()
+            self.clear()
             for tk in tasks:
                 self.redo_tasks(tk)
         except Exception as why:
