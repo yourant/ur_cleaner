@@ -26,10 +26,9 @@ class Worker(BaseService):
     def clear(self):
         plat = sys.platform
         if not plat.startswith('win'):
-            kill_chrome_cmd = "ps -ef |grep chrome | awk '{print $2}' | xargs kill -9"
-            kill_chrome_defunct = "ps -ef |grep chrome |grep defunct |awk '{print $3}' |xargs kill -9"
+            kill_chrome_cmd = ("ps -ef |grep chrome | awk '{print $2}' | xargs kill -9 && "
+                               "ps -ef |grep chrome |grep defunct |awk '{print $3}' |xargs kill -9")
             os.system(kill_chrome_cmd)
-            os.system(kill_chrome_defunct)
             self.logger.info('success to kill chrome ps')
 
     def get_tasks(self):
