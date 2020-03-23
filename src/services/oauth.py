@@ -79,5 +79,5 @@ class Ali(object):
 
 
 if __name__ == "__main__":
-    ali = Ali('tb918481377')
-    print(ali.get_request_url('836642625725468720'))
+    ali = Ali('caigoueasy')
+    print(ali.get_request_url('898565793088682293'))

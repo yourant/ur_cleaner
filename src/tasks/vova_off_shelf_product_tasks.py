@@ -5,6 +5,7 @@
 
 from src.services.base_service import BaseService
 import requests
+import aiohttp
 import json
 import asyncio
 import re
@@ -22,7 +23,7 @@ class OffShelf(BaseService):
         ret = self.cur.fetchall()
         return ret
 
-    def update_products_storage(self, token):
+    async def update_products_storage(self, token, sema):
         """
         1. 所有SKu都为0，就改成1
         2. 参见活动的产品，数量改为顾客指定数量
@@ -41,46 +42,48 @@ class OffShelf(BaseService):
             "goods_info": [goods_info]
         }
         try:
-            response = requests.post(url, data=json.dumps(param))
-            res = response.json()
-            if res['execute_status'] == 'success':
-                self.logger.info(f"success to off shelf vova product itemid:{token['itemid']},sku:{token['sku']}")
-            else:
-                if '存在被顾客预定' in res['message']:
-                    find_number = re.findall(r'存在被顾客预定(\d)件', res['message'])
-                    if find_number:
-                        token['storage'] = find_number[0]
-                        self.update_products_storage(token)
-                if '标准库存不能全为0' in res['message']:
-                    self.disable_product(token)
+            async with sema:
+                async with aiohttp.ClientSession() as session:
+                    response = await session.post(url, data=json.dumps(param))
+                    res = await response.json(content_type='application/json')
+                    if res['execute_status'] == 'success':
+                        self.logger.info(f"success to off shelf vova product itemid:{token['itemid']},sku:{token['sku']}")
+                    else:
+                        if '存在被顾客预定' in res['message']:
+                            find_number = re.findall(r'存在被顾客预定(\d)件', res['message'])
+                            if find_number:
+                                token['storage'] = find_number[0]
+                                await self.update_products_storage(token)
+                        if '标准库存不能全为0' in res['message']:
+                            await self.disable_product(token,session)
 
-                else:
-                    self.logger.error(f"failed to off shelf vova product itemid:{token['itemid']},"
-                                      f"sku:{token['sku']} because of {res['message']}")
+                        else:
+                            self.logger.error(f"failed to off shelf vova product itemid:{token['itemid']},"
+                                          f"sku:{token['sku']} because of {res['message']}")
         except Exception as error:
             self.logger.error(f'fail to update products  of {token["sku"]} cause of {error}')
 
-    def disable_product(self, token):
+    async def disable_product(self, token, session):
         item = {
                     "token": token['token'],
                     "goods_list": [token['itemid']]
         }
         url = 'https://merchant.vova.com.hk/api/v1/product/disableSale'
         try:
-            response = requests.post(url, data=json.dumps(item))
-            res = response.json()
+            response = session.post(url, data=json.dumps(item))
+            res = response.json(content_type='application/json')
             self.logger.info(f"{res['execute_status']} to disable product {token['itemid']}")
         except Exception as why:
             self.logger.error(f'fail to disable {token["itemid"]} casue of {why}')
 
-    async def run(self):
+    def run(self):
         try:
+            sema = asyncio.Semaphore(50)
+            loop = asyncio.get_event_loop()
             tokens = self.get_vova_token()
-            for token in tokens:
-                try:
-                    self.update_products_storage(token)
-                except Exception as error:
-                    self.logger.error(f'fail to update products  of {token["sku"]} cause of {error}')
+            tasks = [asyncio.ensure_future(self.update_products_storage(tk, sema)) for tk in tokens ]
+            loop.run_until_complete(asyncio.wait(tasks))
+            loop.close()
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
         finally:
@@ -92,8 +95,7 @@ if __name__ == '__main__':
     import time
     start = time.time()
     worker = OffShelf()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    worker.run ()
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')

@@ -22,7 +22,7 @@ class Updater(BaseService):
 
     def work(self):
         try:
-            begin_date = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
+            begin_date = str(datetime.datetime.today() - datetime.timedelta(days=50))[:10]
             end_date = str(datetime.datetime.today())[:10]
             self.get_data(begin_date, end_date)
             self.update_date()
