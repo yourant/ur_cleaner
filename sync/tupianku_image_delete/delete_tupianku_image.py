@@ -5,11 +5,8 @@
 
 
 import asyncio
-import datetime
-
 import aiohttp
 from sync.tupianku_image_delete.image_server import BaseSpider
-from pymongo.errors import DuplicateKeyError
 
 
 class Worker(BaseSpider):
@@ -18,7 +15,7 @@ class Worker(BaseSpider):
         super().__init__()
 
     async def get_goods(self):
-        sql = ("SELECT DISTINCT top 3 b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
+        sql = ("SELECT DISTINCT b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
             " WHERE GoodsSKUStatus='停售' AND GoodsID NOT IN (SELECT DISTINCT GoodsID FROM [dbo].[B_GoodsSKU] WHERE GoodsSKUStatus<>'停售')" +
             " AND  GoodsCode  NOT IN (SELECT DISTINCT GoodsCode FROM [dbo].[TPK_goodsCode_del])" )
         self.cur.execute(sql)
@@ -27,7 +24,6 @@ class Worker(BaseSpider):
         return goods_list
 
     async def deal(self, goodsCode):
-        url = "https://www.tupianku.com/myfiles"
         async with aiohttp.ClientSession() as session:
             try:
                 #登录图片库
