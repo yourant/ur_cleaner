@@ -4,10 +4,7 @@
 # Author: turpure
 
 
-import datetime
 from abc import abstractmethod
-import motor.motor_asyncio
-import copy
 from src.services.base_service import BaseService
 from configs.config import Config
 
@@ -53,8 +50,10 @@ class BaseSpider(BaseService):
 
 
     @abstractmethod
-    async def delete_image(self, session, image_ids=[]):
+    async def delete_image(self, session, image_ids):
         base_url = 'https://www.tupianku.com/myfiles'
+
+
         form_data = {
             'action': 'delete',
             'current_folder_id': 34708,
@@ -62,11 +61,14 @@ class BaseSpider(BaseService):
             'sort': 'date_desc',
             'fl_per_page': 800,
             'keyword': '',
-            'file_ids': image_ids
+            'file_ids[]':image_ids
         }
+        # for val in image_ids:
+        #     form_data['file_ids[]'] = val
+        # print(form_data)
         ret = await session.post(base_url, data=form_data)
-        print(ret)
-        return ret
+        # print(ret)
+        # return ret
 
 
 
@@ -83,7 +85,8 @@ class BaseSpider(BaseService):
         for i in range(num +1):
             index = html.find('mf_addfile(')
             if(index > 0):
-                image_ids.append(html[index + 11:index + 19])
+                str = html[index + 11:index + 21]
+                image_ids.append(str.split(',')[0])
                 html = html[index + 20:]
         return image_ids
 
@@ -100,8 +103,8 @@ class BaseSpider(BaseService):
             goods = await self.get_goods()
             self.logger.info(goods)
             for k in goods:
-                print(k['goodsCode'])
-                await self.deal(k['goodCode'])
+                # print(k['goodsCode'])
+                await self.deal(k['goodsCode'])
                 # 保存已经删除图片的goodsCode
                 await self.save(k['goodsCode'])
         except Exception as why:
