@@ -14,12 +14,12 @@ class Uploading(BaseService):
     def __init__(self):
         super().__init__()
 
-    async def clean(self):
+    def clean(self):
         sql = 'truncate table ibay365_vova_list'
         self.cur.execute(sql)
         self.con.commit()
 
-    async def get_vova_token(self):
+    def get_vova_token(self):
 
         sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;'
         self.cur.execute(sql)
@@ -51,7 +51,7 @@ class Uploading(BaseService):
             ret = await response.json(content_type='application/json')
             total_page = ret['page_arr']['totalPage']
             rows = self.deal_products(token, ret['product_list'])
-            await self.save(rows, token, page=1)
+            asyncio.gather(asyncio.ensure_future(self.save(rows, token, page=1)))
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     param['conditions']['page_arr']['page'] = page
@@ -59,7 +59,7 @@ class Uploading(BaseService):
                         response = await session.post(url, data=json.dumps(param))
                         res = await response.json()
                         res_data = self.deal_products(token, res['product_list'])
-                        await self.save(res_data, token, page)
+                        await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
@@ -78,12 +78,16 @@ class Uploading(BaseService):
         self.con.commit()
         self.logger.info(f"success to save data page {page} in async way of suffix {token['suffix']} ")
 
-    async def run(self):
+    def run(self):
         try:
-            await self.clean()
-            tokens = await self.get_vova_token()
+            self.clean()
+            loop = asyncio.get_event_loop()
+            tokens = self.get_vova_token()
+            tasks = []
             for token in tokens:
-                await self.get_products(token)
+                tasks.append(asyncio.ensure_future(self.get_products(token)))
+            loop.run_until_complete(asyncio.wait(tasks))
+            loop.close()
 
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
@@ -96,8 +100,7 @@ if __name__ == '__main__':
     import time
     start = time.time()
     worker = Uploading()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    worker.run()
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')
