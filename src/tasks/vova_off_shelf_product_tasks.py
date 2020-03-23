@@ -15,8 +15,8 @@ class OffShelf(BaseService):
         super().__init__()
 
     def get_vova_token(self):
-        sql = ("EXEC B_VovaOffShelfProducts  '侵权,清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +
-              "'爆款,旺款,Wish新款,浮动款,在售'," +
+        sql = ("EXEC B_VovaOffShelfProducts  '清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +
+              "'爆款,旺款,Wish新款,浮动款,在售,侵权'," +
               "'清仓,停产,停售,线上清仓,线上清仓50P,线上清仓100P,春节放假'")
 
         self.cur.execute(sql)
