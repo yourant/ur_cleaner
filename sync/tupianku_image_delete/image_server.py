@@ -3,6 +3,7 @@ from src.services.base_service import BaseService
 from configs.config import Config
 import asyncio
 import aiohttp
+import re
 
 class BaseSpider(BaseService):
 
@@ -64,13 +65,6 @@ class BaseSpider(BaseService):
 
     @staticmethod
     def get_image_ids(html):
-        image_ids = []
-        num = html.count('mf_addfile(')
-        for i in range(num +1):
-            index = html.find('mf_addfile(')
-            if index > 0:
-
-                image_ids.append(html[index + 11:index + 20].split(','[0]))
-                html = html[index + 21:]
+        image_ids = re.findall(r'mf_addfile\((\d+?),', html);
         return image_ids
 
