@@ -63,9 +63,6 @@ class BaseSpider(BaseService):
             'keyword': '',
             'file_ids[]':image_ids
         }
-        # for val in image_ids:
-        #     form_data['file_ids[]'] = val
-        # print(form_data)
         ret = await session.post(base_url, data=form_data)
         # print(ret)
         # return ret
@@ -107,6 +104,7 @@ class BaseSpider(BaseService):
                 await self.deal(k['goodsCode'])
                 # 保存已经删除图片的goodsCode
                 await self.save(k['goodsCode'])
+                self.logger.info(f'success to delete image of goodsCode "{k["goodsCode"]}" in async way')
         except Exception as why:
             self.logger.error(f'fail to delete image cause of {why} in async way')
         finally:
