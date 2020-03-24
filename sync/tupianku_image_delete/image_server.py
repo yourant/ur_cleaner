@@ -69,7 +69,8 @@ class BaseSpider(BaseService):
         for i in range(num +1):
             index = html.find('mf_addfile(')
             if index > 0:
-                image_ids.append(html[index + 11:index + 19])
-                html = html[index + 20:]
+
+                image_ids.append(html[index + 11:index + 20].split(','[0]))
+                html = html[index + 21:]
         return image_ids
 
