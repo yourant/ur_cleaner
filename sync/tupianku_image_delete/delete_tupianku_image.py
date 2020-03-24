@@ -61,8 +61,10 @@ class Worker(BaseSpider):
                     # 标记删除成功
                     await self.mark_as_done(goods_code)
                 except Exception as why:
+                    await self.login()
                     self.logger.error(f'error while delete image of goodsCode "{goods_code}" cause of {why}')
         except Exception as why:
+            await self.login()
             self.logger.error(f'error while delete image of goodsCode "{goods_code}" cause of {why}')
 
     async def start(self, sema):
