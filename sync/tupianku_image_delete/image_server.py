@@ -12,8 +12,8 @@ class BaseSpider(BaseService):
         config = Config()
         self.tupianku_name = tupianku_name
         self.tupianku_info = config.get_config(f'tupianku{tupianku_name}')
-        self.proxy_url = "http://127.0.0.1:1080"
-        # self.proxy_url = None
+        # self.proxy_url = "http://127.0.0.1:1080"
+        self.proxy_url = None
         self.session = aiohttp.ClientSession()
 
     async def login(self):
@@ -41,13 +41,15 @@ class BaseSpider(BaseService):
             'fl_per_page': 800,
             'keyword': goodsCode
         }
-        ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
-        ret = self.get_image_ids(await ret.text())
-        self.logger.info(f'find {len(ret)} images of {goodsCode}')
-        asyncio.sleep(0.4)
-        return ret
+        try:
+            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+            ret = self.get_image_ids(await ret.text())
+            self.logger.info(f'find {len(ret)} images of {goodsCode}')
+            return ret
+        except Exception as why:
+            self.logger.error(f'failed to find images of {goodsCode} cause of {why}')
 
-    @abstractmethod
+
     async def delete_image(self, goods_code, image_ids=[],):
         base_url = 'https://www.tupianku.com/myfiles'
         form_data = {
@@ -59,9 +61,13 @@ class BaseSpider(BaseService):
             'keyword': '',
             'file_ids[]': image_ids
         }
-        ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
-        self.logger.info(f'success to delete images of {goods_code} ')
-        return ret
+        try:
+            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+            self.logger.info(f'success to delete images of {goods_code} ')
+            return ret
+        except Exception as why:
+            self.logger.error(f'failed to delete images of {goods_code} cause of {why}')
+
 
     @staticmethod
     def get_image_ids(html):

@@ -43,28 +43,28 @@ class Worker(BaseSpider):
     def pull_tasks(self):
         tupianku_name = self.tupianku_name
         try:
-            tasks = self.col.find({f'tupianku{tupianku_name}': 0}).limit(3000)
+            tasks = self.col.find({f'tupianku{tupianku_name}': 0})
             return tasks
         except Exception as why:
             self.logger.error(f'failed to pull tasks of tupianku{tupianku_name} cause of {why}')
 
     async def delete_trans(self, goods_code, sema):
-        try:
-            async with sema:
-                try:
-                    #搜索图片，并获取图片id
-                    image_ids = await self.search_image(goods_code + '-')
-                    #删除图片
+        async with sema:
+            try:
+                #搜索图片，并获取图片id
+                image_ids = await self.search_image(goods_code + '-')
+                #删除图片
+                if type(image_ids) is list:
                     if image_ids:
-                        await self.delete_image(goods_code, image_ids)
+                        ret = await self.delete_image(goods_code, image_ids)
+                        if ret:
+                            await self.mark_as_done(goods_code)
                     # 标记删除成功
-                    await self.mark_as_done(goods_code)
-                except Exception as why:
-                    await self.login()
-                    self.logger.error(f'error while delete image of goodsCode "{goods_code}" cause of {why}')
-        except Exception as why:
-            await self.login()
-            self.logger.error(f'error while delete image of goodsCode "{goods_code}" cause of {why}')
+                    else:
+                        await self.mark_as_done(goods_code)
+            except Exception as why:
+                await self.login()
+                self.logger.error(f'error while delete image of goodsCode "{goods_code}" cause of {why}')
 
     async def start(self, sema):
         tasks = self.pull_tasks()
