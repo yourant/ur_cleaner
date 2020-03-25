@@ -7,13 +7,13 @@ import re
 
 class BaseSpider(BaseService):
 
-    def __init__(self,tupianku_name=2):
+    def __init__(self,tupianku_name=1):
         super().__init__()
         config = Config()
         self.tupianku_name = tupianku_name
         self.tupianku_info = config.get_config(f'tupianku{tupianku_name}')
         self.proxy_url = "http://127.0.0.1:1080"
-        self.proxy_url = None
+        # self.proxy_url = None
         self.session = aiohttp.ClientSession()
 
     async def login(self):

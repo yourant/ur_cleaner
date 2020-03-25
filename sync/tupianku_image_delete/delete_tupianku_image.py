@@ -15,8 +15,7 @@ import random
 class Worker(BaseSpider):
 
     def __init__(self, tupianku_name=2):
-        super().__init__()
-        self.tupianku_name = tupianku_name
+        super().__init__(tupianku_name)
         self.mongo = MongoClient('192.168.0.150', 27017)
         self.mongodb = self.mongo['ur_cleaner']
         self.col = self.mongodb['delete_tupianku_tasks']
