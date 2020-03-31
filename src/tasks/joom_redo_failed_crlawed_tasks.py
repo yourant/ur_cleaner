@@ -39,7 +39,7 @@ class Worker(BaseService):
         """
         sql = ("select proId from proCenter.oa_dataMine where platform='joom' and progress in ('待采集', '采集失败')  "
                "and detailStatus='未完善'"
-               " and timestampdiff(day,createTime,now())<=30 and  "
+               " and timestampdiff(day,createTime,now())<=3 and  "
                "timestampdiff(MINUTE,createTime,now()) >=2")
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
