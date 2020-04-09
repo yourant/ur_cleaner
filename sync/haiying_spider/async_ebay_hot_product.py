@@ -45,7 +45,8 @@ class Worker(BaseSpider):
             ret = await response.json()
             total_page = math.ceil(ret['total'] / 20)
             rows = ret['data']
-            await self.save(rows, page=1, rule_id=rule_id)
+            print(rows)
+            await self.save(session, rows, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     try:
@@ -66,7 +67,8 @@ class Worker(BaseSpider):
             return str(ret)[:10]
         return number
 
-    async def save(self, rows, page, rule_id):
+    async def save(self, session, rows, page, rule_id):
+        countryList = {'EBAY_US':1, 'EBAY_GB':5, 'EBAY_DE':3, 'EBAY_AU':4}
         collection = self.mongodb.ebay_hot_product
         today = str(datetime.datetime.now())
         for row in rows:
@@ -74,6 +76,18 @@ class Worker(BaseSpider):
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
+
+            try:
+                country = countryList[row['marketplace']]
+            except:
+                country = 1
+
+            params = {'itemId':row['itemId'],'genTime': row['genTime'],'country': country}
+            #获取走势数据
+            url = "http://www.haiyingshuju.com/ebay/product/chart"
+            response = await session.post(url, data=json.dumps(params), headers=self.headers)
+            ret = await response.json()
+            row['soldChart'] = {'soldDate':ret['soldDate'],'soldData':ret['soldData']}
             try:
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["itemId"]}')

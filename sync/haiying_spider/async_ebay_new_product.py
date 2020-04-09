@@ -46,18 +46,18 @@ class Worker(BaseSpider):
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, page=1, rule_id=rule_id)
+            await self.save(session, rows, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], page, rule_id)
+                        await self.save(session, res['data'], page, rule_id)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, page, rule_id):
+    async def save(self, session, rows, page, rule_id):
         collection = self.mongodb.ebay_new_product
         today = str(datetime.datetime.now())
         for row in rows:
