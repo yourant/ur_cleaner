@@ -42,12 +42,13 @@ class BaseSpider(BaseService):
             'keyword': goodsCode
         }
         try:
-            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url,timeout=20)
             ret = self.get_image_ids(await ret.text())
             self.logger.info(f'find {len(ret)} images of {goodsCode}')
             return ret
         except Exception as why:
-            self.logger.error(f'failed to find images of {goodsCode} cause of {why}')
+            # await self.login()
+            self.logger.error(f'failed to find images of {goodsCode} cause of {type(why)}')
 
 
     async def delete_image(self, goods_code, image_ids=[],):
@@ -62,11 +63,12 @@ class BaseSpider(BaseService):
             'file_ids[]': image_ids
         }
         try:
-            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+            ret = await self.session.post(base_url, data=form_data, proxy=self.proxy_url, timeout=20)
             self.logger.info(f'success to delete images of {goods_code} ')
             return ret
         except Exception as why:
-            self.logger.error(f'failed to delete images of {goods_code} cause of {why}')
+            # await self.login()
+            self.logger.error(f'failed to delete images of {goods_code} cause of {type(why)}')
 
 
     @staticmethod

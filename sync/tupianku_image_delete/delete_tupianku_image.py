@@ -43,7 +43,7 @@ class Worker(BaseSpider):
     def pull_tasks(self):
         tupianku_name = self.tupianku_name
         try:
-            tasks = self.col.find({f'tupianku{tupianku_name}': 0})
+            tasks = self.col.find({f'tupianku{tupianku_name}': 0}).limit(10000)
             return tasks
         except Exception as why:
             self.logger.error(f'failed to pull tasks of tupianku{tupianku_name} cause of {why}')
@@ -77,7 +77,7 @@ class Worker(BaseSpider):
 
     def run(self):
         loop = asyncio.get_event_loop()
-        sema = asyncio.Semaphore(20)
+        sema = asyncio.Semaphore(30)
         try:
             loop.run_until_complete(self.start(sema))
         except Exception as why:
