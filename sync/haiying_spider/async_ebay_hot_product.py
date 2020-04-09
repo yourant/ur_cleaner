@@ -45,7 +45,6 @@ class Worker(BaseSpider):
             ret = await response.json()
             total_page = math.ceil(ret['total'] / 20)
             rows = ret['data']
-            print(rows)
             await self.save(session, rows, page=1, rule_id=rule_id)
             if total_page > 1:
                 for page in range(2, total_page + 1):
