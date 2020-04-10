@@ -53,7 +53,7 @@ class Worker(BaseSpider):
                         response = await session.post(url, data=json.dumps(rule), headers=self.headers)
                         res = await response.json()
                         rows = res['data']
-                        await self.save(rows, page, rule_id)
+                        await self.save(session, rows, page, rule_id)
 
                     except Exception as why:
                         self.logger.error(f'fail to get page {page} cause of {why}')
