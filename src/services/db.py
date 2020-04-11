@@ -38,6 +38,10 @@ class DataBase(object):
                 import pymysql
                 return pymysql.connect(**config.get_config('mysql'))
 
+            if self.base_name == 'ibay':
+                import psycopg2
+                return psycopg2.connect(**config.get_config('ibay'))
+
         except Exception as why:
             SysLogger().log.info('can not connect {} cause of {}'.format(self.base_name, why))
             return None
@@ -56,10 +60,11 @@ class DataBase(object):
 
 
 if __name__ == '__main__':
-    import pymysql
-    con = DataBase('mysql')
-    cur = con.connection.cursor(pymysql.cursors.DictCursor)
-    cur.execute('select * from requirement')
+    import psycopg2
+    import psycopg2.extras
+    con = DataBase('ibay')
+    cur = con.connection.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur.execute('select * from ebay_item limit 10')
     ret = cur.fetchall()
     for row in ret:
         print(row)

@@ -5,7 +5,8 @@
 
 from src.services import log, db
 import pymysql
-
+import psycopg2
+import psycopg2.extras
 
 class BaseService(object):
     """
@@ -19,6 +20,10 @@ class BaseService(object):
         self.mysql = db.DataBase('mysql')
         self.warehouse_con = self.mysql.connection
         self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
+        self.ibay = db.DataBase('ibay')
+        self.ibay_con = self.ibay.connection
+        self.ibay_con.set_client_encoding('utf8')
+        self.ibay_cur = self.ibay_con.cursor()
 
     def close(self):
         try:
@@ -28,6 +33,7 @@ class BaseService(object):
             # self.warehouse_con.close()
             self.mysql.close()
             self.mssql.close()
+            self.ibay.close()
             self.logger.info('close connection')
         except Exception as e:
             self.logger.error('fail to close connection cause of {}'.format(e))
