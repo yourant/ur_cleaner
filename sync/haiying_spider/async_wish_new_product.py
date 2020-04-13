@@ -69,10 +69,15 @@ class Worker(BaseSpider):
             row["rules"] = [rule_id]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
-            url = "http://www.haiyingshuju.com/wish_2.0/product/viewNowChart"
+            url = "http://www.haiyingshuju.com/wish_2.0/product/numBoughtChart"
             response = await session.post(url, data=json.dumps({'pid': row['pid']}), headers=self.headers)
-            row['soldChart'] = await response.json()
-            # print(row)
+            soldChart = await response.json()
+            try:
+                row['soldChart'] = {'viewTime':soldChart['feedTileTextDate'],'viewData':soldChart['feedTileText']}
+            except:
+                row['soldChart'] = []
+
+            #print(row)
             try:
                 await collection.insert_one(row)
                 self.logger.debug(f'success to save {row["pid"]}')
