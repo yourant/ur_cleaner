@@ -38,7 +38,6 @@ class Worker(BaseSpider):
             # rule_id = rule['_id']
             #rule_type = rule['ruleType']
             ruleData = {'id':rule['_id'],'ruleType':rule['ruleType'],'ruleName':rule['ruleName']}
-            print(ruleData)
             del rule['_id']
             time_range = rule['listedTime']
             if time_range :

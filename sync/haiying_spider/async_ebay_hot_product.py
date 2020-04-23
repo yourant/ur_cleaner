@@ -35,6 +35,7 @@ class Worker(BaseSpider):
             token = await self.log_in(session)
             self.headers['token'] = token
             rule_id = rule['_id']
+            ruleData = {'id': rule['_id'], 'ruleName': rule['ruleName']}
             del rule['_id']
             gen_end = self._get_date_some_days_ago(rule.get('genTimeStart', ''))
             gen_start = self._get_date_some_days_ago(rule.get('genTimeEnd', ''))
@@ -45,7 +46,7 @@ class Worker(BaseSpider):
             ret = await response.json()
             total_page = math.ceil(ret['total'] / 20)
             rows = ret['data']
-            await self.save(session, rows, page=1, rule_id=rule_id)
+            await self.save(session, rows, page=1, rule=ruleData)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     try:
@@ -53,7 +54,7 @@ class Worker(BaseSpider):
                         response = await session.post(url, data=json.dumps(rule), headers=self.headers)
                         res = await response.json()
                         rows = res['data']
-                        await self.save(session, rows, page, rule_id)
+                        await self.save(session, rows, page, ruleData)
 
                     except Exception as why:
                         self.logger.error(f'fail to get page {page} cause of {why}')
@@ -66,13 +67,14 @@ class Worker(BaseSpider):
             return str(ret)[:10]
         return number
 
-    async def save(self, session, rows, page, rule_id):
+    async def save(self, session, rows, page, rule):
         countryList = {'EBAY_US':1, 'EBAY_GB':5, 'EBAY_DE':3, 'EBAY_AU':4}
         collection = self.mongodb.ebay_hot_product
         today = str(datetime.datetime.now())
         for row in rows:
             row['ruleType'] = "ebay_hot_rule",
-            row["rules"] = [rule_id]
+            row["rules"] = [rule['id']]
+            row["ruleName"] = rule['ruleName']
             row['recommendDate'] = today
             row['recommendToPersons'] = []
 
@@ -101,7 +103,7 @@ class Worker(BaseSpider):
                 self.logger.debug(f'update {row["itemId"]}')
             except Exception as why:
                 self.logger.debug(f'fail to save {row["itemId"]} cause of {why}')
-        self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
+        self.logger.info(f"success to save page {page} in async way of rule {rule['id']} ")
 
 
 if __name__ == '__main__':

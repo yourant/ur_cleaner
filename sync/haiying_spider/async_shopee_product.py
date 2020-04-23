@@ -35,6 +35,7 @@ class Worker(BaseSpider):
             token = await self.log_in(session)
             self.headers['token'] = token
             rule_id = rule['_id']
+            ruleData = {'id': rule['_id'], 'ruleType': rule['ruleType'], 'ruleName': rule['ruleName']}
             del rule['_id']
             time_range = rule['listedTime']
             if time_range :
@@ -52,24 +53,25 @@ class Worker(BaseSpider):
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, countries[country], session, page=1, rule_id=rule_id)
+            await self.save(rows, countries[country], session, page=1, rule=ruleData)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], countries[country], session, page, rule_id)
+                        await self.save(res['data'], countries[country], session, page, ruleData)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, country, session, page, rule_id):
+    async def save(self, rows, country, session, page, rule):
         collection = self.mongodb.shopee_product
         today = str(datetime.datetime.now())
         for row in rows:
             row['payment'] = str(row['payment'])
             row["country"] = country
-            row["rules"] = [rule_id]
+            row["rules"] = [rule['id']]
+            row['ruleName'] = rule['ruleName']
             row['recommendDate'] = today
             row['recommendToPersons'] = []
             try:
@@ -85,7 +87,7 @@ class Worker(BaseSpider):
                 self.logger.debug(f'update {row["pid"]}')
             except Exception as why:
                 self.logger.debug(f'fail to save {row["pid"]} cause of {why}')
-        self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
+        self.logger.info(f"success to save page {page} in async way of rule {rule['id']} ")
 
 
 if __name__ == '__main__':

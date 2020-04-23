@@ -56,15 +56,15 @@ class BaseSpider(BaseService):
         pass
 
     async def run(self):
-        # try:
+        try:
             rules = await self.get_rule()
             for rls in rules:
                 await self.get_product(rls)
-        # except Exception as why:
-        #     self.logger.error(f'fail to get wish products cause of {why} in async way')
-        # finally:
-        #     self.close()
-        #     self.mongo.close()
+        except Exception as why:
+            self.logger.error(f'fail to get wish products cause of {why} in async way')
+        finally:
+            self.close()
+            self.mongo.close()
 
 
 

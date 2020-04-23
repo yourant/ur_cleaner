@@ -78,7 +78,7 @@ class BaseSpider(BaseService):
         return str(ret)[:10]
 
     @abstractmethod
-    async def save(self, session, rows, page, rule_id):
+    async def save(self, session, rows, page, rule):
         pass
 
     async def run(self):
