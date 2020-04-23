@@ -35,8 +35,10 @@ class Worker(BaseSpider):
         async with aiohttp.ClientSession() as session:
             token = await self.log_in(session)
             self.headers['token'] = token
-            rule_id = rule['_id']
-            rule_type = rule['ruleType']
+            # rule_id = rule['_id']
+            #rule_type = rule['ruleType']
+            ruleData = {'id':rule['_id'],'ruleType':rule['ruleType'],'ruleName':rule['ruleName']}
+            print(ruleData)
             del rule['_id']
             time_range = rule['listedTime']
             if time_range :
@@ -50,23 +52,24 @@ class Worker(BaseSpider):
             total = ret['total']
             total_page = math.ceil(total / 20)
             rows = ret['data']
-            await self.save(rows, session, page=1, rule_id=rule_id, rule_type=rule_type)
+            await self.save(rows, session, page=1, rule=ruleData)
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     payload['index'] = page
                     try:
                         response = await session.post(url, data=json.dumps(payload), headers=self.headers)
                         res = await response.json()
-                        await self.save(res['data'], session, page, rule_id, rule_type=rule_type)
+                        await self.save(res['data'], session, page, ruleData)
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    async def save(self, rows, session, page, rule_id, rule_type):
+    async def save(self, rows, session, page, rule):
         collection = self.mongodb.wish_new_product
         today = str(datetime.datetime.now())
         for row in rows:
-            row['ruleType'] = rule_type
-            row["rules"] = [rule_id]
+            row['ruleName'] = rule['ruleName']
+            row['ruleType'] = rule['ruleType']
+            row["rules"] = [rule['id']]
             row['recommendDate'] = today
             row['recommendToPersons'] = []
             url = "http://www.haiyingshuju.com/wish_2.0/product/numBoughtChart"
@@ -91,7 +94,7 @@ class Worker(BaseSpider):
                 self.logger.debug(f'update {row["pid"]}')
             except Exception as why:
                 self.logger.debug(f'fail to save {row["pid"]} cause of {why}')
-        self.logger.info(f'success to save page {page} in async way of rule {rule_id} ')
+        self.logger.info(f"success to save page {page} in async way of rule {rule['id']} ")
 
 
 
