@@ -35,7 +35,7 @@ class Uploader(BaseService):
         }
 
 
-    def upload(self, type):
+    def upload(self, flag):
         """
         import the file into server via session
         :return:
@@ -47,16 +47,16 @@ class Uploader(BaseService):
                 # print(xl.size)
                 # if xl.size == 0:
                 #     return True
-                res = ''
+
                 data = {'mubanxls': ('report.xls', files, 'application/vnd.ms-excel')}
-                res = self.session.post(self.upload_url[type], files=data)
+                res = self.session.post(self.upload_url[flag], files=data)
                 soup = BeautifulSoup(res.content, features='html.parser')
             try:
                 html = soup.find(text=re.compile("导入成功"))
-                content = re.findall(r'\d+', html)
-                print(soup)
-                if html:
-                    return True
+                mubanId = re.findall(r'\d+', html)
+                if mubanId :
+                    # print(mubanId)
+                    return mubanId[0]
             except AttributeError as why:
                 with lock:
                     xl = pd.read_excel(self.path)
@@ -69,31 +69,48 @@ class Uploader(BaseService):
                         row_numbers.append(row_num)
                     xl = xl.drop(xl.index[[int(row_num) - 2 for row_num in row_numbers]])
                     xl.to_excel(self.path, index=False)
-                    return self.upload(type)
+                    return self.upload(flag)
 
         except Exception as why:
             print('{} is failed finally cause of {}'.format(self.path, why))
             return False
 
 
-    def remark_data(self, type):
-        list = self.path.split('.')
+    def remark_data(self, type, muban_id):
+        sql = ''
+        params = ()
+        now = str(datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
+        if type == 'single' and self.path.find('SMT1') != -1:
+            file_name_str = self.path[self.path.find('SMT1'):]
+            list = file_name_str.split('.')
+            sql = "update proCenter.oa_smtImportToIbayLog set mubanId=%s,completeDate1=%s,status1=%s where ibaySuffix=%s and sku=%s;"
+            params = (muban_id, now, 1, list[2], list[1])
+        if type == 'multiple' and self.path.find('SMT2') != -1:
+            file_name_str = self.path[self.path.find('SMT2'):]
+            list = file_name_str.split('.')
+            sql = "update proCenter.oa_smtImportToIbayLog set completeDate2=%s,status2=%s where mubanId=%s;"
+            params = (now, 1, list[1])
+
+        try:
+            self.warehouse_cur.execute(sql, params)
+            self.warehouse_con.commit()
+            print('success to remark data!')
+        except Exception as why:
+            print('success to remark data cause of {}'.format(why))
+
 
 
     def run(self, type = 'single'):
         now = str(datetime.datetime.now())
-        # if type == 'single' and self.path.index('SMT1') :
-            # res = self.upload(type)
-        # else:
-        #     res = False
-        self.remark_data(type)
-        print(self.path)
-        # if res:
+        res = self.upload(type)    # 导入单属性信息
+
+        if res:
             # with lock:
-            #     os.remove(self.path)
-            #     print('{}:successful to upload {}'.format(now, self.path))
-        # else:
-        #     print('{}:failed to upload {}'.format(now, self.path))
+            self.remark_data(type, res)  # 标记结果
+            os.remove(self.path)    # 删除excel文件
+            print('{}:successful to upload {}'.format(now, self.path))
+        else:
+            print('{}:failed to upload {}'.format(now, self.path))
 
 
 
@@ -137,19 +154,21 @@ class Export(BaseService):
             "AutoDelay": 1,
             "Publicmubanedit": ""
         }
-        self.multiple = {
 
-        }
 
-    # 获取产品 数据
+
+
+    # 获取产品单属性 数据
     def get_data(self):
-        sql = 'select  * from proCenter.oa_smtImportToIbayLog where status1=0 or status2=0'
+        sql = 'select  * from proCenter.oa_smtImportToIbayLog where status1=0 and IFNULL(mubanId,0)=0'
         self.warehouse_cur.execute(sql)
         self.warehouse_con.commit()
         ret = self.warehouse_cur.fetchall()
         return ret
 
 
+    async def deal_var_data(self, data):
+        pass
     async def deal_data(self, data):
         for item in data:
             res = self.single
@@ -180,13 +199,15 @@ class Export(BaseService):
                     res['productPrice'] = ebayQuery['nowPrice']
                     res['Quantity'] = ebayQuery['quantity']
                     res['Description'] = ebayQuery['description']
+            now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+            # print(res)
+            file_name = self.path + 'SMT1' + '.' + res['SKU'] + '.' + res['Selleruserid'] + '.' + now + '.xls'
+            generate(res, file_name)  # 导出单属性数据
 
-            generate(res, self.path, 'SMT1')  # 导出单属性数据
 
 
 
-
-    async def work(self, type = 'single'):
+    async def work(self):
         l = Lock()
         p = Pool(16, initializer=init, initargs=(l,))
         paths = []
@@ -194,24 +215,21 @@ class Export(BaseService):
             paths.append(self.path + input_file)
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             # p.map_async(work, paths)
         # p.map_async(partial(uploader, 'single'), paths)
-        if type == 'single':
-            p.map_async(upload_single, paths)
-        else:
-            p.map_async(upload_multiple, paths)
+
+        p.map_async(upload_single, paths)
+
         p.close()
         p.join()
 
 
 
     async def run(self):
-        # list = self.get_data()  # 获取数据
-        # if list:
-        #     await self.deal_data(list)  # 处理数据 并导出表格
+        # 获取单属性数据
+        list = self.get_data()  # 获取数据
+        if list:
+            await self.deal_data(list)  # 处理数据 并导出表格
 
-
-        await self.work('single')
-        # await self.do_upload('single')
-
+        await self.work()       #导入单属性数据，记录结果
 
 
 
@@ -224,10 +242,6 @@ def init(l):
 def upload_single(path):
     uploader = Uploader(path)
     uploader.run('single')
-
-def upload_multiple(path):
-    uploader = Uploader(path)
-    uploader.run('multiple')
 
 
 
