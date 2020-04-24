@@ -37,7 +37,8 @@ class Worker(BaseService):
         获取采集状态为【待采集】，且2天之内，10分钟之前的任务
         :return:
         """
-        sql = ("select proId from proCenter.oa_dataMine where platform='joom' and progress in ('待采集', '采集失败')  "
+        # sql = ("select proId from proCenter.oa_dataMine where platform='joom' and progress in ('待采集', '采集失败')  "
+        sql = ("select proId from proCenter.oa_dataMine where platform='joom' and progress in ('待采集')  "
                "and detailStatus='未完善'"
                " and timestampdiff(day,createTime,now())<=3 and  "
                "timestampdiff(MINUTE,createTime,now()) >=2")
