@@ -5,10 +5,10 @@
 
 
 import datetime
+import asyncio
 from abc import ABCMeta, abstractmethod
 from pymongo import MongoClient
 import motor.motor_asyncio
-import copy
 from src.services.base_service import BaseService
 from configs.config import Config
 from sync.haiying_spider.config import headers
@@ -42,7 +42,7 @@ class BaseSpider(BaseService):
 
 
     @abstractmethod
-    async def get_product(self, rule):
+    async def get_product(self, rule, sema):
         pass
 
     @staticmethod
@@ -55,16 +55,17 @@ class BaseSpider(BaseService):
     async def save(self, session, rows, page, rule):
         pass
 
-    async def run(self):
-        try:
-            rules = await self.get_rule()
-            for rls in rules:
-                await self.get_product(rls)
-        except Exception as why:
-            self.logger.error(f'fail to get shopee products cause of {why} in async way')
-        finally:
-            self.close()
-            self.mongo.close()
+    async def run(self, sema):
+        async with sema:
+            try:
+                rules = await self.get_rule()
+                tasks = [asyncio.ensure_future(self.get_product(rls,sema)) for rls in rules]
+                await asyncio.wait(tasks)
+            except Exception as why:
+                self.logger.error(f'fail to get shopee products cause of {why} in async way')
+            finally:
+                self.close()
+                self.mongo.close()
 
 
 

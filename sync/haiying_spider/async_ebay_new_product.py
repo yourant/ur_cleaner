@@ -30,33 +30,37 @@ class Worker(BaseSpider):
             rules = await col.find({'isUsed': 1, 'type': 'auto'}).to_list(length=None)
         return await self.parse_rule(rules)
 
-    async def get_product(self, rule):
+    async def get_product(self, rule,sema):
         url = "http://www.haiyingshuju.com/ebay/newProduct/list"
-        async with aiohttp.ClientSession() as session:
-            token = await self.log_in(session)
-            self.headers['token'] = token
-            rule_id = rule['_id']
-            ruleData = {'id': rule['_id'], 'ruleName': rule['ruleName']}
-            del rule['_id']
-            time_range = rule['listedTime']
-            rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
-            payload = rule
+        async with sema:
+            async with aiohttp.ClientSession() as session:
+                token = await self.log_in(session)
+                self.headers['token'] = token
+                rule_id = rule['_id']
+                ruleData = {'id': rule['_id'], 'ruleName': rule['ruleName']}
+                del rule['_id']
+                time_range = rule['listedTime']
+                rule['listedTime'] = [self._get_date_some_days_ago(i) for i in time_range]
+                payload = rule
 
-            response = await session.post(url, data=json.dumps(payload), headers=self.headers)
-            ret = await response.json()
-            total = ret['total']
-            total_page = math.ceil(total / 20)
-            rows = ret['data']
-            await self.save(session, rows, page=1, rule=ruleData)
-            if total_page > 1:
-                for page in range(2, total_page + 1):
-                    payload['index'] = page
-                    try:
-                        response = await session.post(url, data=json.dumps(payload), headers=self.headers)
-                        res = await response.json()
-                        await self.save(session, res['data'], page, rule=ruleData)
-                    except Exception as why:
-                        self.logger.error(f'error while requesting page {page} cause of {why}')
+                response = await session.post(url, data=json.dumps(payload), headers=self.headers)
+                ret = await response.json()
+                total = ret['total']
+                total_page = math.ceil(total / 20)
+                rows = ret['data']
+                await self.save(session, rows, page=1, rule=ruleData)
+                if total_page > 1:
+                    for page in range(2, total_page + 1):
+                        payload['index'] = page
+                        try:
+                            response = await session.post(url, data=json.dumps(payload), headers=self.headers)
+                            # 等待一下
+                            asyncio.sleep(1)
+
+                            res = await response.json()
+                            await self.save(session, res['data'], page, rule=ruleData)
+                        except Exception as why:
+                            self.logger.error(f'error while requesting page {page} cause of {why}')
 
     async def save(self, session, rows, page, rule):
         collection = self.mongodb.ebay_new_product
@@ -88,7 +92,8 @@ if __name__ == '__main__':
     start = time.time()
     worker = Worker()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    sema = asyncio.Semaphore(3)
+    loop.run_until_complete(worker.run(sema))
     end = time.time()
     print(f'it takes {end - start} seconds')
 

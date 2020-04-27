@@ -5,6 +5,7 @@
 
 
 import datetime
+import asyncio
 from abc import ABCMeta, abstractmethod
 from pymongo import MongoClient
 import motor.motor_asyncio
@@ -68,7 +69,7 @@ class BaseSpider(BaseService):
         return ret
 
     @abstractmethod
-    async def get_product(self, rule):
+    async def get_product(self, rule,sema):
         pass
 
     @staticmethod
@@ -81,12 +82,12 @@ class BaseSpider(BaseService):
     async def save(self, session, rows, page, rule):
         pass
 
-    async def run(self):
+    async def run(self, sema):
         try:
             rules = await self.get_rule()
-            self.logger.error(rules)
-            for rls in rules:
-                await self.get_product(rls)
+            # for rls in rules:
+            tasks  = [asyncio.ensure_future(self.get_product(rls, sema)) for rls in rules]
+            await asyncio.wait(tasks)
         except Exception as why:
             self.logger.error(f'fail to get ebay products cause of {why} in async way')
         finally:

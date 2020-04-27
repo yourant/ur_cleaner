@@ -102,7 +102,8 @@ if __name__ == '__main__':
     start = time.time()
     worker = Worker()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    sema = asyncio.Semaphore(3)
+    loop.run_until_complete(worker.run(sema))
     end = time.time()
     print(f'it takes {end - start} seconds')
 
