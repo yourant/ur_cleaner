@@ -167,38 +167,30 @@ class Export(BaseService):
         return ret
 
 
-    async def deal_var_data(self, data):
-        pass
+
     async def deal_data(self, data):
         for item in data:
             res = self.single
             res['Selleruserid'] = item['ibaySuffix']
             res['SKU'] = item['SKU']
-            res["packageLength"] = 10,
-            res["packageWidth"] = 10,
-            res["packageHeight"] = 3,
-            res["grossWeight"] = 0.07,
-            res['itemtitle'] = 'Smt Test Title'
-            wishSql = ('select  * from proCenter.oa_wishGoods ae left join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
+            res['Category1'] = item['category']
+
+            smtSql = ('select  * from proCenter.oa_smtGoods ae left join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
                   ' where goodsCode = %s or sku = %s;')
-            self.warehouse_cur.execute(wishSql, (item['SKU'], item['SKU']))
-            wishQuery = self.warehouse_cur.fetchone()
-            if wishQuery:
-                res['ImageUrl'] = wishQuery['mainImage']
-                res['productPrice'] = wishQuery['price']
-                res['Quantity'] = wishQuery['inventory']
-                res['Description'] = wishQuery['description']
-            else:
-                ebaySql = (
-                        'select  * from proCenter.oa_ebayGoods ae left join proCenter.oa_goodsinfo g on g.id=ae.infoId ' +
-                        ' where goodsCode = %s or sku = %s;')
-                self.warehouse_cur.execute(ebaySql, (item['SKU'], item['SKU']))
-                ebayQuery = self.warehouse_cur.fetchone()
-                if ebayQuery:
-                    res['ImageUrl'] = ebayQuery['mainImage']
-                    res['productPrice'] = ebayQuery['nowPrice']
-                    res['Quantity'] = ebayQuery['quantity']
-                    res['Description'] = ebayQuery['description']
+            self.warehouse_cur.execute(smtSql, (item['SKU'], item['SKU']))
+            smtQuery = self.warehouse_cur.fetchone()
+            if smtQuery:
+                res['ImageUrl'] = smtQuery['imageUrl']
+                res['productPrice'] = smtQuery['productPrice']
+                res['Quantity'] = smtQuery['quantity']
+                res['Description'] = smtQuery['description']
+                res["packageLength"] = smtQuery['packageLength'],
+                res["packageWidth"] = smtQuery['packageWidth'],
+                res["packageHeight"] = smtQuery['packageHeight'],
+                res["grossWeight"] = smtQuery['grossWeight'],
+                res['itemtitle'] = smtQuery['itemtitle']
+
+
             now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
             # print(res)
             file_name = self.path + 'SMT1' + '.' + res['SKU'] + '.' + res['Selleruserid'] + '.' + now + '.xls'
@@ -224,13 +216,16 @@ class Export(BaseService):
 
 
     async def run(self):
-        # 获取单属性数据
-        list = self.get_data()  # 获取数据
-        if list:
-            await self.deal_data(list)  # 处理数据 并导出表格
+        try:
+            # 获取单属性数据
+            list = self.get_data()  # 获取数据
+            if list:
+                await self.deal_data(list)  # 处理数据 并导出表格
 
-        await self.work()       #导入单属性数据，记录结果
-
+            await self.work()       #导入单属性数据，记录结果
+            print('success to import goods info!')
+        except Exception as why:
+            print('failed to import goods info cause of {}'.format(why))
 
 
 

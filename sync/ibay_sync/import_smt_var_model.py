@@ -54,35 +54,22 @@ class Export(BaseService):
     async def deal_var_data(self, data):
         for item in data:
             rows = []
-            wishSql = ('select  * from proCenter.oa_wishGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
+            smtSql = ('select  * from proCenter.oa_smtGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
                   ' where goodsCode = %s or sku = %s;')
-            self.warehouse_cur.execute(wishSql, (item['SKU'], item['SKU']))
-            wishQuery = self.warehouse_cur.fetchall()
-            if wishQuery:
-                for row in wishQuery:
+            self.warehouse_cur.execute(smtSql, (item['SKU'], item['SKU']))
+            smtQuery = self.warehouse_cur.fetchall()
+            print(smtQuery)
+            if smtQuery:
+                for row in smtQuery:
                     res = self.multiple
                     res['mubanid'] = item['mubanId']
                     res['sku'] = row['sku']
-                    res['quantity'] = row['inventory']
+                    res['quantity'] = row['quantity']
                     res['price'] = row['price']
-                    res['pic_url'] = row['linkUrl']
+                    res['pic_url'] = row['pic_url']
                     rows.append(res)
-            else:
-                ebaySql = (
-                        'select  * from proCenter.oa_ebayGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId ' +
-                        ' where goodsCode = %s or sku = %s;')
-                self.warehouse_cur.execute(ebaySql, (item['SKU'], item['SKU']))
-                ebayQuery = self.warehouse_cur.fetchall()
-                if ebayQuery:
-                    for row in ebayQuery:
-                        res = self.multiple
-                        res['mubanid'] = item['mubanId']
-                        res['sku'] = row['sku']
-                        res['quantity'] = row['quantity']
-                        res['price'] = row['retailPrice']
-                        res['pic_url'] = row['imageUrl']
-                        rows.append(res)
-            # print(rows)
+
+            print(rows)
             now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
             file_name = self.path + 'SMT2' + '.' + str(rows[0]['mubanid']) + '.'  + now + '.xls'
             generate(rows, file_name)  # 导出单属性数据
@@ -113,7 +100,7 @@ class Export(BaseService):
             await self.work()  # 导入多属性数据，记录结果
             print('success to import var data!')
         except Exception as why:
-            print('failed to import var data cause of {}'.format(self.path, why))
+            print('failed to import var data cause of {}'.format(why))
 
 
 def init(l):
