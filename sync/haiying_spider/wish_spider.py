@@ -55,16 +55,17 @@ class BaseSpider(BaseService):
     async def save(self, session, rows, page, rule):
         pass
 
-    async def run(self):
-        try:
-            rules = await self.get_rule()
-            for rls in rules:
-                await self.get_product(rls)
-        except Exception as why:
-            self.logger.error(f'fail to get wish products cause of {why} in async way')
-        finally:
-            self.close()
-            self.mongo.close()
+    async def run(self, sema):
+        async with sema:
+            try:
+                rules = await self.get_rule()
+                for rls in rules:
+                    await self.get_product(rls)
+            except Exception as why:
+                self.logger.error(f'fail to get wish products cause of {why} in async way')
+            finally:
+                self.close()
+                self.mongo.close()
 
 
 

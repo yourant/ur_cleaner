@@ -29,40 +29,45 @@ class Worker(BaseSpider):
             rules = await col.find({'isUsed': 1, 'type': 'auto'}).to_list(length=None)
         return rules
 
-    async def get_product(self, rule):
+    async def get_product(self, rule, sema):
         url = "http://www.haiyingshuju.com/shopee/product/productList"
-        async with aiohttp.ClientSession() as session:
-            token = await self.log_in(session)
-            self.headers['token'] = token
-            rule_id = rule['_id']
-            ruleData = {'id': rule['_id'], 'ruleType': rule['ruleType'], 'ruleName': rule['ruleName']}
-            del rule['_id']
-            time_range = rule['listedTime']
-            if time_range :
-                listedTime = [self._get_date_some_days_ago(i) for i in time_range]
-                rule['genTimeStart'] = listedTime[-1]
-                rule['genTimeEnd'] = listedTime[0]
-            payload = rule
-            countries = {1: 'Malaysia', 2: 'Indonesia', 3: 'Thailand', 4: 'Philippines', 5: 'Taiwan',6: 'Singapore', 7: 'Vietnam'}
+        async with sema:
+            async with aiohttp.ClientSession() as session:
+                token = await self.log_in(session)
+                self.headers['token'] = token
+                rule_id = rule['_id']
+                ruleData = {'id': rule['_id'], 'ruleType': rule['ruleType'], 'ruleName': rule['ruleName']}
+                del rule['_id']
+                time_range = rule['listedTime']
+                if time_range :
+                    listedTime = [self._get_date_some_days_ago(i) for i in time_range]
+                    rule['genTimeStart'] = listedTime[-1]
+                    rule['genTimeEnd'] = listedTime[0]
+                payload = rule
+                payload['token'] = token
 
-            country = int(rule['country'])
-            # print(rule['country'])
-            # print(countries[country])
-            response = await session.post(url, data=json.dumps(payload), headers=self.headers)
-            ret = await response.json(content_type='application/json')
-            total = ret['total']
-            total_page = math.ceil(total / 20)
-            rows = ret['data']
-            await self.save(rows, countries[country], session, page=1, rule=ruleData)
-            if total_page > 1:
-                for page in range(2, total_page + 1):
-                    payload['index'] = page
-                    try:
-                        response = await session.post(url, data=json.dumps(payload), headers=self.headers)
-                        res = await response.json()
-                        await self.save(res['data'], countries[country], session, page, ruleData)
-                    except Exception as why:
-                        self.logger.error(f'error while requesting page {page} cause of {why}')
+                countries = {1: 'Malaysia', 2: 'Indonesia', 3: 'Thailand', 4: 'Philippines', 5: 'Taiwan',6: 'Singapore', 7: 'Vietnam'}
+                country = int(rule['country'])
+                payload['token'] =token
+                response = await session.post(url, data=json.dumps(payload), headers=self.headers)
+                ret = await response.json(content_type='application/json')
+                total = ret['total']
+                total_page = math.ceil(total / 20)
+                rows = ret['data']
+                await self.save(rows, countries[country], session, page=1, rule=ruleData)
+                if total_page > 1:
+                    for page in range(2, total_page + 1):
+                        payload['index'] = page
+                        try:
+                            response = await session.post(url, data=json.dumps(payload), headers=self.headers)
+
+                            # 等待一下
+                            asyncio.sleep(1)
+
+                            res = await response.json()
+                            await self.save(res['data'], countries[country], session, page, ruleData)
+                        except Exception as why:
+                            self.logger.error(f'error while requesting page {page} cause of {why}')
 
     async def save(self, rows, country, session, page, rule):
         collection = self.mongodb.shopee_product
@@ -95,7 +100,8 @@ if __name__ == '__main__':
     start = time.time()
     worker = Worker()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    sema = asyncio.Semaphore(3)
+    loop.run_until_complete(worker.run(sema))
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')

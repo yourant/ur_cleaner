@@ -29,35 +29,42 @@ class Worker(BaseSpider):
             rules = await col.find({'isUsed': 1, 'type': 'auto'}).to_list(length=None)
         return await self.parse_rule(rules)
 
-    async def get_product(self, rule):
+    async def get_product(self, rule,sema):
         url = "http://www.haiyingshuju.com/ebay/product/list"
-        async with aiohttp.ClientSession() as session:
-            token = await self.log_in(session)
-            self.headers['token'] = token
-            rule_id = rule['_id']
-            ruleData = {'id': rule['_id'], 'ruleName': rule['ruleName']}
-            del rule['_id']
-            gen_end = self._get_date_some_days_ago(rule.get('genTimeStart', ''))
-            gen_start = self._get_date_some_days_ago(rule.get('genTimeEnd', ''))
-            rule['genTimeEnd'] = gen_end
-            rule['genTimeStart'] = gen_start
+        async  with sema:
+            async with aiohttp.ClientSession() as session:
+                token = await self.log_in(session)
+                self.headers['token'] = token
+                rule_id = rule['_id']
+                ruleData = {'id': rule['_id'], 'ruleName': rule['ruleName']}
+                del rule['_id']
+                gen_end = self._get_date_some_days_ago(rule.get('genTimeStart', ''))
+                gen_start = self._get_date_some_days_ago(rule.get('genTimeEnd', ''))
+                rule['genTimeEnd'] = gen_end
+                rule['genTimeStart'] = gen_start
 
-            response = await session.post(url, data=json.dumps(rule), headers=self.headers)
-            ret = await response.json()
-            total_page = math.ceil(ret['total'] / 20)
-            rows = ret['data']
-            await self.save(session, rows, page=1, rule=ruleData)
-            if total_page > 1:
-                for page in range(2, total_page + 1):
-                    try:
-                        rule['index'] = page
-                        response = await session.post(url, data=json.dumps(rule), headers=self.headers)
-                        res = await response.json()
-                        rows = res['data']
-                        await self.save(session, rows, page, ruleData)
+                response = await session.post(url, data=json.dumps(rule), headers=self.headers)
 
-                    except Exception as why:
-                        self.logger.error(f'fail to get page {page} cause of {why}')
+
+                ret = await response.json()
+                total_page = math.ceil(ret['total'] / 20)
+                rows = ret['data']
+                await self.save(session, rows, page=1, rule=ruleData)
+                if total_page > 1:
+                    for page in range(2, total_page + 1):
+                        try:
+                            rule['index'] = page
+                            response = await session.post(url, data=json.dumps(rule), headers=self.headers)
+
+                            # 等待一下
+                            asyncio.sleep(1)
+
+                            res = await response.json()
+                            rows = res['data']
+                            await self.save(session, rows, page, ruleData)
+
+                        except Exception as why:
+                            self.logger.error(f'fail to get page {page} cause of {why}')
 
     @staticmethod
     def _get_date_some_days_ago(number):
@@ -111,6 +118,7 @@ if __name__ == '__main__':
     start = time.time()
     worker = Worker()
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.run())
+    sema = asyncio.Semaphore(3)
+    loop.run_until_complete(worker.run(sema))
     end = time.time()
     print(f'it takes {end - start} seconds')
