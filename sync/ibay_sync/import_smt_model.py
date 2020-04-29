@@ -51,6 +51,7 @@ class Uploader(BaseService):
                 data = {'mubanxls': ('report.xls', files, 'application/vnd.ms-excel')}
                 res = self.session.post(self.upload_url[flag], files=data)
                 soup = BeautifulSoup(res.content, features='html.parser')
+                # print(soup)
             try:
                 html = soup.find(text=re.compile("导入成功"))
                 mubanId = re.findall(r'\d+', html)

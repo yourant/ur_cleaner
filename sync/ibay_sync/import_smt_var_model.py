@@ -55,10 +55,9 @@ class Export(BaseService):
         for item in data:
             rows = []
             smtSql = ('select  * from proCenter.oa_smtGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
-                  ' where goodsCode = %s or sku = %s;')
-            self.warehouse_cur.execute(smtSql, (item['SKU'], item['SKU']))
+                  ' inner join proCenter.oa_goods gg on gg.nid=g.goodsId  where goodsCode = %s;')
+            self.warehouse_cur.execute(smtSql, item['SKU'])
             smtQuery = self.warehouse_cur.fetchall()
-            print(smtQuery)
             if smtQuery:
                 for row in smtQuery:
                     res = self.multiple
@@ -67,9 +66,13 @@ class Export(BaseService):
                     res['quantity'] = row['quantity']
                     res['price'] = row['price']
                     res['pic_url'] = row['pic_url']
-                    rows.append(res)
+                    if row['subCate'] == '戒指':
+                        res["skuimage"] = 'Main Stone Color'
+                        res["varition1"] = "Main Stone Color:Black(黑色)"
+                        res["varition2"] = "Ring Size:" + row['size'] + '(' + row['size'] + ')'
 
-            print(rows)
+                    rows.append(res)
+            # print(rows)
             now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
             file_name = self.path + 'SMT2' + '.' + str(rows[0]['mubanid']) + '.'  + now + '.xls'
             generate(rows, file_name)  # 导出单属性数据
