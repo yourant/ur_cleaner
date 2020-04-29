@@ -174,10 +174,10 @@ class Export(BaseService):
             res = self.single
             res['Selleruserid'] = item['ibaySuffix']
             res['SKU'] = item['SKU']
-            res['Category1'] = item['category']
+
 
             smtSql = ('select  * from proCenter.oa_smtGoods ae left join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
-                  ' where goodsCode = %s or sku = %s;')
+                  ' where goodsCode = %s;')
             self.warehouse_cur.execute(smtSql, (item['SKU'], item['SKU']))
             smtQuery = self.warehouse_cur.fetchone()
             if smtQuery:
@@ -190,6 +190,7 @@ class Export(BaseService):
                 res["packageHeight"] = smtQuery['packageHeight'],
                 res["grossWeight"] = smtQuery['grossWeight'],
                 res['itemtitle'] = smtQuery['itemtitle']
+                res['Category1'] = smtQuery['category1']
 
 
             now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
