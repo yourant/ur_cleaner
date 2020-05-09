@@ -54,10 +54,11 @@ class Uploader(BaseService):
                 # print(soup)
             try:
                 html = soup.find(text=re.compile("导入成功"))
-                mubanId = re.findall(r'\d+', html)
-                if mubanId :
+                if html:
+                    mubanId = re.findall(r'\d+', html)
                     # print(mubanId)
-                    return mubanId[0]
+                    if mubanId :
+                        return mubanId[0]
             except AttributeError as why:
                 with lock:
                     xl = pd.read_excel(self.path)
@@ -73,7 +74,7 @@ class Uploader(BaseService):
                     return self.upload(flag)
 
         except Exception as why:
-            print('{} is failed finally cause of {}'.format(self.path, why))
+            print('{} is failed to upload cause of {}'.format(self.path, why))
             return False
 
 
@@ -95,21 +96,22 @@ class Uploader(BaseService):
         try:
             self.warehouse_cur.execute(sql, params)
             self.warehouse_con.commit()
-            print('success to remark data!')
+            return True
         except Exception as why:
             print('success to remark data cause of {}'.format(why))
+            return False
 
 
 
     def run(self, type = 'single'):
         now = str(datetime.datetime.now())
         res = self.upload(type)    # 导入单属性信息
-
         if res:
             # with lock:
-            self.remark_data(type, res)  # 标记结果
-            os.remove(self.path)    # 删除excel文件
-            print('{}:successful to upload {}'.format(now, self.path))
+            rem_res = self.remark_data(type, res)  # 标记结果
+            if(rem_res):
+                os.remove(self.path)    # 删除excel文件
+                print('{}:successful to upload {}'.format(now, self.path))
         else:
             print('{}:failed to upload {}'.format(now, self.path))
 
@@ -178,7 +180,7 @@ class Export(BaseService):
 
             smtSql = ('select  * from proCenter.oa_smtGoods ae left join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
                   ' where goodsCode = %s;')
-            self.warehouse_cur.execute(smtSql, (item['SKU'], item['SKU']))
+            self.warehouse_cur.execute(smtSql, (item['SKU']))
             smtQuery = self.warehouse_cur.fetchone()
             if smtQuery:
                 res['ImageUrl'] = smtQuery['imageUrl']
@@ -225,7 +227,6 @@ class Export(BaseService):
                 await self.deal_data(list)  # 处理数据 并导出表格
 
             await self.work()       #导入单属性数据，记录结果
-            print('success to import goods info!')
         except Exception as why:
             print('failed to import goods info cause of {}'.format(why))
 

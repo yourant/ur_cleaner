@@ -31,7 +31,7 @@ class Export(BaseService):
             "skuimage": 'Color',
             "varition1": "Color:Black(黑色)",
             "name1": "",
-            "varition2": "Size:S(小号)",
+            "varition2": "",
             "name2": "",
             "varition3": "",
             "name3": "",
@@ -66,10 +66,11 @@ class Export(BaseService):
                     res['quantity'] = row['quantity']
                     res['price'] = row['price']
                     res['pic_url'] = row['pic_url']
-                    if row['subCate'] == '戒指':
+                    if row['subCate'] == '戒指': #  TODO
                         res["skuimage"] = 'Main Stone Color'
                         res["varition1"] = "Main Stone Color:Black(黑色)"
                         res["varition2"] = "Ring Size:" + row['size'] + '(' + row['size'] + ')'
+
 
                     rows.append(res)
             # print(rows)
@@ -101,7 +102,6 @@ class Export(BaseService):
                 await self.deal_var_data(var_list)  # 处理数据 并导出表格
 
             await self.work()  # 导入多属性数据，记录结果
-            print('success to import var data!')
         except Exception as why:
             print('failed to import var data cause of {}'.format(why))
 
