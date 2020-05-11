@@ -18,11 +18,10 @@ def login_session():
 
 
 #导出SMT数据到excel表格
-def generate(data, path, file_name):
-    now = str(datetime.datetime.now().strftime('%Y%m%d%H%M%S'))
+def generate(data, file_name):
     input_file = pd.DataFrame(data)
     try:
-        input_file.to_excel(path + file_name + '.' + data['SKU'] + '.' + data['Selleruserid'] + '.' + now + '.xls', 'Sheet1', index=False)
+        input_file.to_excel(file_name, 'Sheet1', index=False)
     except Exception as why:
         print(why)
         pass

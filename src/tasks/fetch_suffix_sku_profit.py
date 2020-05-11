@@ -51,10 +51,11 @@ class SuffixSkuProfitFetcher(BaseService):
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            # yesterday = '2020-02-01'
             today = str(datetime.datetime.today())[:10]
             last_month = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%Y-%m")
             last_month_first_day = str(last_month + '-01')
+            # last_month_first_day = '2020-03-01'
+            # today = '2020-03-31'
             self.clear(last_month_first_day, today)
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, last_month_first_day, today)
