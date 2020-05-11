@@ -19,6 +19,7 @@ class Uploading(BaseService):
         sql = 'truncate table ibay365_vova_list'
         self.cur.execute(sql)
         self.con.commit()
+        self.logger.info('success to clear vova listing')
 
     def get_vova_token(self):
 
