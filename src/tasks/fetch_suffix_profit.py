@@ -60,7 +60,7 @@ class ProfitFetcher(BaseService):
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            # yesterday = '2020-03-01'
+            # yesterday = '2020-04-01'
             today = str(datetime.datetime.today())[:10]
             month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
             self.clear(month_first_day, today)

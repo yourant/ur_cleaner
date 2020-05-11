@@ -4,7 +4,8 @@
 # Author: turpure
 
 from src.services.base_service import BaseService
-import aiohttp
+from multiprocessing.pool import ThreadPool as Pool
+import requests
 import json
 import asyncio
 import datetime
@@ -26,7 +27,7 @@ class Uploading(BaseService):
         ret = self.cur.fetchall()
         return ret
 
-    async def get_products(self, token):
+    def get_products(self, token):
         url = 'https://merchant.vova.com.hk/api/v1/product/productList'
         param = {
             "token": token['token'],
@@ -46,24 +47,25 @@ class Uploading(BaseService):
                 }
             }
         }
-        async with aiohttp.ClientSession() as session:
-            response = await session.post(url, data=json.dumps(param))
-            ret = await response.json(content_type='application/json')
-            total_page = ret['page_arr']['totalPage']
-            rows = self.deal_products(token, ret['product_list'])
-            #asyncio.gather(asyncio.ensure_future(self.save(rows, token, page=1)))
-            self.save(rows, token, page=1)
-            if total_page > 1:
-                for page in range(2, total_page + 1):
-                    param['conditions']['page_arr']['page'] = page
-                    try:
-                        response = await session.post(url, data=json.dumps(param))
-                        res = await response.json()
-                        res_data = self.deal_products(token, res['product_list'])
-                        self.save(res_data,token, page)
-                        # await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
-                    except Exception as why:
-                        self.logger.error(f'error while requesting page {page} cause of {why}')
+        try:
+            with requests.session() as session:
+                response = session.post(url, data=json.dumps(param))
+                ret = response.json()
+                total_page = ret['page_arr']['totalPage']
+                rows = self.deal_products(token, ret['product_list'])
+                self.save(rows, token, page=1)
+                if total_page > 1:
+                    for page in range(2, total_page + 1):
+                        param['conditions']['page_arr']['page'] = page
+                        try:
+                            response = session.post(url, data=json.dumps(param))
+                            res = response.json()
+                            res_data = self.deal_products(token, res['product_list'])
+                            self.save(res_data,token, page)
+                        except Exception as why:
+                            self.logger.error(f'error while requesting page {page} cause of {why}')
+        except Exception as why:
+            self.logger.error(f'error while requesting page 1 of {token["token"]} cause of {why}')
 
     @staticmethod
     def deal_products(token, rows):
@@ -78,18 +80,15 @@ class Uploading(BaseService):
         sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
         self.cur.executemany(sql, rows)
         self.con.commit()
-        self.logger.info(f"success to save data page {page} in async way of suffix {token['suffix']} ")
+        self.logger.info(f"success to save data page {page} in multi processing way of suffix {token['suffix']} ")
 
     def run(self):
         try:
             self.clean()
-            loop = asyncio.get_event_loop()
-            tokens = self.get_vova_token()
-            tasks = []
-            for token in tokens:
-                tasks.append(asyncio.ensure_future(self.get_products(token)))
-            loop.run_until_complete(asyncio.wait(tasks))
-            loop.close()
+            pool = Pool()
+            pool.map(self.get_products, self.get_vova_token())
+            pool.close()
+            pool.join()
 
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
