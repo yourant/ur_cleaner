@@ -23,7 +23,7 @@ class Uploading(BaseService):
 
     def get_vova_token(self):
 
-        sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;'
+        sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova](nolock) WHERE SyncInvertal=0;'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         return ret
