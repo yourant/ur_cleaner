@@ -4,18 +4,20 @@
 # Author: turpure
 
 from src.services.base_service import BaseService
-#from multiprocessing.pool import ThreadPool as Pool
-# from multiprocessing import Pool
+# from multiprocessing.pool import ThreadPool as Pool
+from multiprocessing import Manager
+from multiprocessing import Pool
 from concurrent.futures import ThreadPoolExecutor
 import requests
 import json
-import asyncio
 import datetime
 
 
 class Uploading(BaseService):
-    def __init__(self):
+
+    def __init__(self, token=None):
         super().__init__()
+        self.token = token
 
     def clean(self):
         sql = 'truncate table ibay365_vova_list'
@@ -28,9 +30,10 @@ class Uploading(BaseService):
         sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova](nolock) WHERE SyncInvertal=0;'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
+        self.logger.info('success to get vova token')
         return ret
 
-    def get_products(self, token):
+    def get_products(self, token, lock):
         url = 'https://merchant.vova.com.hk/api/v1/product/productList'
         param = {
             "token": token['token'],
@@ -56,7 +59,7 @@ class Uploading(BaseService):
                 ret = response.json()
                 total_page = ret['page_arr']['totalPage']
                 rows = self.deal_products(token, ret['product_list'])
-                self.save(rows, token, page=1)
+                self.save(rows, token, 1, lock)
                 if total_page > 1:
                     for page in range(2, total_page + 1):
                         param['conditions']['page_arr']['page'] = page
@@ -64,7 +67,7 @@ class Uploading(BaseService):
                             response = session.post(url, data=json.dumps(param))
                             res = response.json()
                             res_data = self.deal_products(token, res['product_list'])
-                            self.save(res_data,token, page)
+                            self.save(res_data,token, page, lock)
                         except Exception as why:
                             self.logger.error(f'error while requesting page {page} cause of {why}')
         except Exception as why:
@@ -79,11 +82,16 @@ class Uploading(BaseService):
                 yield (row['parent_sku'], item['goods_sku'],  new_sku,
                 row['product_id'], token['suffix'], token['selleruserid'], item['storage'], str(datetime.datetime.today())[:19])
 
-    def save(self, rows, token, page):
-        sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
-        self.cur.executemany(sql, rows)
-        self.con.commit()
-        self.logger.info(f"success to save data page {page} in multi processing way of suffix {token['suffix']} ")
+    def save(self, rows, token, page, lock):
+        try:
+            lock.acquire()
+            sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
+            self.cur.executemany(sql, list(rows))
+            self.con.commit()
+            self.logger.info(f"success to save data page {page} in multi processing way of suffix {token['suffix']} ")
+            lock.release()
+        except Exception as why:
+            self.logger.error(f"fail to save data page {page} in multi processing way of suffix {token['suffix']} cause of {why} ")
 
     def run(self):
         try:
@@ -98,12 +106,27 @@ class Uploading(BaseService):
             self.close()
 
 
+def start_work(args):
+    token = args['token']
+    lock = args['lock']
+    worker = Uploading(token)
+    worker.get_products(token, lock)
+    worker.close()
+
 if __name__ == '__main__':
 
     import time
     start = time.time()
     worker = Uploading()
-    worker.run()
+    worker.clean()
+    tokens = worker.get_vova_token()
+    worker.close()
+    lk = Manager().Lock()
+    # with ThreadPoolExecutor() as pool:
+    pool = Pool()
+    pool.map(start_work, [{'token': token, 'lock': lk} for token in tokens])
+    pool.close()
+    pool.join()
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')

@@ -8,6 +8,7 @@ import aiohttp
 import json
 import asyncio
 import datetime
+from concurrent.futures import ThreadPoolExecutor
 
 
 class Uploading(BaseService):
@@ -18,6 +19,7 @@ class Uploading(BaseService):
         sql = 'truncate table ibay365_vova_list'
         self.cur.execute(sql)
         self.con.commit()
+        self.logger.info('success to clear vova listing')
 
     def get_vova_token(self):
 
@@ -52,6 +54,7 @@ class Uploading(BaseService):
             total_page = ret['page_arr']['totalPage']
             rows = self.deal_products(token, ret['product_list'])
             #asyncio.gather(asyncio.ensure_future(self.save(rows, token, page=1)))
+            asyncio.ensure_future(self.save(rows, token, page=1))
             self.save(rows, token, page=1)
             if total_page > 1:
                 for page in range(2, total_page + 1):
@@ -61,6 +64,7 @@ class Uploading(BaseService):
                         res = await response.json()
                         res_data = self.deal_products(token, res['product_list'])
                         self.save(res_data,token, page)
+                        asyncio.ensure_future(self.save(res_data, token, page))
                         # await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
@@ -84,9 +88,14 @@ class Uploading(BaseService):
         try:
             self.clean()
             loop = asyncio.get_event_loop()
+            executor = ThreadPoolExecutor(3)
+
             tokens = self.get_vova_token()
             tasks = []
             for token in tokens:
+                # task = asyncio.ensure_future(self.get_products(token))
+                # task.add_done_callback()
+                # tasks.append(loop.run_in_executor(executor, self.get_products, token))
                 tasks.append(asyncio.ensure_future(self.get_products(token)))
             loop.run_until_complete(asyncio.wait(tasks))
             loop.close()
