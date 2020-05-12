@@ -5,6 +5,7 @@
 
 from src.services.base_service import BaseService
 from multiprocessing.pool import ThreadPool as Pool
+# from multiprocessing import Pool
 import requests
 import json
 import asyncio
@@ -86,8 +87,9 @@ class Uploading(BaseService):
     def run(self):
         try:
             self.clean()
+            tokens = self.get_vova_token()
             pool = Pool()
-            pool.map(self.get_products, self.get_vova_token())
+            pool.map(self.get_products, tokens)
             pool.close()
             pool.join()
 
