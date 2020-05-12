@@ -4,8 +4,9 @@
 # Author: turpure
 
 from src.services.base_service import BaseService
-from multiprocessing.pool import ThreadPool as Pool
+#from multiprocessing.pool import ThreadPool as Pool
 # from multiprocessing import Pool
+from concurrent.futures import ThreadPoolExecutor
 import requests
 import json
 import asyncio
@@ -88,10 +89,8 @@ class Uploading(BaseService):
         try:
             self.clean()
             tokens = self.get_vova_token()
-            pool = Pool()
-            pool.map(self.get_products, tokens)
-            pool.close()
-            pool.join()
+            with ThreadPoolExecutor() as pool:
+                pool.map(self.get_products, tokens)
 
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
