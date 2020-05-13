@@ -86,8 +86,8 @@ class Producer(BaseService):
 
     def clean_db(self):
         sql = 'truncate table ibay365_vova_list'
-        self.cur.execute(sql)
-        self.con.commit()
+        self.warehouse_cur.execute(sql)
+        self.warehouse_con.commit()
         self.logger.info('success to clear vova listing')
 
     def pull_from_mongo(self):
@@ -99,8 +99,8 @@ class Producer(BaseService):
     def push_to_db(self, rows):
         try:
             sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
-            self.cur.executemany(sql, rows)
-            self.con.commit()
+            self.warehouse_cur.executemany(sql, rows)
+            self.warehouse_con.commit()
             self.logger.info(f"success to save data of vova ")
         except Exception as why:
             self.logger.error(f"fail to save data of vova cause of {why} ")
