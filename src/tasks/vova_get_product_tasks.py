@@ -122,12 +122,15 @@ class Producer(BaseService):
             loop.close()
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
-        finally:
-            self.close()
 
     def trans(self):
-        self.download()
-        self.sync()
+        try:
+            self.download()
+            self.sync()
+        except Exception as why:
+            self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
+        finally:
+            self.close()
 
 
 if __name__ == '__main__':
