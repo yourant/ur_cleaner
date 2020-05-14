@@ -119,8 +119,8 @@ class Producer(BaseService):
                     self.cur.execute(sql)
                     self.con.commit()
                     self.logger.info(f"success to save data of vova from {i * step} to  {min((i + 1) * step, number)}")
-                except:
-                    print(value)
+                except Exception as why:
+                    self.logger.error(f"fail to save data of vova cause of {why} ")
         except Exception as why:
 
             self.logger.error(f"fail to save data of vova cause of {why} ")
