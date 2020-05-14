@@ -115,6 +115,9 @@ class Uploader(BaseService):
         else:
             print('{}:failed to upload {}'.format(now, self.path))
 
+        self.close()
+
+
 
 
 class Export(BaseService):
@@ -229,6 +232,8 @@ class Export(BaseService):
             await self.work()       #导入单属性数据，记录结果
         except Exception as why:
             print('failed to import goods info cause of {}'.format(why))
+        finally:
+            self.close()
 
 
 
@@ -252,7 +257,8 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(export.run())
     end = time.time()
-    print(f'it takes {end - start} seconds')
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
 
 
 

@@ -104,6 +104,8 @@ class Export(BaseService):
             await self.work()  # 导入多属性数据，记录结果
         except Exception as why:
             print('failed to import var data cause of {}'.format(why))
+        finally:
+            self.close()
 
 
 def init(l):
@@ -127,7 +129,8 @@ if __name__ == '__main__':
     loop = asyncio.get_event_loop()
     loop.run_until_complete(export.run())
     end = time.time()
-    print(f'it takes {end - start} seconds')
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
 
 
 
