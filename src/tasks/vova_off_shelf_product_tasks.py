@@ -4,7 +4,6 @@
 # Author: turpure
 
 from src.services.base_service import BaseService
-import requests
 import aiohttp
 import json
 import asyncio
