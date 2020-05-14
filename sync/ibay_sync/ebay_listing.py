@@ -16,26 +16,26 @@ class Worker(BaseService):
         super().__init__()
 
     def fetch(self) :
-        sql = "select itemid,selleruserid, primarycategory, sku,site,listingstatus from ebay_item where listingstatus='Active'"
+        sql = "select itemid,selleruserid, primarycategory, sku,site,listingstatus,quantitySold, country as location from ebay_item where listingstatus='Active'"
         self.ibay_cur.execute(sql)
         ret = self.ibay_cur.fetchall()
         for row in ret:
             # row
             yield (
                 # row['itemid'], row['selleruserid'], row['primarycategory'], row['sku'], row['site'], row['itemtitle'], row['listingstatus']
-                row[0],row[1],row[2],row[3],row[4],row[5]
+                row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]
             )
 
     def clear(self):
         sql = 'truncate table ebay_listing'
-        self.ibay_cur.execute(sql)
-        self.logger('success to clear ebay_listing')
+        self.warehouse_cur.execute(sql)
+        self.logger.info('success to clear ebay_listing')
 
     def push(self, rows):
         sql = ['insert into ebay_listing(',
-               'itemid,selleruserid, primarycategory, sku,site,listingstatus ',
+               'itemid,selleruserid, primarycategory, sku,site,listingstatus ,quantitySold, location'
                ') values (',
-               '%s,%s,%s,%s,%s,%s',
+               '%s,%s,%s,%s,%s,%s,%s,%s',
                ') '
                ]
 
@@ -48,11 +48,11 @@ class Worker(BaseService):
         #         rw[5] = ''
         #         self.warehouse_cur.execute(''.join(sql), rw)
         self.warehouse_con.commit()
-        self.logger.info('success to fetch suffix profit')
+        self.logger.info('success to fetch ebay listing')
 
     def work(self):
         try:
-            today = str(datetime.datetime.today())[:10]
+            self.clear()
             rows = self.fetch()
             self.push(rows)
         except Exception as why:
