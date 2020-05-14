@@ -8,6 +8,7 @@ import aiohttp
 import json
 import asyncio
 import datetime
+import math
 from pymongo import MongoClient
 
 mongo = MongoClient('192.168.0.150', 27017)
@@ -50,7 +51,8 @@ class Producer(BaseService):
             ret = await response.json(content_type='application/json')
             total_page = ret['page_arr']['totalPage']
             rows = self.deal_products(token, ret['product_list'])
-            asyncio.ensure_future(self.save(rows, token, page=1))
+            # await asyncio.ensure_future(self.save(rows, token, page=1))
+            await asyncio.gather(asyncio.ensure_future(self.save(rows, token, page=1)))
             if total_page > 1:
                 for page in range(2, total_page + 1):
                     param['conditions']['page_arr']['page'] = page
@@ -58,8 +60,8 @@ class Producer(BaseService):
                         response = await session.post(url, data=json.dumps(param))
                         res = await response.json()
                         res_data = self.deal_products(token, res['product_list'])
-                        asyncio.ensure_future(self.save(res_data, token, page))
-                        # await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
+                        # await asyncio.ensure_future(self.save(res_data, token, page))
+                        await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
                     except Exception as why:
                         self.logger.error(f'error while requesting page {page} cause of {why}')
 
@@ -86,23 +88,41 @@ class Producer(BaseService):
 
     def clean_db(self):
         sql = 'truncate table ibay365_vova_list'
-        self.warehouse_cur.execute(sql)
-        self.warehouse_con.commit()
+        self.cur.execute(sql)
+        self.con.commit()
         self.logger.info('success to clear vova listing')
 
     def pull_from_mongo(self):
         rows = col.find()
         for rw in rows:
-            yield (rw['code'], rw['sku'], rw['newsku'],
-                   rw['itemid'], rw['suffix'], rw['selleruserid'], rw['storage'],rw['updateTime'])
+            ret = (rw['code'], rw['sku'], rw['newsku'],
+                   rw['itemid'], rw['suffix'], rw['selleruserid'], rw['storage'], rw['updateTime'])
+            yield tuple(map(self.empty_str, ret))
+
+    @staticmethod
+    def empty_str(str):
+        if str:
+            return str
+        return ''
 
     def push_to_db(self, rows):
         try:
-            sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
-            self.warehouse_cur.executemany(sql, rows)
-            self.warehouse_con.commit()
-            self.logger.info(f"success to save data of vova ")
+            # sql = 'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values (%s,%s,%s,%s,%s,%s,%s,%s)'
+            rows = list(rows)
+            number = len(rows)
+            step = 100
+            end = math.floor(number / step)
+            for i in range(0, end):
+                value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
+                sql = f'insert into ibay365_vova_list (code,sku,newsku,itemid,suffix,selleruserid,storage,updateTime) values {value}'
+                try:
+                    self.cur.execute(sql)
+                    self.con.commit()
+                    self.logger.info(f"success to save data of vova from {i * step} to  {min((i + 1) * step, number)}")
+                except:
+                    print(value)
         except Exception as why:
+
             self.logger.error(f"fail to save data of vova cause of {why} ")
 
     def sync(self):
@@ -138,6 +158,7 @@ if __name__ == '__main__':
     start = time.time()
     worker = Producer()
     worker.trans()
+    # worker.sync()
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')
