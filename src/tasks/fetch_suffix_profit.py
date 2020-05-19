@@ -55,15 +55,11 @@ class ProfitFetcher(BaseService):
         sql = 'delete from cache_suffixProfit where createdDate BETWEEN %s and  %s'
         self.warehouse_cur.execute(sql, (begin, end))
         self.warehouse_con.commit()
-        self.logger.info('success to clear suffix profit')
+        self.logger.info(f'success to clear suffix profit between {begin} and {end}')
 
-    def work(self):
+    def work(self, begin_date, end_date):
         try:
-            yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            # yesterday = '2020-04-01'
-            today = str(datetime.datetime.today())[:10]
-            month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
-            self.clear(month_first_day, today)
+            self.clear(begin_date, end_date)
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, month_first_day, today)
                 self.push(rows)
@@ -74,5 +70,8 @@ class ProfitFetcher(BaseService):
 
 
 if __name__ == "__main__":
+    yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+    today = str(datetime.datetime.today())[:10]
+    month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
     worker = ProfitFetcher()
-    worker.work()
+    worker.work(month_first_day, today)

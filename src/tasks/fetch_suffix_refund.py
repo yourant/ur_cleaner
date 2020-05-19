@@ -52,18 +52,10 @@ class RefundFetcher(BaseService):
         self.warehouse_con.commit()
         self.logger.info('success to clear refund data between {} and {}'.format(begin, end))
 
-    def work(self):
+    def work(self, begin, end):
         try:
-            today = str(datetime.datetime.today())[:10]
-            if today[-2] != '01':
-                month_first_day = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
-            else:
-                yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-                month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
-
-            # month_first_day = '2020-04-01'
-            self.clear(month_first_day, today)
-            rows = self.fetch(month_first_day, today)
+            self.clear(begin, end)
+            rows = self.fetch(begin, end)
             self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch refund detail cause of {}'.format(why))
@@ -72,5 +64,8 @@ class RefundFetcher(BaseService):
 
 
 if __name__ == '__main__':
+    yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+    today = str(datetime.datetime.today())[:10]
+    month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
     worker = RefundFetcher()
-    worker.work()
+    worker.work(month_first_day, today)
