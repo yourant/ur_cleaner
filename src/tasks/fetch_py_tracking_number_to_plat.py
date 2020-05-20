@@ -31,6 +31,13 @@ class Marker(BaseService):
         for row in ret:
             yield row
 
+
+    def update_py_trade_status(self, trade_id):
+        sql = "UPDATE P_Trade (nolock) SET shippingmethod = 1 WHERE nid=%s"
+        self.cur.execute(sql, trade_id)
+        self.con.commit()
+
+
     def update_ebay_tracking_number(self, data):
         for item in data:
 
@@ -59,6 +66,7 @@ class Marker(BaseService):
                 response = api.execute('CompleteSale', params)
                 result = response.dict()
                 if result['Ack'] == 'Success':
+                    self.update_py_trade_status(item['nid'])
                     self.logger.error('success to fetch tracking number of order num {}'.format(item['nid']))
                 else:
                     self.logger.error('failed to fetch tracking number of order num {}'.format(item['nid']))
