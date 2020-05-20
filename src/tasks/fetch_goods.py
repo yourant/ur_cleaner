@@ -16,7 +16,7 @@ class Fetcher(BaseService):
         super().__init__()
 
     def fetch(self):
-        sql = 'select  goodsCode, goodsName, goodsStatus, BmpUrl as img from b_goods(nolock)'
+        sql = 'select  goodsCode, goodsName, goodsStatus, (select top 1 BmpFileName from b_goodsSku(nolock) where goodsId=bg.nid) as img from b_goods(nolock) as bg'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
