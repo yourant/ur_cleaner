@@ -17,6 +17,8 @@ class Worker(BaseService):
     def do_something(self):
         pass
 
+
+
     def work(self):
         try:
             self.do_something()
