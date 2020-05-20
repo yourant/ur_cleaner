@@ -62,7 +62,6 @@ class Fetcher(BaseService):
         self.warehouse_cur.execute(sql, (begin, end))
         self.warehouse_con.commit()
 
-
     @staticmethod
     def date_range(begin_date, end_date):
         dt = datetime.datetime.strptime(begin_date, "%Y-%m-%d")
@@ -97,20 +96,15 @@ class Fetcher(BaseService):
     def update_goods_status(self, end_date):
         begin_date = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
         sql = ('UPDATE cache_devGoodsProfit t ' +
-                'SET goodsStatus = (SELECT MAX(goodsStatus) AS goodsStatus FROM cache_devGoodsSoldDetail d WHERE d.goodsCode = t.goodsCode)' +
+                'SET goodsStatus = (SELECT goodsStatus AS goodsStatus FROM cache_devGoodsSoldDetail d WHERE d.goodsCode = t.goodsCode order by orderTime desc limit 1)' +
                 'WHERE exists(select 1 from cache_devGoodsSoldDetail t2 where t2.goodsCode = t.goodsCode AND t2.goodsStatus = t.goodsStatus)' +
                 "AND orderTime BETWEEN %s AND %s;")
         self.warehouse_cur.execute(sql, (begin_date, end_date))
         self.warehouse_con.commit()
 
-
-
-
-
     def work(self):
         try:
             end_date = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-            # begin_date = str(datetime.datetime.strptime(end_date[:8] + '01', '%Y-%m-%d'))[:10]
             begin_date = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
             self.clean(begin_date, end_date)
             self.update_goods_status(begin_date)
