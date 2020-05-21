@@ -39,10 +39,8 @@ class Worker(BaseService):
 
     def exe_pro(self):
         # 执行存储过程
-        sql_proce_1 ="EXEC Z_ronger_qitian_wishSCVer2 @DateFlag,CONVERT(VARCHAR(10),GETDATE()-1-30,121),CONVERT(VARCHAR(10),GETDATE()-1,121),'','0','0','','','','','','0','0','0','0'--,'113'"
-        self.cur.execute(sql_proce_1)
-        sql_proce_2 = "EXEC ibay365_LongTail_onshelf"
-        self.cur.execute(sql_proce_2)
+        sql_proce = "EXEC ibay365_LongTail_onshelf"
+        self.cur.execute(sql_proce)
 
 
     def trans(self):
