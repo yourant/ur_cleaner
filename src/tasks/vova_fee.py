@@ -18,8 +18,8 @@ class VovaFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        # self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
-        self.begin_date = '2020-05-01'
+        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+        # self.begin_date = '2020-05-01'
 
 
     def clean(self):
