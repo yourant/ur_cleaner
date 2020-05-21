@@ -59,58 +59,9 @@ class VovaFee(BaseService):
         print(response)
         ret = response.json()
         print(ret)
-            # total_page = ret['page_arr']['totalPage']
-            # rows = self.deal_products(token, ret['product_list'])
-            # await asyncio.ensure_future(self.save(rows, token, page=1))
-            # await asyncio.gather(asyncio.ensure_future(self.save(rows, token, page=1)))
-            # if total_page > 1:
-            #     for page in range(2, total_   page + 1):
-            #         param['conditions']['page_arr']['page'] = page
-            #         try:
-            #             response = await session.post(url, data=json.dumps(param))
-            #             res = await response.json()
-            #             res_data = self.deal_products(token, res['product_list'])
-            #             # await asyncio.ensure_future(self.save(res_data, token, page))
-            #             await asyncio.gather(asyncio.ensure_future(self.save(res_data, token, page)))
-            #         except Exception as why:
-            #             self.logger.error(f'error while requesting page {page} cause of {why}')
 
-    def _parse_response(self, ret, token):
-        for row in ret:
-            fee_type = row.AccountDetailsEntryType
-            if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping',
-                                'PayPalOTPSucc', 'PaymentCCOnce',
-                                'PaymentCC', 'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown'
-                                ):
-                fee = dict()
-                fee['feeType'] = fee_type
-                fee['Date'] = str(row.Date)
-                fee['value'] = row.NetDetailAmount.value
-                fee['currency'] = row.NetDetailAmount._currencyID
-                fee['accountName'] = token['notename']
-                fee['ItemID'] = row.ItemID
-                if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
-                    self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
-                if float(row.NetDetailAmount.value) != 0:
-                    yield fee
 
-    # def save_data(self, row):
-    #     sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId)' \
-    #           ' values(%s,%s,%s,%s,%s,%s)'
-    #     try:
-    #         self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], row['currency'],
-    #                          row['Date'], self.batch_id))
-    #         self.logger.info("putting %s" % row['accountName'])
-    #         self.con.commit()
-    #     except pymssql.IntegrityError as e:
-    #         pass
-    #     except Exception as e:
-    #         self.logger.error("%s while trying to save data" % e)
-    #
-    # def save_trans(self, token):
-    #     ret = self.get_ebay_fee(token)
-    #     for row in ret:
-    #         self.save_data(row)
+
 
     def run(self):
         try:
