@@ -18,8 +18,8 @@ class VovaFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
-        # self.begin_date = '2020-05-01'
+        # self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+        self.begin_date = '2020-05-01'
 
 
     def clean(self):
@@ -39,53 +39,73 @@ class VovaFee(BaseService):
 
 
     def get_vova_fee(self, token):
-        param = {
-            "token": token['token'],
-            # "since": '2020-05-01T00:00:00.000Z',
-            "since": self.begin_date,
-            "limit": 200
-        }
-
         url = 'https://merchant-api.vova.com.hk/v1/order/ChangedOrders'
+        limit = 200
         try:
-            response = requests.get(url, params=param)
-            ret = response.json()
-            print(len(ret['data']['order_list']))
-            print(ret)
-            if ret['code'] == 20000 and ret['data']['order_list']:
-                for row in ret['data']['order_list']:
-                    if row['refund_time']:
-                        # print(row['refund_time'])
-                        yield (row['order_goods_sn'], row['refund_time'], row['total_amount'], row['currency'], 'vova')
+            for i in range(0, 1000):
+                param = {
+                    "token": token['token'],
+                    "since": self.begin_date,
+                    "limit": limit,
+                    'start': i * limit
+                }
+                response = requests.get(url, params=param)
+                ret = response.json()
+                if ret['code'] == 20000 and ret['data']['order_list']:
+                    for row in ret['data']['order_list']:
+                        if row['refund_time']:
+                            refunds = dict()
+                            refunds['order_id'] = row['order_goods_sn']
+                            refunds['refund_time'] = row['refund_time']
+                            refunds['total_value'] = row['total_amount']
+                            refunds['currencyCode'] = row['currency']
+                            refunds['plat'] = 'vova'
+                            # print(row['refund_time'])
+                            # yield (row['order_goods_sn'], row['refund_time'], row['total_amount'], row['currency'], 'vova')
+                            yield refunds
+
+                    if len(ret['data']['order_list']) < limit:
+                        break
+                else:
+                    break
 
         except Exception as e:
             self.logger.error(e)
 
 
     def save_data(self, row):
-        sql = 'insert into y_refunded(order_id, refund_time, total_value, currencyCode, plat) values(%s,%s,%s,%s,%s)'
+        # sql = 'insert into y_refunded(order_id, refund_time, total_value, currencyCode, plat) values(%s,%s,%s,%s,%s)'
+        sql = ("if not EXISTS (select id from y_refunded(nolock) where "
+               "order_id=%s and refund_time=%s and plat=%s) "
+               "insert into y_refunded (order_id, refund_time, total_value, currencyCode, plat) "
+               "values (%s,%s,%s,%s,%s) "
+               "else update y_refunded set "
+               "total_value=%s where order_id=%s and refund_time= %s and plat=%s")
         try:
-            self.cur.executemany(sql, row)
+            self.cur.execute(sql, (row['order_id'], row['refund_time'], row['plat'],
+                        row['order_id'], row['refund_time'],
+                        row['total_value'], row['currencyCode'], row['plat'],
+                        row['total_value'], row['order_id'], row['refund_time'], row['plat']))
             self.con.commit()
-            self.logger.error("success to get vova refunded order!")
+            self.logger.info('save %s' % row['order_id'])
         except Exception as e:
-            self.logger.error("failed to get vova refunded order cause of %s" % e)
+            self.logger.error(f'fail to save {row["order_id"]} cause of duplicate key or {e}')
 
 
 
 
     def run(self):
         try:
-            self.clean()
+            # self.clean()
             tokens = self.get_vova_token()
             with ThreadPoolExecutor(16) as pool:
                 future = {pool.submit(self.get_vova_fee, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
                         data = fu.result()
-                        # for row in data:
-                        #     print(row)
-                        self.save_data(data)
+                        for row in data:
+                            # print(row)
+                            self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
         except Exception as e:
