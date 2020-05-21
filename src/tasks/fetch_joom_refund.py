@@ -28,9 +28,9 @@ class Worker(BaseService):
         tokens = self.get_joom_token()
         base_url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
         for row in tokens:
-            self.get_order(row,base_url)
+            self.get_order(row, base_url)
 
-    def get_order(self,row,base_url):
+    def get_order(self, row, base_url):
         token = row['AccessToken']
         date = str(datetime.datetime.now() - datetime.timedelta(days=3))[:10]
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
@@ -66,15 +66,14 @@ class Worker(BaseService):
                         yield refunded
                 except Exception as e:
                     self.logger.debug(e)
-            paging = res_dict.get('paging',None)
+            paging = res_dict.get('paging', None)
             if not paging is None:
                 if next or paging:
                     url = paging['next']
-                    self.get_order(row,url)
+                    self.get_order(row, url)
 
         except Exception as e:
             self.logger.debug(e)
-
 
     def save_refund_order(self,row):
         sql = ("if not EXISTS (select id from y_refunded_joom_test(nolock) where "
@@ -90,18 +89,16 @@ class Worker(BaseService):
                               row['price'], row['plat'],
                               row['price'], row['buyer_id'], row['refunded_time']))
             self.con.commit()
-            self.logger.error("success to get joom refunded order!")
+            self.logger.info("success to get joom refunded order!")
         except Exception as e:
             self.logger.error("failed to get joom refunded order cause of %s" % e)
-
 
     def work(self):
         try:
             tokens = self.get_joom_token()
-            # self.get_joom_refund_order()
             base_url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
             with ThreadPoolExecutor(16) as pool:
-                future = {pool.submit(self.get_order, token ,base_url): token for token in tokens}
+                future = {pool.submit(self.get_order, token, base_url): token for token in tokens}
                 for fu in as_completed(future):
                     try:
                         data = fu.result()
