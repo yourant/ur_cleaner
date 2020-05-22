@@ -49,7 +49,7 @@ class Worker(BaseService):
                                 refunded = dict()
                                 refunded['transaction_id'] = order_detail['transaction_id']
                                 refunded['refunded_time'] = order_detail['refunded_time']
-                                refunded['price'] = order_detail['price']
+                                refunded['order_total'] = order_detail['order_total']
                                 refunded['currencyCode'] = 'USD'
                                 refunded['plat'] = 'joom'
                                 yield refunded
@@ -76,8 +76,8 @@ class Worker(BaseService):
             self.cur.execute(sql,
                              (row['transaction_id'], row['refunded_time'],
                               row['transaction_id'], row['refunded_time'],
-                              row['price'], row['currencyCode'], row['plat'],
-                              row['price'], row['currencyCode'], row['transaction_id'], row['refunded_time']))
+                              row['order_total'], row['currencyCode'], row['plat'],
+                              row['order_total'], row['currencyCode'], row['transaction_id'], row['refunded_time']))
             self.con.commit()
             self.logger.error("success to get joom refunded order!")
         except Exception as e:
