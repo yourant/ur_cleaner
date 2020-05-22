@@ -115,7 +115,7 @@ class Worker(BaseService):
 
     def save_trans(self):
         rows = self.pull()
-        self.push(rows)
+        self.push_one(rows)
         mongo.close()
 
     def work(self):
