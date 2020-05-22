@@ -31,13 +31,15 @@ class Worker(BaseService):
         yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
         date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
         limit = 300
+        start = 0
         try:
-            for i in range(0, 1000):
+            while True:
                 param = {
                     "since": date,
                     "limit": limit,
-                    'start': i * limit
+                    'start': start * limit
                 }
+                start = start + 1
                 response = requests.get(url, params=param, headers=headers)
                 ret = response.json()
                 if ret['code'] == 0 and ret['data']:
@@ -66,11 +68,11 @@ class Worker(BaseService):
 
 
     def save_refund_order(self,row):
-        sql = ("if not EXISTS (select id from y_refunded(nolock) where "
+        sql = ("if not EXISTS (select id from y_refunded_joom_test(nolock) where "
                "order_id=%s and refund_time= %s) "
-               'insert into y_refunded(order_id, refund_time, total_value,currencyCode, plat) '
+               'insert into y_refunded_joom_test(order_id, refund_time, total_value,currencyCode, plat) '
                'values(%s,%s,%s,%s,%s)'
-               "else update y_refunded set "
+               "else update y_refunded_joom_test set "
                "total_value=%s,currencyCode=%s where order_id=%s and refund_time= %s")
         try:
             self.cur.execute(sql,
