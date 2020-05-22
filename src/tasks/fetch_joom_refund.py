@@ -18,90 +18,76 @@ class Worker(BaseService):
         super().__init__()
 
     def get_joom_token(self):
-        sql = 'select AccessToken from S_JoomSyncInfo'
+        sql = 'select top 1 AccessToken from S_JoomSyncInfo'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
             yield row
 
-    def get_joom_refund_order(self):
-        tokens = self.get_joom_token()
-        base_url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
-        for row in tokens:
-            self.get_order(row,base_url)
-
-    def get_order(self,row,base_url):
-        token = row['AccessToken']
-        date = str(datetime.datetime.now() - datetime.timedelta(days=3))[:10]
+    def get_order(self, token):
+        token = token['AccessToken']
+        url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        base_url = base_url
+        yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+        date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
+        limit = 300
         start = 0
-        data = {
-            "start": start,
-            "limit": 300,
-            "since": date,
-        }
         try:
-            for i in range(2):
-                try:
-                    if base_url == 'https://api-merchant.joom.com/api/v2/order/multi-get':
-                        ret = requests.get(base_url, params=data, headers=headers)
-                    else:
-                        ret = requests.get(base_url, headers=headers)
+            while True:
+                param = {
+                    "since": date,
+                    "limit": limit,
+                    'start': start * limit
+                }
+                start = start + 1
+                response = requests.get(url, params=param, headers=headers)
+                ret = response.json()
+                if ret['code'] == 0 and ret['data']:
+                    orders = ret['data']
+                    for order in orders:
+                        try:
+                            order_detail = order["Order"]
+                            if order_detail['state'] == 'REFUNDED':
+                                refunded = dict()
+                                refunded['transaction_id'] = order_detail['transaction_id']
+                                refunded['refunded_time'] = order_detail['refunded_time']
+                                refunded['order_total'] = order_detail['order_total']
+                                refunded['currencyCode'] = 'USD'
+                                refunded['plat'] = 'joom'
+                                yield refunded
+                        except Exception as e:
+                            self.logger.debug(e)
+                    if len(ret['data']) < limit:
+                        break
+                else:
                     break
-                except Exception as why:
-                    self.logger.error(f'retrying {i} times')
-
-            res_dict = json.loads(ret.content)
-            orders = res_dict['data']
-            for order in orders:
-                try:
-                    order_detail = order["Order"]
-                    if 'refunded_time' in order_detail:
-                        refunded = dict()
-                        refunded['buyer_id'] = order_detail['buyer_id']
-                        refunded['refunded_time'] = order_detail['refunded_time']
-                        refunded['price'] = order_detail['price']
-                        refunded['plat'] = 'joom'
-                        yield refunded
-                except Exception as e:
-                    self.logger.debug(e)
-            paging = res_dict.get('paging',None)
-            if not paging is None:
-                if next or paging:
-                    url = paging['next']
-                    self.get_order(row,url)
 
         except Exception as e:
-            self.logger.debug(e)
+            self.logger.error(e)
 
 
     def save_refund_order(self,row):
         sql = ("if not EXISTS (select id from y_refunded_joom_test(nolock) where "
                "order_id=%s and refund_time= %s) "
-               'insert into y_refunded_joom_test(order_id, refund_time, total_value, plat) '
-               'values(%s,%s,%s,%s)'
+               'insert into y_refunded_joom_test(order_id, refund_time, total_value,currencyCode, plat) '
+               'values(%s,%s,%s,%s,%s)'
                "else update y_refunded_joom_test set "
-               "total_value=%s where order_id=%s and refund_time= %s")
+               "total_value=%s,currencyCode=%s where order_id=%s and refund_time= %s")
         try:
             self.cur.execute(sql,
-                             (row['buyer_id'], row['refunded_time'],
-                              row['buyer_id'], row['refunded_time'],
-                              row['price'], row['plat'],
-                              row['price'], row['buyer_id'], row['refunded_time']))
+                             (
+                              row['transaction_id'], row['refunded_time'],
+                              row['order_total'], row['currencyCode'], row['plat']))
             self.con.commit()
-            self.logger.error("success to get joom refunded order!")
+            self.logger.info("success to get joom refunded order!")
         except Exception as e:
             self.logger.error("failed to get joom refunded order cause of %s" % e)
-
 
     def work(self):
         try:
             tokens = self.get_joom_token()
-            # self.get_joom_refund_order()
-            base_url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
             with ThreadPoolExecutor(16) as pool:
-                future = {pool.submit(self.get_order, token ,base_url): token for token in tokens}
+                future = {pool.submit(self.get_order, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
                         data = fu.result()
