@@ -29,7 +29,7 @@ class VovaFee(BaseService):
 
 
     def get_vova_token(self):
-        sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;'
+        sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -51,9 +51,10 @@ class VovaFee(BaseService):
                 }
                 response = requests.get(url, params=param)
                 ret = response.json()
+                # print(ret)
                 if ret['code'] == 20000 and ret['data']['order_list']:
                     for row in ret['data']['order_list']:
-                        if row['refund_time']:
+                        if row['refund_time'] and int(row['order_state']) == 2:
                             refunds = dict()
                             refunds['order_id'] = row['order_goods_sn']
                             refunds['refund_time'] = row['refund_time']
@@ -74,7 +75,6 @@ class VovaFee(BaseService):
 
 
     def save_data(self, row):
-        # sql = 'insert into y_refunded(order_id, refund_time, total_value, currencyCode, plat) values(%s,%s,%s,%s,%s)'
         sql = ("if not EXISTS (select id from y_refunded(nolock) where "
                "order_id=%s and refund_time=%s and plat=%s) "
                "insert into y_refunded (order_id, refund_time, total_value, currencyCode, plat) "
