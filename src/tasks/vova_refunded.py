@@ -41,13 +41,14 @@ class VovaFee(BaseService):
     def get_vova_fee(self, token):
         url = 'https://merchant-api.vova.com.hk/v1/order/ChangedOrders'
         limit = 200
+        start = 0
         try:
-            for i in range(0, 1000):
+            while True:
                 param = {
                     "token": token['token'],
                     "since": self.begin_date,
                     "limit": limit,
-                    'start': i * limit
+                    'start': start
                 }
                 response = requests.get(url, params=param)
                 ret = response.json()
@@ -60,11 +61,12 @@ class VovaFee(BaseService):
                             refunds['refund_time'] = row['refund_time']
                             refunds['total_value'] = row['total_amount']
                             refunds['currencyCode'] = row['currency']
+                            refunds['platform_rate'] = row['platform_rate']
                             refunds['plat'] = 'vova'
                             # print(row['refund_time'])
                             # yield (row['order_goods_sn'], row['refund_time'], row['total_amount'], row['currency'], 'vova')
                             yield refunds
-
+                    start += limit
                     if len(ret['data']['order_list']) < limit:
                         break
                 else:
@@ -75,6 +77,14 @@ class VovaFee(BaseService):
 
 
     def save_data(self, row):
+        # 确认普源订单状态
+        check_sql = ("SELECT * FROM P_TradeUn WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND ACK=%s "
+                     "UNION SELECT * FROM P_TradeUn_His WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND ACK=%s ")
+        self.cur.execute(check_sql, (row['order_id'], row['order_id']))
+        ret = self.cur.fetchall()
+        if ret:
+            row['total_value'] = round(float(row['total_value']) * float(row['platform_rate']), 2)
+
         sql = ("if not EXISTS (select id from y_refunded(nolock) where "
                "order_id=%s and refund_time=%s and plat=%s) "
                "insert into y_refunded (order_id, refund_time, total_value, currencyCode, plat) "
