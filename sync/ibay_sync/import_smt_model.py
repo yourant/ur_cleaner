@@ -202,7 +202,7 @@ class Export(BaseService):
 
 
 
-    async def work(self):
+    def work(self):
         l = Lock()
         p = Pool(16, initializer=init, initargs=(l,))
         paths = []
@@ -225,7 +225,7 @@ class Export(BaseService):
             if list:
                 self.deal_data(list)  # 处理数据 并导出表格
 
-            await self.work()       #导入单属性数据，记录结果
+                self.work()       #导入单属性数据，记录结果
         except Exception as why:
             self.logger.error('failed to import goods info cause of {}'.format(why))
         finally:
