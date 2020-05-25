@@ -55,7 +55,7 @@ class Export(BaseService):
         for item in data:
             rows = []
             smtSql = ('select  * from proCenter.oa_smtGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId '  +
-                  ' inner join proCenter.oa_goods gg on gg.nid=g.goodsId  where goodsCode = %s;')
+                  ' inner join proCenter.oa_smtGoods gg on gg.infoId=g.id  where goodsCode = %s;')
             self.warehouse_cur.execute(smtSql, item['SKU'])
             smtQuery = self.warehouse_cur.fetchall()
             if smtQuery:
@@ -66,10 +66,13 @@ class Export(BaseService):
                     res['quantity'] = row['quantity']
                     res['price'] = row['price']
                     res['pic_url'] = row['pic_url']
-                    if row['subCate'] == '戒指': #  TODO
+                    if row['category1'] in {100007323}: # 戒指 TODO
                         res["skuimage"] = 'Main Stone Color'
                         res["varition1"] = "Main Stone Color:Black(黑色)"
                         res["varition2"] = "Ring Size:" + row['size'] + '(' + row['size'] + ')'
+                    if row['category1'] in {100007322,200000171,100007324,200000168,200000147,200000162}: #
+                        res["skuimage"] = 'Metal Color'
+                        res["varition1"] = "Metal Color:Red(红色)"
 
 
                     rows.append(res)
@@ -103,7 +106,7 @@ class Export(BaseService):
 
             await self.work()  # 导入多属性数据，记录结果
         except Exception as why:
-            print('failed to import var data cause of {}'.format(why))
+            self.logger.error('failed to import var data cause of {}'.format(why))
         finally:
             self.close()
 

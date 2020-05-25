@@ -43,10 +43,6 @@ class Uploader(BaseService):
 
         try:
             with open(self.path, 'rb') as files:
-                # xl = pd.read_excel(self.path)
-                # print(xl.size)
-                # if xl.size == 0:
-                #     return True
 
                 data = {'mubanxls': ('report.xls', files, 'application/vnd.ms-excel')}
                 res = self.session.post(self.upload_url[flag], files=data)
@@ -98,7 +94,7 @@ class Uploader(BaseService):
             self.warehouse_con.commit()
             return True
         except Exception as why:
-            print('success to remark data cause of {}'.format(why))
+            self.logger.error('failed to remark data cause of {}'.format(why))
             return False
 
 
@@ -111,9 +107,9 @@ class Uploader(BaseService):
             rem_res = self.remark_data(type, res)  # 标记结果
             if(rem_res):
                 os.remove(self.path)    # 删除excel文件
-                print('{}:successful to upload {}'.format(now, self.path))
+                self.logger.error('{}:successful to upload {}'.format(now, self.path))
         else:
-            print('{}:failed to upload {}'.format(now, self.path))
+            self.logger.error('{}:failed to upload {}'.format(now, self.path))
 
         self.close()
 
@@ -174,7 +170,7 @@ class Export(BaseService):
 
 
 
-    async def deal_data(self, data):
+    def deal_data(self, data):
         for item in data:
             res = self.single
             res['Selleruserid'] = item['ibaySuffix']
@@ -227,11 +223,11 @@ class Export(BaseService):
             # 获取单属性数据
             list = self.get_data()  # 获取数据
             if list:
-                await self.deal_data(list)  # 处理数据 并导出表格
+                self.deal_data(list)  # 处理数据 并导出表格
 
             await self.work()       #导入单属性数据，记录结果
         except Exception as why:
-            print('failed to import goods info cause of {}'.format(why))
+            self.logger.error('failed to import goods info cause of {}'.format(why))
         finally:
             self.close()
 
