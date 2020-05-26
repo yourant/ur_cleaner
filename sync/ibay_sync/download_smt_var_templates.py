@@ -84,8 +84,8 @@ class Download(BaseService):
             if list:
                 self.deal_var_data(list)  # 处理数据 并导出表格
                 self.logger.error('Success to download goods var templates')
-            else:
-                self.logger.info('No goods var template need to download')
+            # else:
+            #     self.logger.info('No goods var template need to download')
         except Exception as why:
             self.logger.error('Failed to download goods var templates cause of {}'.format(why))
         finally:
