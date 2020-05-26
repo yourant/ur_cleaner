@@ -41,13 +41,12 @@ class Worker(BaseService):
         suffix = row['aliasName']
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        date = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
         limit = 300
         start = 0
         try:
             while True:
                 param = {
-                    "since": date,
                     "limit": limit,
                     'start': start
                 }
