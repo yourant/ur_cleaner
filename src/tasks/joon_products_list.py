@@ -36,7 +36,7 @@ class Worker(BaseService):
         col.delete_many({})
         self.logger.info('success to clear joom product list')
 
-    def get_order(self, row):
+    def get_products(self, row):
         token = row['AccessToken']
         suffix = row['aliasName']
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
@@ -119,7 +119,7 @@ class Worker(BaseService):
             tokens = self.get_joom_token()
             self.clean()
             pl = Pool(16)
-            pl.map(self.get_order, tokens)
+            pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
             self.save_trans()
