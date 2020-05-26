@@ -3,6 +3,8 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
+
+import math
 import datetime
 from src.services.base_service import BaseService
 import requests
@@ -13,7 +15,6 @@ from pymongo import MongoClient
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['joom']
 col = mongodb['joom_productlist']
-
 
 
 class Worker(BaseService):
@@ -33,9 +34,9 @@ class Worker(BaseService):
 
     def clean(self):
         col.delete_many({})
-        self.logger.info('success to clear joom_productlist')
+        self.logger.info('success to clear joom product list')
 
-    def get_order(self,row):
+    def get_order(self, row):
         token = row['AccessToken']
         suffix = row['aliasName']
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
@@ -57,9 +58,9 @@ class Worker(BaseService):
                     for item in list:
                         list_variants = item['Product']['variants']
                         for row in list_variants:
-                            newsku = row['Variant']['sku'].split("@")[0]
+                            new_sku = row['Variant']['sku'].split("@")[0]
                             ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
-                                   'newsku': newsku, 'itemid': row['Variant']['product_id'], 'suffix': suffix,
+                                   'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': suffix,
                                    'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date}
                             self.put(ele)
                             self.logger.info(f'putting {row["Variant"]["product_id"]}')
@@ -81,7 +82,8 @@ class Worker(BaseService):
 
     def save_trans(self):
         rows = self.pull()
-        self.push_one(rows)
+        # self.push_one(rows)
+        self.push_batch(rows)
         mongo.close()
 
     def push_one(self, rows):
@@ -91,7 +93,26 @@ class Worker(BaseService):
                 self.cur.execute(sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
             self.con.commit()
         except Exception as why:
+
             self.logger.error(f"fail  {why} ")
+
+    def push_batch(self, rows):
+        try:
+            rows = list(rows)
+            number = len(rows)
+            step = 100
+            end = math.ceil(number / step)
+            for i in range(0, end):
+                value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
+                sql = f'insert into ibay365_joom_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values {value}'
+                try:
+                    self.cur.execute(sql)
+                    self.con.commit()
+                    self.logger.info(f"success to save data of joom products from {i * step} to  {min((i + 1) * step, number)}")
+                except Exception as why:
+                    self.logger.error(f"fail to save data of joom products cause of {why} ")
+        except Exception as why:
+            self.logger.error(f"fail to save joom products cause of {why} ")
 
     def work(self):
         try:
