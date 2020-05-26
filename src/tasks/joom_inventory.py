@@ -17,7 +17,7 @@ class Worker(BaseService):
         super().__init__()
 
     def get_joom_token(self):
-        sql = "select itemid,sku,quantity,suffix,token from ibay365_joom_quantity where itemid='5bd190221436d4017b860f7d'"
+        sql = "select itemid,sku,quantity,suffix,token from ibay365_joom_quantity"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -38,7 +38,7 @@ class Worker(BaseService):
                 response = requests.post(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
                 if ret["code"] == 0:
-                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    # self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
                 else:
                     self.logger.error(f'fail { ret["message"] }')
