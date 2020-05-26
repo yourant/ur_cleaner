@@ -104,7 +104,7 @@ class Download(BaseService):
                 self.deal_data(list)  # 处理数据 并导出表格
                 self.logger.error('Success to download goods templates')
             else:
-                self.logger.error('No goods template need to download')
+                self.logger.info('No goods template need to download')
         except Exception as why:
             self.logger.error('Failed to download goods templates cause of {}'.format(why))
         finally:
