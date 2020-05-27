@@ -16,6 +16,17 @@ class Worker(BaseService):
         super().__init__()
 
     def get_joom_token(self):
+
+        # 计算
+        procedure = ("EXEC B_joom_ModifyOnlineNumberOnTheIbay365"
+                     "'',"  # 改0
+                     "'爆款,旺款,Wish新款,浮动款,在售,清仓,停售',"  # 固定数量
+                     "'停产,春节放假'"  # 真实数量
+                     )
+        self.cur.execute(procedure)
+        self.con.commit()
+
+        # 查询
         sql = "select itemid,sku,quantity,suffix,token from ibay365_joom_quantity"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
@@ -37,7 +48,7 @@ class Worker(BaseService):
                 response = requests.post(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
                 if ret["code"] == 0:
-                    # self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
                 else:
                     self.logger.error(f'fail to update inventory cause of  {ret["message"]} and trying {i} times')
