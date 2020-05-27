@@ -46,7 +46,7 @@ class Worker(BaseService):
         url = 'https://merchant.wish.com/api/v2/product/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        # since = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
         limit = 250
         start = 0
         try:
@@ -54,7 +54,8 @@ class Worker(BaseService):
                 param = {
                     "limit": limit,
                     'start': start,
-                    'access_token': token
+                    'access_token': token,
+                    'since': since
                 }
                 ret = dict()
                 for i in range(2):
@@ -64,7 +65,9 @@ class Worker(BaseService):
                         break
                     except Exception as why:
                         self.logger.error(f' fail to get of products of {suffix} in {start}  '
-                                          f'page cause of {why} {i} times')
+                                          f'page cause of {why} {i} times'
+                                          f'param {param} '
+                                          )
 
                 if ret and ret['code'] == 0 and ret['data']:
                     list = ret['data']
@@ -137,7 +140,7 @@ class Worker(BaseService):
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
-            # self.save_trans()
+            self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
