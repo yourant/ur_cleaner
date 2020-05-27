@@ -78,7 +78,8 @@ class Worker(BaseService):
         col.save(row)
 
     def pull(self):
-        rows = col.find()
+        rows = col.find({"enabled": "True",
+                "state": "active"})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
@@ -124,7 +125,7 @@ class Worker(BaseService):
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
-            # self.save_trans()
+            self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
