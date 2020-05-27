@@ -61,6 +61,7 @@ class Worker(BaseService):
                     try:
                         response = requests.get(url, params=param)
                         ret = response.json()
+                        break
                     except Exception as why:
                         self.logger.error(f' fail to get of products of {suffix} in {start}  '
                                           f'page cause of {why} {i} times')
@@ -90,7 +91,7 @@ class Worker(BaseService):
         col.save(row)
 
     def pull(self):
-        rows = col.find()
+        rows = col.find({})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
@@ -118,7 +119,7 @@ class Worker(BaseService):
             end = math.ceil(number / step)
             for i in range(0, end):
                 value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
-                sql = f'insert into ibay365_joom_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values {value}'
+                sql = f'insert into ibay365_wish_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values {value}'
                 try:
                     self.cur.execute(sql)
                     self.con.commit()
@@ -130,7 +131,6 @@ class Worker(BaseService):
 
     def work(self):
         try:
-            # self.get_wish_token()
             tokens = self.get_wish_token()
             self.clean()
             pl = Pool(16)
