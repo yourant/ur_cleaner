@@ -56,11 +56,14 @@ class Worker(BaseService):
                     list = ret['data']
                     for item in list:
                         list_variants = item['Product']['variants']
+                        list_enabled = item['Product']['enabled']
+                        list_state = item['Product']['state']
                         for row in list_variants:
                             new_sku = row['Variant']['sku'].split("@")[0]
                             ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
                                    'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': suffix,
-                                   'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date}
+                                   'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date,
+                                   'enabled': list_enabled, 'state': list_state}
                             self.put(ele)
                             self.logger.info(f'putting {row["Variant"]["product_id"]}')
                     start += limit
