@@ -54,11 +54,18 @@ class Worker(BaseService):
                 param = {
                     "limit": limit,
                     'start': start,
-                    'access_token':token
+                    'access_token': token
                 }
-                response = requests.get(url, params=param)
-                ret = response.json()
-                if ret['code'] == 0 and ret['data']:
+                ret = dict()
+                for i in range(2):
+                    try:
+                        response = requests.get(url, params=param)
+                        ret = response.json()
+                    except Exception as why:
+                        self.logger.error(f' fail to get of products of {suffix} in {start}  '
+                                          f'page cause of {why} {i} times')
+
+                if ret and ret['code'] == 0 and ret['data']:
                     list = ret['data']
                     for item in list:
                         list_variants = item['Product']['variants']
