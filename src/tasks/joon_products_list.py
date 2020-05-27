@@ -65,7 +65,7 @@ class Worker(BaseService):
                                    'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date,
                                    'enabled': list_enabled, 'state': list_state}
                             self.put(ele)
-                            self.logger.info(f'putting {row["Variant"]["product_id"]}')
+                            # self.logger.info(f'putting {row["Variant"]["product_id"]}')
                     start += limit
                     if len(ret['data']) < limit:
                         break
@@ -124,7 +124,7 @@ class Worker(BaseService):
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
-            self.save_trans()
+            # self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
