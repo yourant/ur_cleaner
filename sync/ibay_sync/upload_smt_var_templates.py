@@ -21,7 +21,7 @@ class Upload(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/'
+        self.path = '../../runtime/smt'
         self.session = login_session()
         self.upload_url = 'http://139.196.109.214/index.php/import/aliexpressimportxlsvar'
 
@@ -81,6 +81,7 @@ class Upload(BaseService):
         except Exception as why:
             self.logger.error('Failed to upload goods var templates cause of {}'.format(why))
         finally:
+            os.remove(self.path)
             self.close()
 
 

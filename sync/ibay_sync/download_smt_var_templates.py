@@ -4,6 +4,8 @@
 # Author: henry
 
 import time
+import pickle
+import json
 import asyncio
 import datetime
 from sync.ibay_sync.smt_ibay_server import generate
@@ -18,7 +20,7 @@ class Download(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/'
+        self.path = '../../runtime/smt/'
 
 
         # 获取产品多属性 数据
@@ -61,13 +63,18 @@ class Download(BaseService):
                     res['quantity'] = row['quantity']
                     res['price'] = row['price']
                     res['pic_url'] = row['pic_url']
-                    if row['category1'] in {100007323}:  # 戒指 TODO
-                        res["skuimage"] = 'Main Stone Color'
-                        res["varition1"] = "Main Stone Color:Black(黑色)"
-                        res["varition2"] = "Ring Size:" + row['size'] + '(' + row['size'] + ')'
-                    if row['category1'] in {100007322, 200000171, 100007324, 200000168, 200000147, 200000162}:  #
-                        res["skuimage"] = 'Metal Color'
-                        res["varition1"] = "Metal Color:Red(红色)"
+                    var = self.trim_var_data(row)
+                    res['skuimage'] = var['skuimage']
+                    res['varition1'] = var['varition1']
+                    res['varition2'] = var['varition2']
+
+                    # if row['category1'] in {100007323}:  # 戒指 TODO
+                    #     res["skuimage"] = 'Main Stone Color'
+                    #     res["varition1"] = "Main Stone Color:Black(黑色)"
+                    #     res["varition2"] = "Ring Size:" + row['size'] + '(' + row['size'] + ')'
+                    # if row['category1'] in {100007322, 200000171, 100007324, 200000168, 200000147, 200000162}:  #
+                    #     res["skuimage"] = 'Metal Color'
+                    #     res["varition1"] = "Metal Color:Red(红色)"
 
                     rows.append(res)
             # print(rows)
@@ -75,21 +82,35 @@ class Download(BaseService):
             file_name = self.path + 'SMT2' + '.' + str(rows[0]['mubanid']) + '.' + now + '.xls'
             generate(rows, file_name)  # 导出单属性数据
 
+    def trim_var_data(self, data):
+        sql = "select name,value from aliexpress_specifics where categoryid=%s and isskuattribute=1 order by customizedpic desc"
+        self.ibay_cur.execute(sql, (data['category1'],))
+        rows = self.ibay_cur.fetchall()
+        ret = dict()
+        ret['skuimage'] = rows[0][0]
+        ret['varition1'] = rows[0][0] + ':' + data['color']
+        ret['varition2'] = ''
+        for row in rows:
+            if('size' in row[0] or 'Size' in row[0]):
+                ret['varition2'] = row[0] + ':' + data['size']
+
+        return ret
+
 
 
     async def run(self):
-        try:
+        # try:
             # 获取单属性数据
             list = self.get_var_data()  # 获取数据
             if list:
                 self.deal_var_data(list)  # 处理数据 并导出表格
                 self.logger.error('Success to download goods var templates')
-            # else:
-            #     self.logger.info('No goods var template need to download')
-        except Exception as why:
-            self.logger.error('Failed to download goods var templates cause of {}'.format(why))
-        finally:
-            self.close()
+            else:
+                self.logger.info('No goods var template need to download')
+        # except Exception as why:
+        #     self.logger.error('Failed to download goods var templates cause of {}'.format(why))
+        # finally:
+        #     self.close()
 
 
 

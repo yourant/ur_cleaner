@@ -18,7 +18,7 @@ class VovaFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
         # self.begin_date = '2020-05-01'
 
 
@@ -78,24 +78,26 @@ class VovaFee(BaseService):
 
     def save_data(self, row):
         # 确认普源订单状态
-        check_sql = ("SELECT * FROM P_TradeUn WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND ACK=%s "
-                     "UNION SELECT * FROM P_TradeUn_His WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND ACK=%s ")
-        self.cur.execute(check_sql, (row['order_id'], row['order_id']))
+        check_sql = ("SELECT * FROM P_TradeUn m WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND (ACK=%s "
+                    " OR EXISTS ( SELECT TOP 1 Z.MergeBillID FROM P_trade_b (nolock) Z WHERE m.NID = MergeBillID AND z.ACK=%s ))"
+                    " UNION SELECT * FROM P_TradeUn_His m WHERE PROTECTIONELIGIBILITYTYPE='取消订单' AND (ACK=%s "
+                    " OR EXISTS (SELECT TOP 1 Z.MergeBillID FROM P_trade_b (nolock) Z WHERE m.NID = MergeBillID AND z.ACK=%s))")
+        self.cur.execute(check_sql, (row['order_id'], row['order_id'], row['order_id'], row['order_id']))
         ret = self.cur.fetchall()
         if ret:
             row['total_value'] = round(float(row['total_value']) * float(row['platform_rate']), 2)
 
         sql = ("if not EXISTS (select id from y_refunded(nolock) where "
-               "order_id=%s and refund_time=%s and plat=%s) "
+               "order_id=%s and plat=%s) "
                "insert into y_refunded (order_id, refund_time, total_value, currencyCode, plat) "
                "values (%s,%s,%s,%s,%s) "
                "else update y_refunded set "
-               "total_value=%s where order_id=%s and refund_time= %s and plat=%s")
+               "total_value=%s,refund_time=%s where order_id=%s and plat=%s")
         try:
-            self.cur.execute(sql, (row['order_id'], row['refund_time'], row['plat'],
+            self.cur.execute(sql, (row['order_id'], row['plat'],
                         row['order_id'], row['refund_time'],
                         row['total_value'], row['currencyCode'], row['plat'],
-                        row['total_value'], row['order_id'], row['refund_time'], row['plat']))
+                        row['total_value'], row['refund_time'], row['order_id'], row['plat']))
             self.con.commit()
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:

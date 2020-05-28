@@ -18,7 +18,7 @@ class Download(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/'
+        self.path = '../../runtime/smt/'
 
 
 
@@ -80,7 +80,7 @@ class Download(BaseService):
                 res['ImageUrl'] = smtQuery['imageUrl']
                 res['productPrice'] = smtQuery['productPrice']
                 res['Quantity'] = smtQuery['quantity']
-                res['Description'] = smtQuery['description']
+                res['Description'] = smtQuery['description'].replace("\n", "</br>")
                 res["packageLength"] = smtQuery['packageLength'],
                 res["packageWidth"] = smtQuery['packageWidth'],
                 res["packageHeight"] = smtQuery['packageHeight'],
