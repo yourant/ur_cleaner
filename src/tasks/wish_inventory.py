@@ -6,6 +6,7 @@ from multiprocessing.pool import ThreadPool as Pool
 from src.services.base_service import BaseService
 import requests
 
+
 class Worker(BaseService):
     """
     worker
@@ -17,16 +18,16 @@ class Worker(BaseService):
     def get_wish_token(self):
 
         # 计算
-        # procedure = ("EXEC B_joom_ModifyOnlineNumberOnTheIbay365"
-        #              "'',"  # 改0
-        #              "'爆款,旺款,Wish新款,浮动款,在售,清仓,停售',"  # 固定数量
-        #              "'停产,春节放假'"  # 真实数量
-        #              )
-        # self.cur.execute(procedure)
-        # self.con.commit()
+        procedure = ("EXEC B_ModifyOnlineNumberOfSkuOnTheIbay365 "
+                     "'清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P', " #改0
+                     "'爆款,旺款,Wish新款,浮动款,在售', " #固定数量
+                     "'清仓,停产,停售,线上清仓,线上清仓50P,线上清仓100P,春节放假'" #实际数量
+                     )
+        self.cur.execute(procedure)
+        self.con.commit()
 
         # 查询
-        sql = "select * from ibay365_wish_quantity"
+        sql = "select   token, sku, quantity,itemid,suffix from ibay365_wish_quantity"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
