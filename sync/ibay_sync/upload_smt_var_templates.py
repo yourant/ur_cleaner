@@ -77,11 +77,11 @@ class Upload(BaseService):
             for input_file in os.listdir(self.path):
                 path = self.path + input_file
                 self.upload(path)  # 上传表格
+                os.remove(path)
 
         except Exception as why:
             self.logger.error('Failed to upload goods var templates cause of {}'.format(why))
         finally:
-            os.remove(self.path)
             self.close()
 
 
