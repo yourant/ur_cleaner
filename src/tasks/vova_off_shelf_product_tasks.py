@@ -94,7 +94,7 @@ if __name__ == '__main__':
     import time
     start = time.time()
     worker = OffShelf()
-    worker.run ()
+    worker.run()
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')

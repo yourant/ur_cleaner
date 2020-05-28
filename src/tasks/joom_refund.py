@@ -87,8 +87,8 @@ class Worker(BaseService):
             rows = list(rows)
             number = len(rows)
             step = 100
-            end = math.floor(number / step)
-            for i in range(0, end + 1):
+            end = math.ceil(number / step)
+            for i in range(0, end):
                 value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
                 sql = f'insert into y_refunded(order_id, refund_time, total_value,currencyCode, plat) values {value}'
                 try:
