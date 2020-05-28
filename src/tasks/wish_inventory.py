@@ -6,7 +6,6 @@ from multiprocessing.pool import ThreadPool as Pool
 from src.services.base_service import BaseService
 import requests
 
-
 class Worker(BaseService):
     """
     worker
@@ -45,10 +44,8 @@ class Worker(BaseService):
                     "sku": sku,
                     "inventory": inventory
                 }
-                print(param)
                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
-                print(ret)
                 if ret["code"] == 0:
                     self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
