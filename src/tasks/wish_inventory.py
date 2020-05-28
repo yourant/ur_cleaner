@@ -27,7 +27,7 @@ class Worker(BaseService):
         # self.con.commit()
 
         # 查询
-        sql = "select top 10 * from ibay365_wish_quantity"
+        sql = "select * from ibay365_wish_quantity"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -38,15 +38,17 @@ class Worker(BaseService):
         sku = row['sku']
         inventory = row['quantity']
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        base_url = 'https://api-merchant.joom.com/api/v2/variant/update-inventory'
+        base_url = 'https://merchant.wish.com/api/v2/variant/update-inventory'
         try:
             for i in range(2):
                 param = {
                     "sku": sku,
                     "inventory": inventory
                 }
-                response = requests.post(base_url, params=param, headers=headers, timeout=20)
+                print(param)
+                response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
+                print(ret)
                 if ret["code"] == 0:
                     self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
@@ -58,6 +60,7 @@ class Worker(BaseService):
 
     def work(self):
         try:
+            # self.get_wish_token()
             tokens = self.get_wish_token()
             pl = Pool(16)
             pl.map(self.update_inventory, tokens)
