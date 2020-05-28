@@ -21,7 +21,7 @@ class Upload(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/smt'
+        self.path = '../../runtime/smt/'
         self.session = login_session()
         self.upload_url = 'http://139.196.109.214/index.php/import/aliexpressimportxlsvar'
 
