@@ -10,7 +10,7 @@ from src.services.base_service import BaseService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
-from pymongo import MongoClient
+from pymongo import MongoClient, errors
 
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
@@ -72,6 +72,7 @@ class Worker(BaseService):
                     list = ret['data']
                     for item in list:
                         ele = item['Campaign']
+                        ele['_id'] = ele['campaign_id']
                         self.put(ele)
                     start += limit
                     if len(ret['data']) < limit:
@@ -85,12 +86,12 @@ class Worker(BaseService):
             self.logger.error(e)
 
     def put(self, row):
-        col.save(row)
+        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def work(self):
         try:
             tokens = self.get_wish_token()
-            self.clean()
+            # self.clean()
             pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()
