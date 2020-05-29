@@ -15,7 +15,7 @@ from pymongo import MongoClient, errors
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
 col = mongodb['wish_productboost_performance']
-querydb = mongodb['wish_productboost']
+query_db = mongodb['wish_productboost']
 
 
 class Worker(BaseService):
@@ -25,25 +25,27 @@ class Worker(BaseService):
 
     def __init__(self):
         super().__init__()
+        self.tokens = dict()
 
-    def get_wish_product_id(self):
-        rows = querydb.find({}).limit(1)
+    @staticmethod
+    def get_wish_product_id():
+        rows = query_db.find({}).limit(1000)
         for row in rows:
             yield row
 
-    def clean(self):
-        col.delete_many({})
-        self.logger.info('success to clear wish wish_productboost list')
-
-    def get_token(self,row):
-        suffix = row['suffix']
-        sql = f"select token from ibay365_wish_quantity where suffix='{suffix}'"
+    def get_token(self):
+        sql = f"SELECT AccessToken,aliasname FROM S_WishSyncInfo"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
-        return ret[0]['token']
+        tokens = dict()
+        for row in ret:
+            tokens[row['aliasname']] = row['AccessToken']
+        print(tokens)
+        self.tokens = tokens
 
     def get_products(self, row):
-        token = self.get_token(row)
+        token = self.tokens[row['suffix']]
+        print(token)
         product_id = row['_id']
         url = 'https://merchant.wish.com/api/v2/product-boost/campaign/get-performance'
         try:
@@ -64,9 +66,9 @@ class Worker(BaseService):
                                           f'param {param} '
                                           )
                 if ret and ret['code'] == 0 and ret['data']:
-                    list = ret['data']['Statistics']
-                    list['_id'] = product_id
-                    ele = list
+                    row = ret['data']['Statistics']
+                    row['_id'] = product_id
+                    ele = row
                     self.put(ele)
                     break
                 else:
@@ -82,10 +84,10 @@ class Worker(BaseService):
 
     def work(self):
         try:
+            self.get_token()
+            # print(token)
             # self.get_wish_product_id()
             product_id = self.get_wish_product_id()
-            print(product_id)
-            self.clean()
             pl = Pool(16)
             pl.map(self.get_products, product_id)
             pl.close()
