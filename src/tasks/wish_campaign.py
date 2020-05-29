@@ -96,7 +96,7 @@ class Worker(BaseService):
             pl.close()
             pl.join()
         except Exception as why:
-            self.logger.error('fail to count sku cause of {} '.format(why))
+            self.logger.error('fail to get wish campaign list  cause of {} '.format(why))
         finally:
             self.close()
 
