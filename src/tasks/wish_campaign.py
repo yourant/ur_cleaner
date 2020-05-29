@@ -73,6 +73,7 @@ class Worker(BaseService):
                     for item in list:
                         ele = item['Campaign']
                         ele['_id'] = ele['campaign_id']
+                        ele['suffix'] = suffix
                         self.put(ele)
                     start += limit
                     if len(ret['data']) < limit:
