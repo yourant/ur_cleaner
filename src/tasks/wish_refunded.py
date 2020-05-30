@@ -83,8 +83,8 @@ class WishRefund(BaseService):
     def save_data(self, row):
         sql = ("if not EXISTS (select id from y_refunded(nolock) where "
                "order_id=%s and refund_time= %s) "
-               "insert into y_refunded (order_id,refund_time, total_value,currencyCode) "
-               "values (%s,%s,%s,%s) "
+               "insert into y_refunded (order_id,refund_time, total_value,currencyCode,plat) "
+               "values (%s,%s,%s,%s, 'wish') "
                "else update y_refunded set "
                "total_value=%s where order_id=%s and refund_time= %s")
         try:
