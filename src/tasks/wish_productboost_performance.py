@@ -29,9 +29,13 @@ class Worker(BaseService):
 
     @staticmethod
     def get_wish_product_id():
-        rows = query_db.find({}).limit(1000)
+        rows = query_db.find({})
         for row in rows:
             yield row
+
+    def clean(self):
+        col.delete_many({})
+        self.logger.info('success to clear wish wish_productboost_performance list')
 
     def get_token(self):
         sql = f"SELECT AccessToken,aliasname FROM S_WishSyncInfo"
@@ -40,12 +44,10 @@ class Worker(BaseService):
         tokens = dict()
         for row in ret:
             tokens[row['aliasname']] = row['AccessToken']
-        print(tokens)
         self.tokens = tokens
 
     def get_products(self, row):
         token = self.tokens[row['suffix']]
-        print(token)
         product_id = row['_id']
         url = 'https://merchant.wish.com/api/v2/product-boost/campaign/get-performance'
         try:
@@ -85,10 +87,9 @@ class Worker(BaseService):
     def work(self):
         try:
             self.get_token()
-            # print(token)
-            # self.get_wish_product_id()
+            self.clean()
             product_id = self.get_wish_product_id()
-            pl = Pool(16)
+            pl = Pool(32)
             pl.map(self.get_products, product_id)
             pl.close()
             pl.join()
