@@ -13,8 +13,8 @@ from multiprocessing.pool import ThreadPool as Pool
 from pymongo import MongoClient
 
 mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['wish']
-col = mongodb['wish_productlist']
+mongodb = mongo['operation']
+col = mongodb['wish_products']
 
 
 class Worker(BaseService):
@@ -72,16 +72,10 @@ class Worker(BaseService):
                 if ret and ret['code'] == 0 and ret['data']:
                     list = ret['data']
                     for item in list:
-                        list_variants = item['Product']['variants']
-                        list_removed_by_merchant = item['Product']['removed_by_merchant']
-                        for row in list_variants:
-                            new_sku = row['Variant']['sku'].split("@")[0]
-                            ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
-                                   'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': suffix,
-                                   'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date,
-                                   'enabled': row['Variant']['enabled'], 'removed_by_merchant': list_removed_by_merchant }
-                            self.put(ele)
-                            # self.logger.info(f'putting {row["Variant"]["product_id"]}')
+                        ele = item['Product']
+                        ele['_id'] = ele['id']
+                        self.put(ele)
+                        self.logger.info(f'putting {ele["_id"]}')
                     start += limit
                     if len(ret['data']) < limit:
                         break
@@ -91,7 +85,7 @@ class Worker(BaseService):
             self.logger.error(e)
 
     def put(self, row):
-        col.save(row)
+        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def pull(self):
         rows = col.find({})
@@ -135,12 +129,12 @@ class Worker(BaseService):
     def work(self):
         try:
             tokens = self.get_wish_token()
-            self.clean()
+            # self.clean()
             pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
-            self.save_trans()
+            # self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
