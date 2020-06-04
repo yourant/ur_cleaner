@@ -46,7 +46,7 @@ class Worker(BaseService):
         url = 'https://merchant.wish.com/api/v2/product/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
         limit = 250
         start = 0
         try:
@@ -87,45 +87,6 @@ class Worker(BaseService):
     def put(self, row):
         col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
-    def pull(self):
-        rows = col.find({})
-        for row in rows:
-            yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
-
-    def save_trans(self):
-        rows = self.pull()
-        # self.push_one(rows)
-        self.push_batch(rows)
-        mongo.close()
-
-    def push_one(self, rows):
-        try:
-            sql = 'insert into ibay365_joom_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values(%s,%s,%s,%s,%s,%s,%s,%s)'
-            for row in rows:
-                self.cur.execute(sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
-            self.con.commit()
-        except Exception as why:
-
-            self.logger.error(f"fail  {why} ")
-
-    def push_batch(self, rows):
-        try:
-            rows = list(rows)
-            number = len(rows)
-            step = 100
-            end = math.ceil(number / step)
-            for i in range(0, end):
-                value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
-                sql = f'insert into ibay365_wish_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values {value}'
-                try:
-                    self.cur.execute(sql)
-                    self.con.commit()
-                    self.logger.info(f"success to save data of wish products from {i * step} to  {min((i + 1) * step, number)}")
-                except Exception as why:
-                    self.logger.error(f"fail to save data of wish products cause of {why} ")
-        except Exception as why:
-            self.logger.error(f"fail to save wish products cause of {why} ")
-
     def work(self):
         try:
             tokens = self.get_wish_token()
@@ -134,7 +95,6 @@ class Worker(BaseService):
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
-            # self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
