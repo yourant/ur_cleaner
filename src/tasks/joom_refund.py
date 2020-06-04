@@ -38,18 +38,25 @@ class Worker(BaseService):
         # yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
         # date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
         limit = 300
+        start = 0
         try:
-            for i in range(0, 100000):
+            while True:
                 param = {
-                    "since": date,
+                    "since": '2020-05-01',
                     "limit": limit,
-                    'start': i * limit
+                    'start': start
                 }
-                response = requests.get(url, params=param, headers=headers)
-                self.logger.info(f'get page {i} of {token_info["aliasName"]}')
-                ret = response.json()
-                if ret['code'] == 0 and ret['data']:
+                ret = None
+                for i in range(2):
+                    try:
+                        response = requests.get(url, params=param, headers=headers)
+                        ret = response.json()
+                    except Exception as why:
+                        self.logger.info(f' fail to get page of {token_info["aliasName"]} {i + 1} times cause of {why}')
+
+                if ret and ret['code'] == 0 and ret['data']:
                     self.parse(ret['data'])
+                    start += limit
                     if len(ret['data']) < limit:
                         break
                 else:
@@ -64,9 +71,8 @@ class Worker(BaseService):
                 order_detail = order["Order"]
                 if order_detail['state'] == 'REFUNDED':
                     ele = {'order_id': order_detail['order_id'], 'refund_time': order_detail['refunded_time'],
-                                  'total_value': order_detail['order_total'], 'currencyCode': 'USD', 'plat': 'joom'}
+                                  'total_value': order_detail['order_cost'], 'currencyCode': 'USD', 'plat': 'joom'}
                     self.put(ele)
-                    self.logger.info(f'putting {order_detail["order_id"]}')
             except Exception as why:
               self.logger.error(f'fail to parse rows cause of {why}')
 
@@ -116,21 +122,21 @@ class Worker(BaseService):
     def save_trans(self):
         rows = self.pull()
         self.push_one(rows)
-        mongo.close()
 
     def work(self):
         try:
-            tokens = self.get_joom_token()
-            self.clean()
-            pl = Pool(16)
-            pl.map(self.get_order, tokens)
-            pl.close()
-            pl.join()
+            # tokens = self.get_joom_token()
+            # self.clean()
+            # pl = Pool(16)
+            # pl.map(self.get_order, tokens)
+            # pl.close()
+            # pl.join()
             self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
             self.close()
+            mongo.close()
 
 
 if __name__ == "__main__":

@@ -67,5 +67,6 @@ if __name__ == '__main__':
     yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
     today = str(datetime.datetime.today())[:10]
     month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
+    # month_first_day = '2020-05-01'
     worker = RefundFetcher()
     worker.work(month_first_day, today)

@@ -4,8 +4,6 @@
 # Author: turpure
 
 
-import math
-import datetime
 from src.services.base_service import BaseService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
@@ -28,7 +26,7 @@ class Worker(BaseService):
         self.tokens = dict()
 
     @staticmethod
-    def get_wish_product_id():
+    def get_wish_campaign_id():
         rows = query_db.find({}).limit(1000)
         for row in rows:
             yield row
@@ -40,18 +38,16 @@ class Worker(BaseService):
         tokens = dict()
         for row in ret:
             tokens[row['aliasname']] = row['AccessToken']
-        print(tokens)
         self.tokens = tokens
 
     def get_products(self, row):
         token = self.tokens[row['suffix']]
-        print(token)
-        product_id = row['_id']
+        campaign_id = row['_id']
         url = 'https://merchant.wish.com/api/v2/product-boost/campaign/get-performance'
         try:
             while True:
                 param = {
-                    "id": product_id,
+                    "id": campaign_id,
                     'access_token': token,
                 }
                 ret = dict()
@@ -61,20 +57,21 @@ class Worker(BaseService):
                         ret = response.json()
                         break
                     except Exception as why:
-                        self.logger.error(f' fail to get of product_id of {product_id} '
+                        self.logger.error(f' fail to get of product_id of {campaign_id} '
                                           f'page cause of {why} {i} times'
                                           f'param {param} '
                                           )
                 if ret and ret['code'] == 0 and ret['data']:
                     row = ret['data']['Statistics']
-                    row['_id'] = product_id
+                    row['_id'] = campaign_id
+                    row['campaign_id'] = campaign_id
                     ele = row
                     self.put(ele)
                     break
                 else:
                     message = ret['message']
                     code = ret['code']
-                    self.logger.error(f'fail product_id {product_id} code {code} message {message}')
+                    self.logger.error(f'fail product_id {campaign_id} code {code} message {message}')
                     break
         except Exception as e:
             self.logger.error(e)
@@ -85,9 +82,7 @@ class Worker(BaseService):
     def work(self):
         try:
             self.get_token()
-            # print(token)
-            # self.get_wish_product_id()
-            product_id = self.get_wish_product_id()
+            product_id = self.get_wish_campaign_id()
             pl = Pool(16)
             pl.map(self.get_products, product_id)
             pl.close()
