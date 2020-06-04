@@ -31,6 +31,10 @@ class Worker(BaseService):
         for row in rows:
             yield row
 
+    def clean(self):
+        col.delete_many({})
+        self.logger.info('success to clear wish wish_productboost_performance list')
+
     def get_token(self):
         sql = f"SELECT AccessToken,aliasname FROM S_WishSyncInfo"
         self.cur.execute(sql)
