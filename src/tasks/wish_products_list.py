@@ -74,6 +74,7 @@ class Worker(BaseService):
                     for item in list:
                         ele = item['Product']
                         ele['_id'] = ele['id']
+                        ele['suffix'] = suffix
                         self.put(ele)
                         self.logger.info(f'putting {ele["_id"]}')
                     start += limit
