@@ -61,7 +61,7 @@ class ProfitFetcher(BaseService):
         try:
             self.clear(begin_date, end_date)
             for date_flag in (0, 1):
-                rows = self.fetch(date_flag, month_first_day, today)
+                rows = self.fetch(date_flag, begin_date, end_date)
                 self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch suffix profit cause of {}'.format(why))
