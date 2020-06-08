@@ -7,26 +7,16 @@
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.services.base_service import BaseService
-from configs.config import Config
 import requests
 
 
-class VovaFee(BaseService):
+class VoVaWorker(BaseService):
     """
-    fetch ebay fee using api
+    get VoVa Refund
     """
     def __init__(self):
         super().__init__()
-        self.config = Config().get_config('ebay.yaml')
-        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
-        # self.begin_date = '2020-05-01'
-
-
-    def clean(self):
-        sql = "delete from y_refunded WHERE refund_time >= %s AND plat='vova'"
-        self.cur.execute(sql, self.begin_date)
-        self.con.commit()
-
+        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
 
     def get_vova_token(self):
         sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;"
@@ -34,9 +24,6 @@ class VovaFee(BaseService):
         ret = self.cur.fetchall()
         for row in ret:
             yield row
-
-
-
 
     def get_vova_fee(self, token):
         url = 'https://merchant-api.vova.com.hk/v1/order/ChangedOrders'
@@ -63,8 +50,6 @@ class VovaFee(BaseService):
                             refunds['currencyCode'] = row['currency']
                             refunds['platform_rate'] = row['platform_rate']
                             refunds['plat'] = 'vova'
-                            # print(row['refund_time'])
-                            # yield (row['order_goods_sn'], row['refund_time'], row['total_amount'], row['currency'], 'vova')
                             yield refunds
                     start += limit
                     if len(ret['data']['order_list']) < limit:
@@ -74,7 +59,6 @@ class VovaFee(BaseService):
 
         except Exception as e:
             self.logger.error(e)
-
 
     def save_data(self, row):
         # 确认普源订单状态
@@ -102,8 +86,6 @@ class VovaFee(BaseService):
             self.logger.info('save %s' % row['order_id'])
         except Exception as e:
             self.logger.error(f'fail to save {row["order_id"]} cause of duplicate key or {e}')
-
-
 
 
     def run(self):
