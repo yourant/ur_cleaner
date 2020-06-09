@@ -28,7 +28,7 @@ class Worker(BaseService):
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
-               " and  AliasName not in "
+               " and  AliasName not in "    
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
                )
         self.cur.execute(sql)
@@ -74,6 +74,20 @@ class Worker(BaseService):
                     for item in list:
                         ele = item['Product']
                         ele['_id'] = ele['id']
+                        if 'default_shipping_price' in ele:
+                            ele['default_shipping_price'] = float(ele['default_shipping_price'])
+                        else:
+                            ele['default_shipping_price'] = 0
+                        if 'max_quantity' in ele:
+                            ele['max_quantity'] = int(ele['max_quantity'])
+                        else:
+                            ele['max_quantity'] = 0
+                        if 'localized_default_shipping_price' in ele:
+                            ele['localized_default_shipping_price'] = float(ele['localized_default_shipping_price'])
+                        else:
+                            ele['localized_default_shipping_price'] = 0
+                        ele['number_saves'] = int(ele['number_saves'])
+                        ele['number_sold'] = int(ele['number_sold'])
                         ele['suffix'] = suffix
                         self.put(ele)
                         self.logger.info(f'putting {ele["_id"]}')
