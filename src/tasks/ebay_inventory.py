@@ -22,9 +22,10 @@ class Worker(BaseService):
 
         # 计算
         procedure = ("EXEC B_ModifyOnlineNumberOfSkuOnTheIbay365"
-                     "'',"  # 改0
-                     "'爆款,旺款,Wish新款,浮动款,在售,清仓,停售',"  # 固定数量
-                     "'停产,春节放假'"  # 真实数量
+                     "'清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P',"     #改0
+                     "'爆款,旺款,Wish新款,浮动款,在售',"                           #固定数量
+                     "'清仓,停产,停售,线上清仓,线上清仓50P,线上清仓100P,春节放假'"      #真实数量
+
                      )
         self.cur.execute(procedure)
         self.con.commit()
@@ -37,17 +38,17 @@ class Worker(BaseService):
             yield row
 
     def update_inventory(self, row):
-        # itemId = row['itemid']
-        # token = row['token']
-        # sku = row['sku']
-        # quantity = row['quantity']
-        itemId = '312643919648'
-        token = 'AgAAAA**AQAAAA**aAAAAA**SjdiXA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6wDmYShCJCHogmdj6x9nY+seQ**kykBAA**AAMAAA**MNz0o3iH3lC145/wEPCAgzZqaZozXUhkOVCMY++OfahouA549EhMpuMHYZoZ9P2AKpKxX0E/pJMd1Qbhq5kJj/PA49aQTZLpMDaWwq2h5O28tsidgNV74AtHRfWpjwfwg0Y2L1QnM9/xCJIFobbp/XuOH2VP9su9lO1F8xI7OC9oBUWQc7eTiNSmYvrPAz+QfNyRYqrflQAsMSOqMeB7FoY5Gai7wm7cxpu+KRL9An9H5QrwCjLT8q8cM+PBK1HDizpGwJ89nf3vumRqz1HPwWxB7k62NJEWpKChxkNY45Klqll3QEOJaHfciOOOxucXkhXE1Pi+0ytM5FUa6q2/tOxwreS1GkZ/l1Yzzvj9iTLdWvy68UO+tp/jtUpE4yMGk2Z/GO22qMuzDZu1S4PM0OY9qtgTrRL+mIpiGpgsC2APHgBJNFhT9KbTRWCyv+EfkYEw9jVUxXJntqZTaKr93wadtd+3bM717RrmWocHMZfpD9zBTRYEM5aiFGP4Duha7uf/dn7MX/5w66wp8o7E9336nHTXpbsh1QOzLYDn9h+FqDqrHf6VvSFDGs6Eabv7K57rUErQoHYEuV2uaV1znRLXUhZRCVkkXSB0XwWnXSGh9Ma7eyJpHxmX6b99eHQtWUKAuQuCj9uC/NtoD+lo+BderkiMqwjY+2mhQKoR6KkLZom/MejqWxgg5hKP5ycnItuUxemK1vuFgzNBmrpMd04w69mIle0K/rFvituMy9yzaESBPghLbbZfLkKUSVrw'
-        sku = '7F247101_XL@#01'
-        quantity = '100'
+        itemId = row['itemid']
+        token = row['token']
+        sku = row['sku']
+        quantity = row['quantity']
+        # itemId = '132155850737'
+        # token = 'AgAAAA**AQAAAA**aAAAAA**MT5iXA**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6AGkIunC5iKpwudj6x9nY+seQ**kykBAA**AAMAAA**G94BGIR5+h1zIqLVoA6KCsSjnznpyYvWjHcd69qp5mRYJl54latmHQTnvAbZrVt10rMjaSEgXgWDo/3D/Wt6/x9j1L0IMocHg4ZCMTkDKibSXmhvX8JOUDfuy5BqE7LSZB2m8ATQw4x7u2pt2zK2vF2ZC/Qd+CM3C6difqzC1CFkd3FaYpLg31ZC1yl/vsEyyTTcNHDxDzDHSjFMayIDQqV7ET4LvFFiLn+GVaf/KxCwJbsKjqauHkBxZFe0tu5XrKVHbM0g6rVNLkZnfZLbGWOMgTurThexwz8sxFhhHBFqokWZbsQeiOGGl95eOy0VFwhYIiVm2SJL38h+AevJ92lttjh0FMN3l2PxcNXouyaXH12jMYLRHusva7iHuu80Of+WnIJU4XyPUx00+Hr0P6ldu6g7IeEFSRY7Kz5+q+e1a/EQGb0ATKDXOSFxFyNteUZ51oOUhgro2caz26Bned8WJRPzhhvB1laad/YJGE9N4BEREat7g8g2CbtMmlX6DPjkCgMjHqD+Z/Ga8jW4d0TxyUmM6Nm31pHyV9CZgqUCjBz/rC447BieWUsPXHwYrqh8t5b6inohlcRiPtf1fHAm0xxcJYYWwYrCl4+VxjO12VVrIDQU7xTt3utnGXjj0y8w/TOUmNb3JY1sECACrgwVLBjzhBvnCURYn2qoIFD3hQR48m7Z6xny+IN+ENwb/jKkO66NHzk6bV6SlLFae7ZhwP1+ifPI7nELDhSFfGjTCZdZrZ5ScIkEdx9awlB7'
+        # sku = '2C013904@#11'
+        # quantity = '19'
         api = Trading(config_file=self.config)
         try:
-            for i in range(1):
+            for i in range(2):
                 try:
                     response = api.execute(
                         'ReviseFixedPriceItem',
@@ -68,26 +69,27 @@ class Worker(BaseService):
                     print(ret)
                     if ret["Ack"] == 'Success' or ret["Ack"] == 'Warning':
                         self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                        # self.logger.info(f'success')
                         break
                     else:
-                        self.logger.error(f'fail to update ebay inventory cause of  {ret["message"]} and trying {i} times')
+                        self.logger.error(f'fail to update ebay inventory cause of  {ret["Errors"]["ShortMessage"]} and trying {i} times')
                 except exception.ConnectionError as e:
                     self.logger.error('Item {} connect to failed cause of {}'.format(itemId, e))
         except Exception as e:
             self.logger.error(e)
 
     def work(self):
-        # try:
-            # tokens = self.get_ebay_token()
-            # pl = Pool(16)
-            # pl.map(self.update_inventory, tokens)
+        try:
+            tokens = self.get_ebay_token()
+            pl = Pool(16)
+            pl.map(self.update_inventory, tokens)
 
-            self.update_inventory(123)
+            # self.update_inventory(123)
 
-        # except Exception as why:
-        #     self.logger.error('fail to update ebay inventory cause of {} '.format(why))
-        # finally:
-        #     self.close()
+        except Exception as why:
+            self.logger.error('fail to update ebay inventory cause of {} '.format(why))
+        finally:
+            self.close()
 
 
 if __name__ == "__main__":
