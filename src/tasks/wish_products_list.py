@@ -47,7 +47,7 @@ class Worker(BaseService):
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
         since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
-        limit = 250
+        limit = 1
         start = 0
         try:
             while True:
@@ -74,6 +74,11 @@ class Worker(BaseService):
                     for item in list:
                         ele = item['Product']
                         ele['_id'] = ele['id']
+                        ele['default_shipping_price'] = float(ele['default_shipping_price'])
+                        ele['localized_default_shipping_price'] = float(ele['localized_default_shipping_price'])
+                        ele['number_saves'] = int(ele['number_saves'])
+                        ele['number_sold'] = int(ele['number_sold'])
+                        ele['max_quantity'] = int(ele['max_quantity'])
                         ele['suffix'] = suffix
                         self.put(ele)
                         self.logger.info(f'putting {ele["_id"]}')
