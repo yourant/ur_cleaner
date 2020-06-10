@@ -68,7 +68,6 @@ class Worker(BaseService):
                                           f'page cause of {why} {i} times'
                                           f'param {param} '
                                           )
-                print(ret)
                 if ret and ret['code'] == 0 and ret['data']:
                     list = ret['data']
                     for item in list:
