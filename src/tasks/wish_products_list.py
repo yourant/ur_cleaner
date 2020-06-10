@@ -43,7 +43,7 @@ class Worker(BaseService):
     def get_products(self, row):
         token = row['AccessToken']
         suffix = row['aliasname']
-        url = 'https://merchant.wish.com/api/v2/product/multi-get'
+        url = 'https://merchant.wish.com/api/v2/product/add'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
         since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
