@@ -86,6 +86,8 @@ class Worker(BaseService):
                             ele['localized_default_shipping_price'] = float(ele['localized_default_shipping_price'])
                         else:
                             ele['localized_default_shipping_price'] = 0
+                        ele['date_uploaded'] = datetime.datetime.strptime(ele['date_uploaded'], "%m-%d-%Y")
+                        ele['last_updated'] = datetime.datetime.strptime(ele['last_updated'], "%m-%d-%YT%H:%M:%S")
                         ele['number_saves'] = int(ele['number_saves'])
                         ele['number_sold'] = int(ele['number_sold'])
                         ele['suffix'] = suffix
