@@ -27,7 +27,7 @@ class Worker(BaseService):
         self.con.commit()
 
         # 查询
-        sql = "select   token, sku, quantity,itemid,suffix from ibay365_wish_quantity"
+        sql = "select  token, sku, quantity,itemid,suffix from ibay365_wish_quantity"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -39,22 +39,20 @@ class Worker(BaseService):
         inventory = row['quantity']
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         base_url = 'https://merchant.wish.com/api/v2/variant/update-inventory'
-        try:
-            for i in range(2):
-                param = {
-                    "sku": sku,
-                    "inventory": inventory
-                }
+        param = {
+            "sku": sku,
+            "inventory": inventory
+        }
+
+        for i in range(2):
+            try:
                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
                 if ret["code"] == 0:
                     # self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
-                else:
-                    self.logger.error(f'fail to update inventory cause of  {ret["message"]} and trying {i} times')
-
-        except Exception as e:
-            self.logger.error(e)
+            except Exception as why:
+                self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
 
     def work(self):
         try:
