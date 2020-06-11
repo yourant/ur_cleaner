@@ -236,18 +236,18 @@ class FetchEbayLists(BaseService):
 
     def run(self):
         BeginTime = time.time()
-        # try:
-        # tokens = self.get_ebay_token()
-        # self.clean()
-        # pl = Pool(50)
-        # pl.map(self.getData, tokens)
-        # pl.close()
-        # pl.join()
-        self.save_trans()
-        # except Exception  as e:
-        #     self.logger.error(e)
-        # finally:
-        #     self.close()
+        try:
+            tokens = self.get_ebay_token()
+            self.clean()
+            pl = Pool(50)
+            pl.map(self.getData, tokens)
+            pl.close()
+            pl.join()
+            self.save_trans()
+        except Exception  as e:
+            self.logger.error(e)
+        finally:
+            self.close()
         print('程序耗时{:.2f}'.format(time.time() - BeginTime))  # 计算程序总耗时
 
 # 执行程序
