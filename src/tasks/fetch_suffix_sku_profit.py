@@ -48,6 +48,15 @@ class SuffixSkuProfitFetcher(BaseService):
         self.warehouse_con.commit()
         self.logger.info('success to clear suffix sku profit')
 
+    ## 根据cache_goods 表更新开发员 2020-06-11 添加
+    def update_developer(self):
+        sql = "UPDATE cache_suffixSkuProfitReport ss,cache_goods g SET ss.salerName=g.developer " \
+              "WHERE g.goodsCode=ss.goodsCode AND ss.salerName <> g.developer"
+        self.warehouse_cur.execute(sql)
+        self.warehouse_con.commit()
+        self.logger.info('success to update developer')
+
+
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
@@ -60,6 +69,8 @@ class SuffixSkuProfitFetcher(BaseService):
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, last_month_first_day, today)
                 self.push(rows)
+
+            self.update_developer()
         except Exception as why:
             self.logger.error('fail to fetch suffix sku profit cause of {}'.format(why))
         finally:
