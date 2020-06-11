@@ -26,7 +26,7 @@ class Worker(BaseService):
         super().__init__()
 
     def get_wish_token(self):
-        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
+        sql = ("SELECT top 1 AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
                " and  AliasName not in "
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
@@ -55,7 +55,7 @@ class Worker(BaseService):
                     "limit": limit,
                     'start': start,
                     'access_token': token,
-                    'since': since
+                    # 'since': since
                 }
                 ret = dict()
                 for i in range(2):
@@ -78,7 +78,7 @@ class Worker(BaseService):
                         self.put(ele)
                         self.logger.info(f'putting {ele["_id"]}')
                     start += limit
-                    if len(ret['data']) < limit:
+                    if len(ret['data']) == 0:
                         break
                 else:
                     break
