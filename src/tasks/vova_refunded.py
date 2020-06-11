@@ -43,6 +43,16 @@ class VoVaWorker(BaseService):
                 if ret['code'] == 20000 and ret['data']['order_list']:
                     for row in ret['data']['order_list']:
                         if row['refund_time'] and int(row['order_state']) == 2:
+                            # detail_url = 'https://merchant-api.vova.com.hk/v1/order/Order?order_goods_sn='+row['order_goods_sn']+'&token='+token['token']
+                            # print((row['order_goods_sn'],token['token']))
+                            # detail_param = {
+                            #     "token": token['token'],
+                            #     "order_goods_sn ": row['order_goods_sn']
+                            # }
+                            # detail_response = requests.get(detail_url)
+                            # detail_ret = detail_response.json()
+                            # print(detail_ret)
+
                             refunds = dict()
                             refunds['order_id'] = row['order_goods_sn']
                             refunds['refund_time'] = row['refund_time']
@@ -98,7 +108,7 @@ class VoVaWorker(BaseService):
                     try:
                         data = fu.result()
                         for row in data:
-                            # print(row)
+                            # print(123)
                             self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
