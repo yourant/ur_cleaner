@@ -5,6 +5,7 @@
 
 
 import math
+import re
 import datetime
 from src.services.base_service import BaseService
 import requests
@@ -26,7 +27,7 @@ class Worker(BaseService):
         super().__init__()
 
     def get_wish_token(self):
-        sql = ("SELECT top 1 AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
+        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
                " and  AliasName not in "
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
@@ -47,7 +48,7 @@ class Worker(BaseService):
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
         since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
-        limit = 250
+        limit = 100
         start = 0
         try:
             while True:
@@ -55,6 +56,7 @@ class Worker(BaseService):
                     "limit": limit,
                     'start': start,
                     'access_token': token,
+                    'show_rejected':'true',
                     # 'since': since
                 }
                 ret = dict()
@@ -68,17 +70,35 @@ class Worker(BaseService):
                                           f'page cause of {why} {i} times'
                                           f'param {param} '
                                           )
-
                 if ret and ret['code'] == 0 and ret['data']:
-                    list = ret['data']
-                    for item in list:
+                    pro_list = ret['data']
+                    for item in pro_list:
                         ele = item['Product']
                         ele['_id'] = ele['id']
+                        if 'default_shipping_price' in ele:
+                            ele['default_shipping_price'] = float(ele['default_shipping_price'])
+                        else:
+                            ele['default_shipping_price'] = 0
+                        if 'max_quantity' in ele:
+                            ele['max_quantity'] = int(ele['max_quantity'])
+                        else:
+                            ele['max_quantity'] = 0
+                        if 'localized_default_shipping_price' in ele:
+                            ele['localized_default_shipping_price'] = float(ele['localized_default_shipping_price'])
+                        else:
+                            ele['localized_default_shipping_price'] = 0
+                        ele['date_uploaded'] = datetime.datetime.strptime(ele['date_uploaded'], "%m-%d-%Y")
+                        ele['last_updated'] = datetime.datetime.strptime(ele['last_updated'], "%m-%d-%YT%H:%M:%S")
+                        ele['number_saves'] = int(ele['number_saves'])
+                        ele['number_sold'] = int(ele['number_sold'])
                         ele['suffix'] = suffix
                         self.put(ele)
                         self.logger.info(f'putting {ele["_id"]}')
-                    start += limit
-                    if len(ret['data']) == 0:
+                    # start += limit
+                    if 'next' in ret['paging']:
+                        arr = ret['paging']['next'].split("&")[1]
+                        start = re.findall("\d+",arr)[0]
+                    else:
                         break
                 else:
                     break
@@ -91,7 +111,7 @@ class Worker(BaseService):
     def work(self):
         try:
             tokens = self.get_wish_token()
-            # self.clean()
+            self.clean()
             pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()

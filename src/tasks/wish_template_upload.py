@@ -16,6 +16,7 @@ mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
 col_temp = mongodb['wish_template']
 col_task = mongodb['wish_task']
+col_log = mongodb['wish_log']
 
 
 class Worker(BaseService):
@@ -122,6 +123,10 @@ class Worker(BaseService):
     def update_task_status(self, id):
         today = str(datetime.datetime.today())[:19]
         col_task.update_one({'_id': id}, {"$set": {'status':'success','updated':today}}, upsert=True)
+
+    # 添加日志
+    def add_log(self, params):
+        col_log.insert_one(params)
 
 
     def work(self):
