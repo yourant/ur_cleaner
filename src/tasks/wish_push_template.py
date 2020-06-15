@@ -7,6 +7,7 @@ from src.services.base_service import BaseService
 from configs.config import Config
 import requests
 import json
+import datetime
 from pymongo import MongoClient
 
 
@@ -25,7 +26,7 @@ class Worker(BaseService):
         self.token = config['ur_center']['token']
 
     def get_products(self):
-        return [53874]
+        return [54124]
 
     def get_data_by_id(self, product_id):
         base_url = 'http://127.0.0.1:8089/v1/oa-goodsinfo/plat-export-wish-data'
@@ -35,7 +36,9 @@ class Worker(BaseService):
             ret = requests.post(base_url, data=data, headers=headers)
             templates = ret.json()['data']['data']
             for tm in templates:
-                # tm[''] = ''
+                tm['creator'] = 'operator'
+                tm['created'] = datetime.datetime.now()
+                tm['updated'] = datetime.datetime.now()
                 self.push(tm)
             self.logger.info(f'success to save  template of {product_id}')
         except Exception as why:
