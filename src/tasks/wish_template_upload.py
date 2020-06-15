@@ -16,6 +16,7 @@ mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
 col_temp = mongodb['wish_template']
 col_task = mongodb['wish_task']
+col_log = mongodb['wish_log']
 
 
 class Worker(BaseService):
@@ -25,7 +26,8 @@ class Worker(BaseService):
 
     def __init__(self):
         super().__init__()
-
+        self.today = str(datetime.datetime.today())[:19]
+        self.log_type = {1:"刊登商品",2:"添加多属性"}
 
 
 
@@ -69,43 +71,61 @@ class Worker(BaseService):
             ret = response.json()
             # print(ret)
             if ret['code'] == 0:
-                return False
-            return True
+                return ret['data']['Product']['id']
+            return False
         except Exception as why:
             self.logger.error(why)
             return False
 
     def upload_template(self, row):
+
         try:
+            params = {}
+            task_id = row['_id']
+            params['task_id'] = task_id
+            params['template_id'] = row['template_id']
+            params['selleruserid'] = row['selleruserid']
+            params['type'] = self.log_type[1]
+
             # 获取模板和token信息
             template = self.get_wish_template(row['template_id'])
-            task_id = row['_id']
             # print(template)
             if template:
                 parent_sku = template['sku']
 
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
-
-                if check:
+                if not check:
                     try:
                         url = 'https://merchant.wish.com/api/v2/product/add'
                         response = requests.post(url, params=template)
                         ret = response.json()
                         # print(ret)
                         if ret['code'] == 0:
-                            self.upload_variation(template['variants'], template['access_token'], parent_sku)
-                            self.update_task_status(task_id)
+                            item_id = ret['data']['Product']['id']
+                            self.upload_variation(template['variants'], template['access_token'], parent_sku, params)
+                            self.update_task_status(task_id, item_id)
+                            self.update_template_status(row['template_id'])
                         else:
+                            params['info'] = ret['message']
+                            self.add_log(params)
                             self.logger.error(f"fail to upload product cause of {ret['message']}")
                     except Exception as why:
                         self.logger.error(f"fail to upload of products {parent_sku}  cause of {why}")
                 else:
+                    self.update_task_status(task_id, check)
+                    params['info'] = f'products {parent_sku} already exists'
+                    self.add_log(params)
                     self.logger.error(f"fail cause of products {parent_sku} already exists")
+            else:
+                params['info'] = f"can not fund template {row['template_id']}"
+                self.add_log(params)
+                self.logger.error(f"fail cause of can not fund template {row['template_id']}")
         except Exception as e:
             self.logger.error(e)
 
-    def upload_variation(self, rows, token, parent_sku):
+    def upload_variation(self, rows, token, parent_sku, params):
+        params['type'] = self.log_type[2]
         try:
             url = "https://merchant.wish.com/api/v2/variant/add"
             for row in rows:
@@ -115,13 +135,23 @@ class Worker(BaseService):
                 response = requests.post(url, params=row)
                 ret = response.json()
                 if ret['code'] != 0:
+                    params['info'] = ret['message']
+                    self.add_log(params)
                     self.logger.error(f"fail to upload of products variant {row['sku']} cause of {ret['message']}")
         except Exception as why:
+            params['info'] = why
+            self.add_log(params)
             self.logger.error(f"fail to upload of products variants {parent_sku}  cause of {why}")
 
-    def update_task_status(self, id):
-        today = str(datetime.datetime.today())[:19]
-        col_task.update_one({'_id': id}, {"$set": {'status':'success','updated':today}}, upsert=True)
+    def update_task_status(self, id, item_id):
+        col_task.update_one({'_id': id}, {"$set": {'item_id':item_id,'status':'success','updated':self.today}}, upsert=True)
+    def update_template_status(self, id):
+        col_temp.update_one({'_id': id}, {"$set": {'status':'刊登成功','updated':self.today}}, upsert=True)
+
+    # 添加日志
+    def add_log(self, params):
+        params['created'] = self.today
+        col_log.insert_one(params)
 
 
     def work(self):

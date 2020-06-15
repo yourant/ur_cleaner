@@ -5,14 +5,10 @@
 
 import time
 import requests
-import json
 from multiprocessing.pool import ThreadPool as Pool
 import re
 from bs4 import BeautifulSoup
-import sys
 from src.services.base_service import BaseService
-from pyppeteer import launch
-from configs.config import Config
 
 
 """
