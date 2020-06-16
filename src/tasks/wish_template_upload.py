@@ -84,8 +84,8 @@ class Worker(BaseService):
         try:
             params = {}
             task_id = row['_id']
-            params['task_id'] = task_id
-            params['template_id'] = row['template_id']
+            params['task_id'] = str(task_id)
+            params['template_id'] = str(row['template_id'])
             params['selleruserid'] = row['selleruserid']
             params['type'] = self.log_type[1]
 
@@ -94,7 +94,7 @@ class Worker(BaseService):
             # print(template)
             if template:
                 parent_sku = template['sku']
-                task_params = {'task_id':task_id}
+                task_params = {'id':task_id}
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
                 if not check:
