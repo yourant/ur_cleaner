@@ -28,7 +28,7 @@ class Worker(BaseService):
     def __init__(self):
         super().__init__()
         # self.today = str(datetime.datetime.today())[:19]
-        self.today = int(time.time()) * 1000
+        self.today = datetime.datetime.today()
         self.log_type = {1:"刊登商品",2:"添加多属性"}
 
 
