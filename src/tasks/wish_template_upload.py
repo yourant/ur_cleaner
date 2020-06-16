@@ -5,6 +5,7 @@
 
 
 import math
+import time
 import datetime
 from src.services.base_service import BaseService
 import requests
@@ -26,7 +27,8 @@ class Worker(BaseService):
 
     def __init__(self):
         super().__init__()
-        self.today = str(datetime.datetime.today())[:19]
+        # self.today = str(datetime.datetime.today())[:19]
+        self.today = datetime.datetime.today()
         self.log_type = {1:"刊登商品",2:"添加多属性"}
 
 
@@ -82,8 +84,8 @@ class Worker(BaseService):
         try:
             params = {}
             task_id = row['_id']
-            params['task_id'] = task_id
-            params['template_id'] = row['template_id']
+            params['task_id'] = str(task_id)
+            params['template_id'] = str(row['template_id'])
             params['selleruserid'] = row['selleruserid']
             params['type'] = self.log_type[1]
 
@@ -92,7 +94,7 @@ class Worker(BaseService):
             # print(template)
             if template:
                 parent_sku = template['sku']
-                task_params = {'task_id':task_id}
+                task_params = {'id':task_id}
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
                 if not check:
@@ -173,5 +175,4 @@ class Worker(BaseService):
 if __name__ == "__main__":
     worker = Worker()
     worker.work()
-
 
