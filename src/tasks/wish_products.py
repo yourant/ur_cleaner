@@ -94,11 +94,10 @@ class Worker(BaseService):
                         ele['number_sold'] = int(ele['number_sold'])
                         ele['suffix'] = suffix
                         self.put(ele)
-                        self.logger.info(f'putting {ele["_id"]}')
-                    # start += limit
+                        # self.logger.info(f'putting {ele["_id"]}')
                     if 'next' in ret['paging']:
                         arr = ret['paging']['next'].split("&")[1]
-                        start = re.findall("\d+",arr)[0]
+                        start = re.findall("\d+", arr)[0]
                     else:
                         break
                 else:
@@ -107,7 +106,8 @@ class Worker(BaseService):
             self.logger.error(e)
 
     def put(self, row):
-        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        col.save(row)
+        # col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def work(self):
         try:
