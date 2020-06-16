@@ -15,6 +15,7 @@ from pymongo import MongoClient
 
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
+# col = mongodb['wish_products']
 col = mongodb['wish_products']
 
 
@@ -112,7 +113,7 @@ class Worker(BaseService):
         try:
             tokens = self.get_wish_token()
             self.clean()
-            pl = Pool(16)
+            pl = Pool(32)
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()

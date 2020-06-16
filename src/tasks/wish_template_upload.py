@@ -92,7 +92,7 @@ class Worker(BaseService):
             # print(template)
             if template:
                 parent_sku = template['sku']
-
+                task_params = {'task_id':task_id}
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
                 if not check:
@@ -102,9 +102,10 @@ class Worker(BaseService):
                         ret = response.json()
                         # print(ret)
                         if ret['code'] == 0:
-                            item_id = ret['data']['Product']['id']
+                            task_params['item_id'] = ret['data']['Product']['id']
+                            task_params['status'] = 'success'
                             self.upload_variation(template['variants'], template['access_token'], parent_sku, params)
-                            self.update_task_status(task_id, item_id)
+                            self.update_task_status(task_params)
                             self.update_template_status(row['template_id'])
                         else:
                             params['info'] = ret['message']
@@ -113,7 +114,9 @@ class Worker(BaseService):
                     except Exception as why:
                         self.logger.error(f"fail to upload of products {parent_sku}  cause of {why}")
                 else:
-                    self.update_task_status(task_id, check)
+                    task_params['item_id'] = check
+                    task_params['status'] = 'failed'
+                    self.update_task_status(task_params)
                     params['info'] = f'products {parent_sku} already exists'
                     self.add_log(params)
                     self.logger.error(f"fail cause of products {parent_sku} already exists")
@@ -143,8 +146,8 @@ class Worker(BaseService):
             self.add_log(params)
             self.logger.error(f"fail to upload of products variants {parent_sku}  cause of {why}")
 
-    def update_task_status(self, id, item_id):
-        col_task.update_one({'_id': id}, {"$set": {'item_id':item_id,'status':'success','updated':self.today}}, upsert=True)
+    def update_task_status(self, row):
+        col_task.update_one({'_id': row['id']}, {"$set": {'item_id':row['item_id'],'status':row['status'],'updated':self.today}}, upsert=True)
     def update_template_status(self, id):
         col_temp.update_one({'_id': id}, {"$set": {'status':'刊登成功','updated':self.today}}, upsert=True)
 
