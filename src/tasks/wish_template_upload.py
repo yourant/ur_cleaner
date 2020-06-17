@@ -27,30 +27,39 @@ class Worker(BaseService):
 
     def __init__(self):
         super().__init__()
-        # self.today = str(datetime.datetime.today())[:19]
         self.today = datetime.datetime.today()
-        self.log_type = {1:"刊登商品",2:"添加多属性"}
+        self.log_type = {1: "刊登商品", 2: "添加多属性"}
+        self.tokens = self.get_tokens()
 
-
-
-    def get_wish_tasks(self):
-        ret = col_task.find({'status':{'$in':['', None]}})
+    @staticmethod
+    def get_wish_tasks():
+        ret = col_task.find({'status': 'todo'})
         for row in ret:
             yield row
 
-    def get_wish_template(self, id):
+    def get_tokens(self):
+        sql = "SELECT AccessToken as token,aliasname as suffix FROM S_WishSyncInfo WHERE  " \
+              " aliasname is not null and aliasname not in " \
+              " (select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish')"
+
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        tokens = dict()
+        for ele in ret:
+            tokens[ele['suffix']] = ele['token']
+        return tokens
+
+    def get_wish_template(self, template_id):
         try:
-            template = col_temp.find_one({'_id': ObjectId(id)})
-            sql = "SELECT AccessToken as token,aliasname as suffix FROM S_WishSyncInfo WHERE  " \
-               " aliasname is not null and  AliasName = %s  and aliasname not in " \
-               " (select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish')"
-            self.cur.execute(sql,(template['selleruserid']))
-            ret = self.cur.fetchone()
-            template['access_token'] = ret['token']
+            template = col_temp.find_one({'_id': ObjectId(template_id)})
+            try:
+                template['access_token'] = self.tokens[template['selleruserid']]
+            except Exception:
+                raise ValueError(f'{template["selleruserid"]} is unused')
+
             template['localized_currency_code'] = template['local_currency']
             template['localized_price'] = template['local_price']
             template['localized_shipping'] = template['local_shippingfee']
-
             del template['_id']
             del template['creator']
             del template['created']
@@ -64,14 +73,12 @@ class Worker(BaseService):
             self.logger.error(e)
             return {}
 
-
     def check_wish_template(self, row):
         url = "https://merchant.wish.com/api/v2/product"
-        params = {'access_token':row['access_token'],'parent_sku':row['sku']}
+        params = {'access_token': row['access_token'], 'parent_sku': row['sku']}
         try:
             response = requests.get(url, params=params)
             ret = response.json()
-            # print(ret)
             if ret['code'] == 0:
                 return ret['data']['Product']['id']
             return False
@@ -91,10 +98,9 @@ class Worker(BaseService):
 
             # 获取模板和token信息
             template = self.get_wish_template(row['template_id'])
-            # print(template)
+            task_params = {'id': task_id}
             if template:
                 parent_sku = template['sku']
-                task_params = {'id':task_id}
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
                 if not check:
@@ -102,7 +108,6 @@ class Worker(BaseService):
                         url = 'https://merchant.wish.com/api/v2/product/add'
                         response = requests.post(url, params=template)
                         ret = response.json()
-                        # print(ret)
                         if ret['code'] == 0:
                             task_params['item_id'] = ret['data']['Product']['id']
                             task_params['status'] = 'success'
@@ -123,9 +128,12 @@ class Worker(BaseService):
                     self.add_log(params)
                     self.logger.error(f"fail cause of products {parent_sku} already exists")
             else:
-                params['info'] = f"can not fund template {row['template_id']}"
+                task_params['item_id'] = ''
+                task_params['status'] = 'success'
+                self.update_task_status(task_params)
+                params['info'] = f"can not find template {row['template_id']} Maybe the account is not available"
                 self.add_log(params)
-                self.logger.error(f"fail cause of can not fund template {row['template_id']}")
+                self.logger.error(f"fail cause of can not find template {row['template_id']}")
         except Exception as e:
             self.logger.error(e)
 
@@ -149,18 +157,22 @@ class Worker(BaseService):
             self.logger.error(f"fail to upload of products variants {parent_sku}  cause of {why}")
 
     def update_task_status(self, row):
-        col_task.update_one({'_id': row['id']}, {"$set": {'item_id':row['item_id'],'status':row['status'],'updated':self.today}}, upsert=True)
-    def update_template_status(self, id):
-        col_temp.update_one({'_id': id}, {"$set": {'status':'刊登成功','updated':self.today}}, upsert=True)
+        col_task.update_one({'_id': row['id']}, {"$set": {'item_id': row['item_id'], 'status': row['status'],
+                                                          'updated': self.today}}, upsert=True)
+
+    def update_template_status(self, template_id):
+        col_temp.update_one({'_id': template_id}, {"$set": {'status': '刊登成功', 'updated': self.today}}, upsert=True)
 
     # 添加日志
     def add_log(self, params):
         params['created'] = self.today
         col_log.insert_one(params)
 
-
     def work(self):
         try:
+            # tokens = self.get_tokens()
+            # for tn in tokens.items():
+            #     print(tn)
             tasks = self.get_wish_tasks()
             pl = Pool(16)
             pl.map(self.upload_template, tasks)
