@@ -27,7 +27,7 @@ class Worker(BaseService):
 
     def __init__(self):
         super().__init__()
-        self.today = datetime.datetime.today()
+        self.today = datetime.datetime.today() - datetime.timedelta(hours=8)
         self.log_type = {1: "刊登商品", 2: "添加多属性"}
         self.tokens = self.get_tokens()
 
