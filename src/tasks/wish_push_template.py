@@ -27,7 +27,7 @@ class Worker(BaseService):
         self.op_token = config['op_center']['token']
 
     def get_products(self):
-        return [54124]
+        return [54252]
 
     def get_data_by_id(self, product_id):
         base_url = 'http://127.0.0.1:8089/v1/oa-goodsinfo/plat-export-wish-data'
@@ -37,6 +37,7 @@ class Worker(BaseService):
             ret = requests.post(base_url, data=data, headers=headers)
             templates = ret.json()['data']['data']
             for tm in templates:
+                tm['inventory'] = int(tm['inventory'])
                 self.push(tm, product_id)
             self.logger.info(f'success to save  template of {product_id}')
         except Exception as why:
@@ -45,18 +46,18 @@ class Worker(BaseService):
     def push(self, data, product_id):
         base_url = 'http://127.0.0.1:18881/v1/operation/wish-publish-trans-save'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + self.op_token}
-        data = json.dumps({"condition": data})
+        body = json.dumps({"condition": data})
         try:
-            ret = requests.post(base_url, data=data, headers=headers)
+            ret = requests.post(base_url, data=body, headers=headers)
             content = ret.json()
             code = content['code']
-            if code:
-                self.logger.error(f'failed to save  template of {product_id} cause of {content["message"]}')
+            if code != 200:
+                self.logger.error(f'failed to save  template of {data["sku"]} cause of {content["message"]}')
             else:
-                self.logger.info(f'success to save  template of {product_id}')
+                self.logger.info(f'success to save  template of {data["sku"]}')
 
         except Exception as why:
-            self.logger.error(f'failed to  push template of {product_id} cause of {why}')
+            self.logger.error(f'failed to  push template of {data["sku"]} cause of {why}')
 
     # def push(self, data):
     #     col.save(data)

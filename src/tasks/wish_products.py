@@ -68,7 +68,7 @@ class Worker(BaseService):
                         break
                     except Exception as why:
                         self.logger.error(f' fail to get of products of {suffix} in {start}  '
-                                          f'page cause of {why} {i} times'
+                                          f'page cause of {why} {i} times '
                                           f'param {param} '
                                           )
                 if ret and ret['code'] == 0 and ret['data']:
@@ -113,7 +113,7 @@ class Worker(BaseService):
         try:
             tokens = self.get_wish_token()
             self.clean()
-            pl = Pool(32)
+            pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()
