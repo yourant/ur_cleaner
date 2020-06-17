@@ -98,7 +98,7 @@ class Worker(BaseService):
 
             # 获取模板和token信息
             template = self.get_wish_template(row['template_id'])
-            task_params = {'id': task_id}
+            task_params = {'id': task_id, 'status':'success'}
             if template:
                 parent_sku = template['sku']
                 # 判断是否有该产品
@@ -110,7 +110,6 @@ class Worker(BaseService):
                         ret = response.json()
                         if ret['code'] == 0:
                             task_params['item_id'] = ret['data']['Product']['id']
-                            task_params['status'] = 'success'
                             self.upload_variation(template['variants'], template['access_token'], parent_sku, params)
                             self.update_task_status(task_params)
                             self.update_template_status(row['template_id'])
@@ -122,14 +121,14 @@ class Worker(BaseService):
                         self.logger.error(f"fail to upload of products {parent_sku}  cause of {why}")
                 else:
                     task_params['item_id'] = check
-                    task_params['status'] = 'failed'
                     self.update_task_status(task_params)
+                    self.update_template_status(row['template_id'])
                     params['info'] = f'products {parent_sku} already exists'
                     self.add_log(params)
                     self.logger.error(f"fail cause of products {parent_sku} already exists")
             else:
                 task_params['item_id'] = ''
-                task_params['status'] = 'success'
+                task_params['status'] = 'failed'
                 self.update_task_status(task_params)
                 params['info'] = f"can not find template {row['template_id']} Maybe the account is not available"
                 self.add_log(params)
@@ -161,7 +160,7 @@ class Worker(BaseService):
                                                           'updated': self.today}}, upsert=True)
 
     def update_template_status(self, template_id):
-        col_temp.update_one({'_id': template_id}, {"$set": {'status': '刊登成功', 'updated': self.today}}, upsert=True)
+        col_temp.update_one({'_id': template_id}, {"$set": {'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
 
     # 添加日志
     def add_log(self, params):
@@ -187,4 +186,4 @@ class Worker(BaseService):
 if __name__ == "__main__":
     worker = Worker()
     worker.work()
-
+    # print(worker.today)
