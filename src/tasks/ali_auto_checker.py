@@ -39,13 +39,13 @@ class AliChecker(BaseService):
 
     def check_order(self, check_info):
         order_id = check_info['order_id']
-        search_sql = "SELECT cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," \
-                    "cgsm.audiedate, sum(sd.amount) total_amt," \
-                    "sum(sd.amount*sd.price) AS total_money, cgsm.expressfee " \
-                    "from cg_stockOrderd  AS sd LEFT JOIN cg_stockorderm  AS cgsm" \
-                    " ON sd.stockordernid= cgsm.nid WHERE note LIKE '%" + order_id + "%'" \
-                    " AND cgsm.checkflag =0 GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," \
-                    "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag"
+        search_sql = ("SELECT cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," 
+                    "cgsm.audiedate, sum(sd.amount) total_amt," 
+                    "sum(sd.amount*sd.price) AS total_money, cgsm.expressfee " 
+                    "from cg_stockOrderd  AS sd LEFT JOIN cg_stockorderm  AS cgsm" 
+                    " ON sd.stockordernid= cgsm.nid WHERE note LIKE '%" + order_id + "%'"  
+                    " AND cgsm.checkflag =0 GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," 
+                    "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag")
 
         check_sql = "P_CG_UpdateStockOutOfByStockOrder %s"
 
@@ -56,31 +56,34 @@ class AliChecker(BaseService):
                      "expressFee=%s-%s, alibabamoney=%s " \
                      "WHERE billNumber = %s"
 
-        update_price = "UPDATE cgd SET money= money + amount*(%s-%s)/%s," \
-                       "allmoney= money + amount*(%s-%s)/%s, " \
-                       "cgd.beforeavgprice= cgd.price, " \
-                       "cgd.price= cgd.price + (%s-%s)/%s," \
-                       "cgd.taxprice= cgd.taxprice + (%s-%s)/%s " \
-                       "FROM cg_stockorderd  AS cgd LEFT JOIN cg_stockorderm" \
-                       " AS cgm ON cgd.stockordernid= cgm.nid " \
-                       "WHERE billnumber=%s"
+        update_price = ("UPDATE cgd SET money= money + amount*(%s-%s)/%s," 
+                       "allmoney= money + amount*(%s-%s)/%s, " 
+                       # "cgd.beforeavgprice= cgd.price, " 
+                       "cgd.price= cgd.price + (%s-%s)/%s," 
+                       "cgd.taxprice= cgd.taxprice + (%s-%s)/%s " 
+                       "FROM cg_stockorderd  AS cgd LEFT JOIN cg_stockorderm" 
+                           " AS cgm ON cgd.stockordernid= cgm.nid " 
+                           "WHERE billnumber=%s")
         try:
+            print(check_info)
             self.cur.execute(search_sql)
             ret = self.cur.fetchone()
+            print(ret)
             if ret:
-                qty = ret['total_amt']
-                total_money = ret['total_money']
-                bill_number = ret['billnumber']
-                checker = ret['audier']
-                check_qty = check_info['qty']
-                order_money = check_info['sumPayment']
-                if qty == check_qty:
-                    self.cur.execute(update_sql, (order_id, order_money, total_money, order_money, bill_number))
-                    self.cur.execute(check_sql, (bill_number,))
-                    self.cur.execute(update_price, (order_money, total_money, qty) * 4 + (bill_number,))
-                    self.cur.execute(update_status, (checker, order_money, bill_number))
-                    self.con.commit()
-                    self.logger.info('checking %s' % bill_number)
+                print(ret)
+                # qty = ret['total_amt']
+                # total_money = ret['total_money']
+                # bill_number = ret['billnumber']
+                # checker = ret['audier']
+                # check_qty = check_info['qty']
+                # order_money = check_info['sumPayment']
+                # if qty == check_qty:
+                #     self.cur.execute(update_sql, (order_id, order_money, total_money, order_money, bill_number))
+                #     self.cur.execute(check_sql, (bill_number,))
+                #     self.cur.execute(update_price, (order_money, total_money, qty) * 4 + (bill_number,))
+                #     self.cur.execute(update_status, (checker, order_money, bill_number))
+                #     self.con.commit()
+                #     self.logger.info('checking %s' % bill_number)
         except Exception as e:
             self.logger.error('%s while checking %s' % (e, order_id))
 
@@ -88,7 +91,10 @@ class AliChecker(BaseService):
         query = ("select alibabaOrderid as orderId,loginId as account,billNumber from "
                "CG_StockOrderM  as Cm with(nolock) LEFT JOIN S_AlibabaCGInfo as info with(nolock) "
                "on Cm.AliasName1688 = info.AliasName where logisticsStatus = '等待买家收货' "
-               "and inflag = 0  and is1688Order = 0 and archive = 0")
+               "and inflag = 0  and is1688Order = 0 and archive = 0 "
+                # "and alibabaOrderid = '1058970690012682293'"
+                # " and  billNumber in ('CGD-2020-06-13-0571','CGD-2020-06-08-3253','CGD-2020-06-11-0304','CGD-2020-06-04-1969','CGD-2020-06-03-1930','CGD-2020-06-08-0525')"
+                 )
         self.cur.execute(query)
         ret = self.cur.fetchall()
         for row in ret:
@@ -97,6 +103,7 @@ class AliChecker(BaseService):
     def check(self, order):
         try:
             ret = self.get_order_details(order)
+            print(ret)
             if ret:
                 self.check_order(ret)
         except Exception as e:
