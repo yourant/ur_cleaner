@@ -34,6 +34,7 @@ class Worker(BaseService):
     @staticmethod
     def get_wish_tasks():
         ret = col_task.find({'status': 'todo'})
+        # ret = col_task.find({'status': 'todo','template_id':'5eec29c8b9f7e127de6a622a'})
         for row in ret:
             yield row
 
@@ -94,6 +95,7 @@ class Worker(BaseService):
             params['task_id'] = str(task_id)
             params['template_id'] = str(row['template_id'])
             params['selleruserid'] = row['selleruserid']
+            params['sku'] = ''
             params['type'] = self.log_type[1]
 
             # 获取模板和token信息
@@ -101,12 +103,13 @@ class Worker(BaseService):
             task_params = {'id': task_id, 'status':'success'}
             if template:
                 parent_sku = template['sku']
+                params['sku'] = parent_sku
                 # 判断是否有该产品
                 check = self.check_wish_template(template)
                 if not check:
                     try:
                         url = 'https://merchant.wish.com/api/v2/product/add'
-                        response = requests.post(url, params=template)
+                        response = requests.post(url, data=template)
                         ret = response.json()
                         if ret['code'] == 0:
                             task_params['item_id'] = ret['data']['Product']['id']
@@ -116,9 +119,9 @@ class Worker(BaseService):
                         else:
                             params['info'] = ret['message']
                             self.add_log(params)
-                            self.logger.error(f"fail to upload product cause of {ret['message']}")
+                            self.logger.error(f"failed to upload product {parent_sku} cause of {ret['message']}")
                     except Exception as why:
-                        self.logger.error(f"fail to upload of products {parent_sku}  cause of {why}")
+                        self.logger.error(f"fail to upload of product {parent_sku}  cause of {why}")
                 else:
                     task_params['item_id'] = check
                     self.update_task_status(task_params)
@@ -144,10 +147,15 @@ class Worker(BaseService):
                 row['access_token'] = token
                 row['parent_sku'] = parent_sku
                 del row['shipping']
-                response = requests.post(url, params=row)
+                response = requests.post(url, data=row)
                 ret = response.json()
                 if ret['code'] != 0:
                     params['info'] = ret['message']
+                    params['sku'] = row['sku']
+                    try:
+                        del params['_id']
+                    except:
+                        pass
                     self.add_log(params)
                     self.logger.error(f"fail to upload of products variant {row['sku']} cause of {ret['message']}")
         except Exception as why:
