@@ -160,7 +160,7 @@ class Worker(BaseService):
                                                           'updated': self.today}}, upsert=True)
 
     def update_template_status(self, template_id):
-        col_temp.update_one({'_id': template_id}, {"$set": {'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
+        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
 
     # 添加日志
     def add_log(self, params):
