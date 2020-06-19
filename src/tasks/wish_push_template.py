@@ -6,8 +6,8 @@
 from src.services.base_service import BaseService
 from configs.config import Config
 import requests
+from concurrent.futures import ThreadPoolExecutor as Pool
 import json
-import datetime
 from pymongo import MongoClient
 
 
@@ -27,7 +27,11 @@ class Worker(BaseService):
         self.op_token = config['op_center']['token']
 
     def get_products(self):
-        return [54252]
+        sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19")
+        self.warehouse_cur.execute(sql)
+        ret = self.warehouse_cur.fetchall()
+        for ele in ret:
+            yield ele['id']
 
     def get_data_by_id(self, product_id):
         base_url = 'http://127.0.0.1:8089/v1/oa-goodsinfo/plat-export-wish-data'
@@ -53,11 +57,13 @@ class Worker(BaseService):
             code = content['code']
             if code != 200:
                 self.logger.error(f'failed to save  template of {data["sku"]} cause of {content["message"]}')
+                raise Exception('failed to push template')
             else:
                 self.logger.info(f'success to save  template of {data["sku"]}')
 
         except Exception as why:
             self.logger.error(f'failed to  push template of {data["sku"]} cause of {why}')
+            raise Exception('failed to push template')
 
     # def push(self, data):
     #     col.save(data)
@@ -65,9 +71,9 @@ class Worker(BaseService):
     def work(self):
         try:
             products = self.get_products()
-            for pt in products:
-                self.get_data_by_id(pt)
 
+            with Pool(32) as pl:
+                pl.map(self.get_data_by_id, products)
         except Exception as why:
                 self.logger.error('fail to push wish template  cause of {} '.format(why))
         finally:
