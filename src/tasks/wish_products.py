@@ -63,7 +63,7 @@ class Worker(BaseService):
                 ret = dict()
                 for i in range(2):
                     try:
-                        response = requests.get(url, params=param)
+                        response = requests.get(url, params=param, timeout=10)
                         ret = response.json()
                         break
                     except Exception as why:
