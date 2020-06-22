@@ -31,7 +31,7 @@ class Worker(BaseService):
         :return:
         """
         # sql = ("select proId from proCenter.oa_dataMine where platform='joom' and progress in ('待采集', '采集失败')  "
-        sql = ("select * from proCenter.oa_dataMine where platform='vova' and progress in ('待采集') and detailStatus='未完善'"
+        sql = ("select * from proCenter.oa_dataMine where platform='vova' and progress in ('待采集', '采集失败') and detailStatus='未完善'"
                " and timestampdiff(day,createTime,now())<=30 and timestampdiff(MINUTE,createTime,now()) >=2 ")
         #  and id=121645
 
@@ -79,9 +79,9 @@ class Worker(BaseService):
             index = 'extra_image' + str(i)
             extra_images[index] = images[img]
             i = i + 1
-            if i == 10:
+            if i == 11:
                 break
-        if len(images) < 10:
+        if len(images) < 11:
             for j in range(10 - len(images) + 1):
                 inx = 'extra_image' + str(j + len(images))
                 extra_images[inx] = ''
