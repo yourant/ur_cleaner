@@ -181,7 +181,7 @@ class Worker(BaseService):
             # for tn in tokens.items():
             #     print(tn)
             tasks = self.get_wish_tasks()
-            pl = Pool(16)
+            pl = Pool(8)
             pl.map(self.upload_template, tasks)
             pl.close()
             pl.join()
