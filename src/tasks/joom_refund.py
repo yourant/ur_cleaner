@@ -131,7 +131,7 @@ class Worker(BaseService):
             pl.map(self.get_order, tokens)
             pl.close()
             pl.join()
-            # self.save_trans()
+            self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
         finally:
