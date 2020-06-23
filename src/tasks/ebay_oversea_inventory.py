@@ -29,7 +29,7 @@ class Worker(BaseService):
         self.con.commit()
 
         # 查询
-        sql = "select itemid,sku,quantity,suffix,token from ibay365_quantity_online_oversea where itemId= '383262135881'"
+        sql = "select itemid,sku,quantity,suffix,token from ibay365_quantity_online_oversea"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
