@@ -43,7 +43,7 @@ class Worker(BaseService):
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=2))[:10]
         limit = 300
         start = 0
         try:
@@ -103,23 +103,18 @@ class Worker(BaseService):
 
     def save_trans(self):
         rows = self.pull()
-        self.push_one(rows)
-        # self.push_batch(rows)
+        # self.push_one(rows)
+        self.push_batch(rows)
         mongo.close()
 
     def push_one(self, rows):
-        try:
-            sql = ("if not EXISTS (select * from ibay365_joom_lists(nolock) where "
-                   "code=%s and itemid=%s) "
-                   "insert into ibay365_joom_lists (code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) "
-                   "values (%s,%s,%s,%s,%s,%s,%s,%s) "
-                   "else update ibay365_joom_lists set "
-                   "storage=%s,updateTime=%s where code=%s and itemid=%s")
+            sql = ("insert into ibay365_joom_lists (code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) "
+                   "values (%s,%s,%s,%s,%s,%s,%s,%s) ")
             for row in rows:
-                self.cur.execute(sql, (row[0],row[3], row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7],row[6],row[7],row[0],row[3]))
-                self.con.commit()
-        except Exception as why:
-            self.logger.error(f"fail  {why} ")
+                self.cur.execute(sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
+            self.con.commit()
+        # except Exception as why:
+        #     self.logger.error(f"fail  {why} ")
 
     def push_batch(self, rows):
         try:
@@ -141,12 +136,12 @@ class Worker(BaseService):
 
     def work(self):
         try:
-            tokens = self.get_joom_token()
-            self.clean()
-            pl = Pool(16)
-            pl.map(self.get_products, tokens)
-            pl.close()
-            pl.join()
+            # tokens = self.get_joom_token()
+            # self.clean()
+            # pl = Pool(16)
+            # pl.map(self.get_products, tokens)
+            # pl.close()
+            # pl.join()
             self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
