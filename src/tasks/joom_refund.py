@@ -34,7 +34,8 @@ class Worker(BaseService):
         token = token_info['AccessToken']
         url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        date = swwwwwr(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+
+        date = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
         # yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
         # date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
         limit = 300
@@ -42,7 +43,7 @@ class Worker(BaseService):
         try:
             while True:
                 param = {
-                    "since": '2020-05-01',
+                    "since": date,
                     "limit": limit,
                     'start': start
                 }
@@ -51,6 +52,7 @@ class Worker(BaseService):
                     try:
                         response = requests.get(url, params=param, headers=headers)
                         ret = response.json()
+                        break
                     except Exception as why:
                         self.logger.info(f' fail to get page of {token_info["aliasName"]} {i + 1} times cause of {why}')
 
@@ -125,12 +127,12 @@ class Worker(BaseService):
 
     def work(self):
         try:
-            # tokens = self.get_joom_token()
-            # self.clean()
-            # pl = Pool(16)
-            # pl.map(self.get_order, tokens)
-            # pl.close()
-            # pl.join()
+            tokens = self.get_joom_token()
+            self.clean()
+            pl = Pool(16)
+            pl.map(self.get_order, tokens)
+            pl.close()
+            pl.join()
             self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
