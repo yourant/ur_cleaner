@@ -23,10 +23,10 @@ class Worker(BaseService):
     def get_ebay_token(self):
 
         # 计算
-        # procedure = ("EXEC B_ModifyOnlineNumberOfSkuOnTheIbay365Oversea"  # 实际库存为0的产品改0
-        #              )
-        # self.cur.execute(procedure)
-        # self.con.commit()
+        procedure = ("EXEC B_ModifyOnlineNumberOfSkuOnTheIbay365Oversea"  # 实际库存为0的产品改0
+                     )
+        self.cur.execute(procedure)
+        self.con.commit()
 
         # 查询
         sql = "select itemid,sku,quantity,suffix,token from ibay365_quantity_online_oversea where itemId= '383262135881'"
