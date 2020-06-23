@@ -51,6 +51,7 @@ class Worker(BaseService):
                     try:
                         response = requests.get(url, params=param, headers=headers)
                         ret = response.json()
+                        break
                     except Exception as why:
                         self.logger.info(f' fail to get page of {token_info["aliasName"]} {i + 1} times cause of {why}')
 
