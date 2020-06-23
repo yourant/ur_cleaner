@@ -7,6 +7,7 @@ from src.services.base_service import BaseService
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from configs.config import Config
+import json
 
 
 class Worker(BaseService):
@@ -65,18 +66,18 @@ class Worker(BaseService):
                             'requesterCredentials': {'eBayAuthToken': token},
                         }
                     )
-                    ret = response.json()
-                    print(ret)
+                    res = response.json()
+                    ret = json.loads(res)
                     if ret["Ack"] == 'Success' or ret["Ack"] == 'Warning':
                         self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                         # self.logger.info(f'success')
                         break
                     else:
-                        self.logger.error(f'fail to update ebay inventory cause of  {ret["Errors"]["ShortMessage"]} and trying {i} times')
+                        self.logger.error(f'fail to update Item {itemId} cause of  {ret["Errors"]["ShortMessage"]} and trying {i} times')
                 except exception.ConnectionError as e:
                     self.logger.error('Item {} connect to failed cause of {}'.format(itemId, e))
         except Exception as e:
-            self.logger.error(e)
+            self.logger.error('Item {} update failed cause of {}'.format(itemId, e))
 
     def work(self):
         try:

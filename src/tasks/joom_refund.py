@@ -34,7 +34,7 @@ class Worker(BaseService):
         token = token_info['AccessToken']
         url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        date = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        date = swwwwwr(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
         # yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
         # date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
         limit = 300

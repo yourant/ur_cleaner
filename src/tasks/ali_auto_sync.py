@@ -74,8 +74,6 @@ class AliSync(BaseService):
         try:
             self.cur.execute(search_sql,order_id)
             ret = self.cur.fetchone()
-            print(check_info)
-            print(ret)
             if ret:
                 qty = ret['total_amt']
                 total_money = ret['total_money']
@@ -95,10 +93,10 @@ class AliSync(BaseService):
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        threeDays = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
         today = str(datetime.datetime.today())[:10]
+
+        threeDays = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
         threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
-        print(threeDays)
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account "
                 "from CG_StockOrderD  as cd with(nolock)  "
@@ -114,7 +112,6 @@ class AliSync(BaseService):
         self.cur.execute(query, (threeDays))
         ret = self.cur.fetchall()
         for row in ret:
-            print(row)
             yield row
 
     def check(self, order):
