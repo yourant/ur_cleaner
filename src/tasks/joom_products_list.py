@@ -5,6 +5,7 @@
 
 
 import math
+import re
 import datetime
 from src.services.base_service import BaseService
 import requests
@@ -40,9 +41,9 @@ class Worker(BaseService):
         token = row['AccessToken']
         suffix = row['aliasName']
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
-        headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
+        # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
         limit = 300
         start = 0
         try:
@@ -51,37 +52,53 @@ class Worker(BaseService):
                     "limit": limit,
                     'start': start,
                     'since': since,
+                    'access_token': token,
                 }
-                response = requests.get(url, params=param, headers=headers)
-                ret = response.json()
+                ret = dict()
+                for i in range(2):
+                    try:
+                        response = requests.get(url, params=param, timeout=20)
+                        ret = response.json()
+                        break
+                    except Exception as why:
+                        self.logger.error(f' fail to get of products of {suffix} in {start}  '
+                                          f'page cause of {why} {i} times  '
+                                          f'param {param} '
+                                          )
                 if ret['code'] == 0 and ret['data']:
-                    list = ret['data']
-                    for item in list:
+                    listing = ret['data']
+                    for item in listing:
                         list_variants = item['Product']['variants']
                         list_enabled = item['Product']['enabled']
                         list_state = item['Product']['state']
                         for row in list_variants:
                             new_sku = row['Variant']['sku'].split("@")[0]
-                            ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
+                            ele = {'_id': row['Variant']['sku'],'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
                                    'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': suffix,
                                    'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': date,
                                    'enabled': list_enabled, 'state': list_state}
                             self.put(ele)
                             # self.logger.info(f'putting {row["Variant"]["product_id"]}')
-                    start += limit
-                    if len(ret['data']) < limit:
+                    if 'paging' in ret and 'next' in ret['paging']:
+                        arr = ret['paging']['next'].split("&")[2]
+                        start = re.findall("\d+", arr)[0]
+                    else:
                         break
+                    # start += limit
+                    # if len(ret['data']) < limit:
+                    #     break
                 else:
                     break
         except Exception as e:
             self.logger.error(e)
 
     def put(self, row):
-        col.save(row)
+        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        # col.save(row)
 
     def pull(self):
         rows = col.find({"enabled": "True",
-                "state": "active"})
+                'state':{'$nin':['rejected']}})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
@@ -113,7 +130,7 @@ class Worker(BaseService):
                 try:
                     self.cur.execute(sql)
                     self.con.commit()
-                    self.logger.info(f"success to save data of joom products from {i * step} to  {min((i + 1) * step, number)}")
+                    # self.logger.info(f"success to save data of joom products from {i * step} to  {min((i + 1) * step, number)}")
                 except Exception as why:
                     self.logger.error(f"fail to save data of joom products cause of {why} ")
         except Exception as why:
