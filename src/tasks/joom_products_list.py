@@ -97,7 +97,7 @@ class Worker(BaseService):
         # col.save(row)
 
     def pull(self):
-        rows = col.find({"enabled": "True","state":{'$nin':['rejected']}}).limit(10000)
+        rows = col.find({"enabled": "True","state":{'$nin':['rejected']}})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
