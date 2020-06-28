@@ -112,7 +112,7 @@ class Worker(BaseService):
     def work(self):
         try:
             tokens = self.get_wish_token()
-            self.clean()
+            # self.clean()
             pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()
