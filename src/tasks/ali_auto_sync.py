@@ -95,8 +95,8 @@ class AliSync(BaseService):
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
 
-        threeDays = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
-        threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
+        # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account "
                 "from CG_StockOrderD  as cd with(nolock)  "
@@ -104,12 +104,13 @@ class AliSync(BaseService):
                 "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
                 "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
                 "where  ABS(taxPrice-costPrice) > 0.1 AND MakeDate > %s  AND CheckFlag=1 AND isnull(loginId,'')<>'' "
+                 "and cm.deptId != 46 "
                  # "where 1=1 "
                 # "and alibabaOrderid = '1069212930532682293' "
                 )
 
 
-        self.cur.execute(query, (threeDays))
+        self.cur.execute(query, (someDays))
         ret = self.cur.fetchall()
         for row in ret:
             yield row
