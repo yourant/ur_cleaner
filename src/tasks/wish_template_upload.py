@@ -165,7 +165,7 @@ class Worker(BaseService):
                             task_params['item_id'] = ret['data']['Product']['id']
                             self.upload_variation(template['variants'], template['access_token'], parent_sku, params)
                             self.update_task_status(task_params)
-                            self.update_template_status(row['template_id'])
+                            self.update_template_status(row['template_id'], ret['data']['Product']['id'])
                         else:
                             params['info'] = ret['message']
                             self.add_log(params)
@@ -175,7 +175,7 @@ class Worker(BaseService):
                 else:
                     task_params['item_id'] = check
                     self.update_task_status(task_params)
-                    self.update_template_status(row['template_id'])
+                    self.update_template_status(row['template_id'], check)
                     params['info'] = f'products {parent_sku} already exists'
                     self.add_log(params)
                     self.logger.error(f"fail cause of products {parent_sku} already exists")
@@ -217,8 +217,8 @@ class Worker(BaseService):
         col_task.update_one({'_id': row['id']}, {"$set": {'item_id': row['item_id'], 'status': row['status'],
                                                           'updated': self.today}}, upsert=True)
 
-    def update_template_status(self, template_id):
-        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
+    def update_template_status(self, template_id, item_id):
+        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
 
     # 添加日志
     def add_log(self, params):
