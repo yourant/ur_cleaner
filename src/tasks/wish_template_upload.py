@@ -33,8 +33,9 @@ class Worker(BaseService):
 
     @staticmethod
     def get_wish_tasks():
-        # ret = col_task.find({'status': 'todo'})
-        ret = col_task.find({'template_id': '5eec227e01ca93284654de28'})
+        ret = col_task.find({'status': 'todo'})
+        # ret = col_task.find({'template_id': '5eec227e01ca93284654de28'})
+        # ret = col_task.find({'_id': ObjectId('5eec32ce8de76c23232f8d27')})
         for row in ret:
             yield row
 
@@ -76,6 +77,9 @@ class Worker(BaseService):
 
     def pre_check(self, template):
         tags = template['tags']
+        if not tags:
+            return False
+
         tags = str.split(tags, ',')
         variations = template['variants']
         # 检查 tags个数
