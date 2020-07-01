@@ -35,7 +35,7 @@ class Worker(BaseService):
     def get_wish_tasks():
         ret = col_task.find({'status': 'todo'})
         # ret = col_task.find({'template_id': '5eec227e01ca93284654de28'})
-        # ret = col_task.find({'_id': ObjectId('5eec32ce8de76c23232f8d27')})
+        # ret = col_task.find({'_id': ObjectId('5efc51faab10176d076e26b3')})
         for row in ret:
             yield row
 
@@ -109,6 +109,8 @@ class Worker(BaseService):
         :param check_str: {str} 需要检测的字符串
         :return: {bool} 包含返回True， 不包含返回False
         """
+        if not check_str:
+            return False
         for ch in check_str:
             if u'\u4e00' <= ch <= u'\u9fff':
                 return True
