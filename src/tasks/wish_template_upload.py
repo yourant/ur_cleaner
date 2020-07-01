@@ -34,7 +34,7 @@ class Worker(BaseService):
     @staticmethod
     def get_wish_tasks():
         ret = col_task.find({'status': 'todo'})
-        # ret = col_task.find({'template_id': '5eec227e01ca93284654de28'})
+        # ret = col_task.find({'template_id': '5efc51fb0ed6291539697b94'})
         # ret = col_task.find({'_id': ObjectId('5efc51faab10176d076e26b3')})
         for row in ret:
             yield row
@@ -76,31 +76,37 @@ class Worker(BaseService):
             return {}
 
     def pre_check(self, template):
-        tags = template['tags']
-        if not tags:
+        try:
+            tags = template['tags']
+            if not tags:
+                return False
+
+            tags = str.split(tags, ',')
+            variations = template['variants']
+            # 检查 tags个数
+            if len(tags) > 10:
+                return False
+
+            # 单属性不用验证
+            if str.split(template['sku'], '@#')[0][-2::] == '01' and not variations:
+                return True
+            for vn in variations:
+
+                # 颜色是否包含中文
+                if self.is_contain_chinese(vn['color']):
+                    return False
+
+                # 尺寸是否包含中文
+                if self.is_contain_chinese(vn['size']):
+                    return False
+
+                # 颜色和尺寸同时为空
+                if (not vn['color']) and (not vn['size']):
+                    return False
+
+            return True
+        except:
             return False
-
-        tags = str.split(tags, ',')
-        variations = template['variants']
-        # 检查 tags个数
-        if len(tags) > 10:
-            return False
-
-        for vn in variations:
-
-            # 颜色是否包含中文
-            if self.is_contain_chinese(vn['color']):
-                return False
-
-            # 尺寸是否包含中文
-            if self.is_contain_chinese(vn['size']):
-                return False
-
-            # 颜色和尺寸同时为空
-            if (not vn['color']) and (not vn['size']):
-                return False
-
-        return True
 
     @staticmethod
     def is_contain_chinese(check_str):
@@ -193,7 +199,7 @@ class Worker(BaseService):
                 self.add_log(params)
                 self.logger.error(f"fail cause of can not find template {row['template_id']}")
         except Exception as e:
-            self.logger.error(e)
+            self.logger.error(f"upload {str(row['template_id'])} error cause of {e}")
 
     def upload_variation(self, rows, token, parent_sku, params):
         params['type'] = self.log_type[2]
