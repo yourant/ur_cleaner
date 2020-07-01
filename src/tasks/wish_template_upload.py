@@ -218,7 +218,8 @@ class Worker(BaseService):
                                                           'updated': self.today}}, upsert=True)
 
     def update_template_status(self, template_id, item_id):
-        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功', 'on_line': 1, 'updated': self.today}}, upsert=True)
+        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功',
+                                                                      'is_online': 1, 'updated': self.today}}, upsert=True)
 
     # 添加日志
     def add_log(self, params):
@@ -227,18 +228,31 @@ class Worker(BaseService):
 
     def work(self):
         try:
-            # tokens = self.get_tokens()
-            # for tn in tokens.items():
-            #     print(tn)
             tasks = self.get_wish_tasks()
             pl = Pool(8)
             pl.map(self.upload_template, tasks)
             pl.close()
             pl.join()
+            # self.sync_data()
         except Exception as why:
             self.logger.error('fail to upload wish template cause of {} '.format(why))
         finally:
             self.close()
+            mongo.close()
+
+    def sync_data(self):
+        """
+        同步模板和任务的状态
+        :return:
+        """
+        tp = col_temp.find()
+        for ele in tp:
+            ret = col_task.find_one({'template_id': str(ele['_id']), "item_id": {'$nin': ['']}})
+            item_id = ''
+            if ret:
+                item_id = ret.get('item_id', '')
+            col_temp.update_one({'_id': ele['_id']}, {"$set": {'item_id': item_id, 'is_online': 1, 'status': '刊登成功'}})
+            self.logger.info(f'updating template of {ele["_id"]} set item_id to {item_id}')
 
 
 if __name__ == "__main__":
