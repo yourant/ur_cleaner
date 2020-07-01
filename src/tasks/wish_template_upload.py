@@ -33,8 +33,8 @@ class Worker(BaseService):
 
     @staticmethod
     def get_wish_tasks():
-        ret = col_task.find({'status': 'todo'})
-        # ret = col_task.find({'status': 'todo','template_id':'5eec29c8b9f7e127de6a622a'})
+        # ret = col_task.find({'status': 'todo'})
+        ret = col_task.find({'template_id': '5eec227e01ca93284654de28'})
         for row in ret:
             yield row
 
@@ -74,6 +74,42 @@ class Worker(BaseService):
             self.logger.error(e)
             return {}
 
+    def pre_check(self, template):
+        tags = template['tags']
+        tags = str.split(tags, ',')
+        variations = template['variants']
+        # 检查 tags个数
+        if len(tags) > 10:
+            return False
+
+        for vn in variations:
+
+            # 颜色是否包含中文
+            if self.is_contain_chinese(vn['color']):
+                return False
+
+            # 尺寸是否包含中文
+            if self.is_contain_chinese(vn['size']):
+                return False
+
+            # 颜色和尺寸同时为空
+            if (not vn['color']) and (not vn['size']):
+                return False
+
+        return True
+
+    @staticmethod
+    def is_contain_chinese(check_str):
+        """
+        判断字符串中是否包含中文
+        :param check_str: {str} 需要检测的字符串
+        :return: {bool} 包含返回True， 不包含返回False
+        """
+        for ch in check_str:
+            if u'\u4e00' <= ch <= u'\u9fff':
+                return True
+        return False
+
     def check_wish_template(self, row):
         url = "https://merchant.wish.com/api/v2/product"
         params = {'access_token': row['access_token'], 'parent_sku': row['sku']}
@@ -98,9 +134,23 @@ class Worker(BaseService):
             params['sku'] = ''
             params['type'] = self.log_type[1]
 
+            task_params = {'id': task_id, 'status': 'success'}
+
             # 获取模板和token信息
             template = self.get_wish_template(row['template_id'])
-            task_params = {'id': task_id, 'status':'success'}
+
+            # 检验模板是否有问题
+            flag = self.pre_check(template)
+            if not flag:
+                # 标记为刊登失败
+                task_params['item_id'] = ''
+                task_params['status'] = 'failed'
+                self.update_task_status(task_params)
+                message = f"template of {row['template_id']} is invalid"
+                params['info'] = message
+                self.add_log(params)
+                self.logger.error(message)
+                return
             if template:
                 parent_sku = template['sku']
                 params['sku'] = parent_sku
