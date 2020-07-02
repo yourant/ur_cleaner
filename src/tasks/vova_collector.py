@@ -4,6 +4,7 @@
 # Author: turpure
 
 import time
+import datetime
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 import re
@@ -95,10 +96,12 @@ class Worker(BaseService):
             #获取html信息
             response = requests.get(task_id)
             soup = BeautifulSoup(response.content, features='html.parser')
+            cateList = soup.select('.breadcrumb > ul > li > a')
+            cateName = cateList[-1].getText()
+            self.insert_vova_cate(cateName, task_id)
             image = self.get_style_info(soup, 'img')
             colors = self.get_style_info(soup, 'color')
             sizes = self.get_style_info(soup, 'size')
-
             #处理 sku 的 extra_images
             extra_images = self.get_extra_images(image['img'])
             try:
@@ -144,7 +147,10 @@ class Worker(BaseService):
                                 break
                     skuImgId = str(imageIdDic[str(sku['sku_id'])])
                     item['mainImage'] = extra_images['extra_image0']
-                    item['varMainImage'] = image['img'][skuImgId]
+                    try:
+                        item['varMainImage'] = image['img'][skuImgId]
+                    except:
+                        item['varMainImage'] = list(image['img'].values())[0]
                     skuRows.append({**item, **extra_images})
                     i = i + 1
                 self.insert(skuRows, row['id'])
@@ -152,6 +158,19 @@ class Worker(BaseService):
         except Exception as why:
             self.logger.error(f'fail to get sku info cause of {why}')
 
+    def insert_vova_cate(self, cateName, task_id):
+        sql = "SELECT cateId FROM proCenter.vova_category WHERE cateName=%s"
+        self.warehouse_cur.execute(sql, (cateName,))
+        cate = self.warehouse_cur.fetchone()
+        try:
+            cateId = int(cate['cateId'])
+        except:
+            cateId = 0
+        updateTime = str(datetime.datetime.today())[:19]
+        insert_sql = ("insert into proCenter.vova_dataMineCate(proId,cateId,updateTime) values(%s,%s,%s) "
+                     " ON DUPLICATE KEY UPDATE cateId = values(cateId), updateTime = values(updateTime)")
+        self.warehouse_cur.execute(insert_sql, (task_id,cateId,updateTime))
+        self.warehouse_con.commit()
 
 
     def insert(self, rows, job_id):
