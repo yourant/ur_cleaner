@@ -63,20 +63,12 @@ class Worker(BaseService):
                 ret = dict()
                 for i in range(2):
                     try:
-<<<<<<< HEAD
-                        response = requests.get(url, params=param, timeout=5000)
-=======
                         response = requests.get(url, params=param, timeout=10)
->>>>>>> ef75b93da1872f2cd469c6f7976bb9ca8ea1525f
                         ret = response.json()
                         break
                     except Exception as why:
                         self.logger.error(f' fail to get of products of {suffix} in {start}  '
-<<<<<<< HEAD
-                                          f'page cause of {why} {i} times  '
-=======
                                           f'page cause of {why} {i} times '
->>>>>>> ef75b93da1872f2cd469c6f7976bb9ca8ea1525f
                                           f'param {param} '
                                           )
                 if ret and ret['code'] == 0 and ret['data']:
@@ -120,7 +112,7 @@ class Worker(BaseService):
     def work(self):
         try:
             tokens = self.get_wish_token()
-            self.clean()
+            # self.clean()
             pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()

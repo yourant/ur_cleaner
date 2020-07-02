@@ -43,7 +43,7 @@ class Worker(BaseService):
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
         limit = 300
         start = 0
         try:
@@ -97,25 +97,31 @@ class Worker(BaseService):
         # col.save(row)
 
     def pull(self):
-        rows = col.find({"enabled": "True",
-                'state':{'$nin':['rejected']}})
+        rows = col.find({"enabled": "True","state":{'$nin':['rejected']}})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
     def save_trans(self):
         rows = self.pull()
-        # self.push_one(rows)
-        self.push_batch(rows)
+        self.push_one(rows)
+        # self.push_batch(rows)
         mongo.close()
 
     def push_one(self, rows):
         try:
-            sql = 'insert into ibay365_joom_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values(%s,%s,%s,%s,%s,%s,%s,%s)'
+            sql = ("if not EXISTS (select id from ibay365_joom_lists(nolock) where "
+                   "code=%s and itemid=%s) "
+                   "insert into ibay365_joom_lists (code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) "
+                   "values (%s,%s,%s,%s,%s,%s,%s,%s) "
+                   "else update ibay365_joom_lists set "
+                   "storage=%s,updateTime=%s where code=%s and itemid=%s")
             for row in rows:
-                self.cur.execute(sql, (row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]))
+                self.cur.execute(sql, (
+                row[0], row[3], row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[6], datetime.datetime.now(), row[0],
+                row[3]))
+                # self.logger.info(f'putting {row[2]}')
             self.con.commit()
         except Exception as why:
-
             self.logger.error(f"fail  {why} ")
 
     def push_batch(self, rows):

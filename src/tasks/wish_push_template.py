@@ -27,7 +27,7 @@ class Worker(BaseService):
         self.op_token = config['op_center']['token']
 
     def get_products(self):
-        sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19")
+        sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19  and devDatetime >= date_sub(curdate(),interval 1 day)")
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
         for ele in ret:
