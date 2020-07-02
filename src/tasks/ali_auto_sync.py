@@ -82,13 +82,13 @@ class AliSync(BaseService):
                 check_qty = check_info['qty']
                 order_money = check_info['sumPayment']
                 expressFee = check_info['expressFee']
-                if qty == check_qty:
-                    self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
-                    self.cur.execute(check_sql, (bill_number,))
-                    self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
-                    # self.cur.execute(update_status, (order_money, bill_number))
-                    self.con.commit()
-                    self.logger.info('checking %s' % bill_number)
+                # if qty == check_qty:
+                self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
+                self.cur.execute(check_sql, (bill_number,))
+                self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
+                # self.cur.execute(update_status, (order_money, bill_number))
+                self.con.commit()
+                self.logger.info('checking %s' % bill_number)
         except Exception as e:
             self.logger.error('%s while checking %s' % (e, order_id))
 
