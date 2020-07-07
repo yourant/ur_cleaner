@@ -16,14 +16,14 @@ class Fetcher(BaseService):
         super().__init__()
 
     def fetch(self):
-        sql = 'select  goodsCode, goodsName, salerName, goodsStatus, (select top 1 BmpFileName from b_goodsSku(nolock) where goodsId=bg.nid) as img from b_goods(nolock) as bg'
+        sql = 'select  goodsCode, goodsName, salerName, goodsStatus, ISNULL(devDate,createDate) as devDate, (select top 1 BmpFileName from b_goodsSku(nolock) where goodsId=bg.nid) as img from b_goods(nolock) as bg'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
-            yield row['goodsCode'], row['goodsName'], row['salerName'], row['goodsStatus'], row['img']
+            yield row['goodsCode'], row['goodsName'], row['salerName'], row['goodsStatus'], row['devDate'], row['img']
 
     def push(self, rows):
-        sql = 'insert into cache_goods (goodsCode,goodsName,developer,goodsStatus, img) values (%s,%s,%s,%s,%s)'
+        sql = 'insert into cache_goods (goodsCode,goodsName,developer,goodsStatus, devDate, img) values (%s,%s,%s,%s,%s,%s)'
         self.warehouse_cur.executemany(sql, rows)
         self.warehouse_con.commit()
 
