@@ -27,7 +27,7 @@ class Worker(BaseService):
         self.op_token = config['op_center']['token']
 
     def get_products(self):
-        sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19  and devDatetime >= date_sub(curdate(),interval 1 day)")
+        sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19  and devDatetime >= date_sub(curdate(),interval 7 day)")
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
         for ele in ret:
@@ -57,13 +57,13 @@ class Worker(BaseService):
             code = content['code']
             if code != 200:
                 self.logger.error(f'failed to save  template of {data["sku"]} cause of {content["message"]}')
-                raise Exception('failed to push template')
+                raise Exception(f'{content["message"]}')
             else:
                 self.logger.info(f'success to save  template of {data["sku"]}')
 
         except Exception as why:
             self.logger.error(f'failed to  push template of {data["sku"]} cause of {why}')
-            raise Exception('failed to push template')
+            raise Exception(f'{why}')
 
     # def push(self, data):
     #     col.save(data)
