@@ -63,9 +63,9 @@ def set_date_formatter(row):
         date_uploaded = row['date_uploaded']
         if isinstance(date_uploaded, int):
             if len(str(date_uploaded)) == 10:
-                updated_time = datetime.fromtimestamp(date_uploaded)
+                date_uploaded = datetime.fromtimestamp(date_uploaded)
             if len(str(date_uploaded)) == 13:
-                updated_time = datetime.fromtimestamp(date_uploaded / 1000)
+                date_uploaded = datetime.fromtimestamp(date_uploaded / 1000)
         update_statement = {
             'last_updated': updated_time, 'date_uploaded': date_uploaded,
         }
