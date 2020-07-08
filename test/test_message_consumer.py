@@ -7,10 +7,10 @@ import pika
 from pika import credentials
 
 credentials = credentials.PlainCredentials('youran', 'youran2020')
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.0.203', port=5672, credentials=credentials))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.0.172', port=5672, credentials=credentials))
 channel = connection.channel()
 
-channel.queue_declare(queue='hello')
+channel.queue_declare(queue='wish')
 
 
 def callback(ch, method, properties, body):
@@ -18,7 +18,7 @@ def callback(ch, method, properties, body):
 
 
 channel.basic_consume(
-    queue='hello', on_message_callback=callback, auto_ack=True)
+    queue='wish', on_message_callback=callback, auto_ack=True)
 
 print(' [*] Waiting for messages. To exit press CTRL+C')
 channel.start_consuming()
