@@ -20,6 +20,7 @@ class ProfitFetcher(BaseService):
         self.cur.execute(sql, (date_flag, begin_date, end_date))
         ret = self.cur.fetchall()
         for row in ret:
+            # print(row)
             yield (
                 row['suffix'], row['plat'], row['SaleMoney'], row['salemoneyzn'], row['eBayFeeebay'], row['eBayFeeznebay'],
                 row['ppFee'], row['ppFeezn'], row['CostMoney'], row['ExpressFare'], row['InpackageMoney'],
@@ -38,14 +39,14 @@ class ProfitFetcher(BaseService):
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s,%s,',
-               '%s,%s,%s,%s',
-               ') ON DUPLICATE KEY UPDATE saleMoney=values(saleMoney),plat=values(plat),'
-               'saleMoneyZn=values(saleMoneyZn),ebayFeeEbay=values(ebayFeeEbay),'
-               'ebayFeeZnEbay=values(ebayFeeZnEbay),ppFee=values(ppFee),'
-               'ppFeeZn=values(ppFeeZn),costMoney=values(costMoney),'
-               'expressFare=values(expressFare),inPackageMoney=values(inPackageMoney),'
-               'refund=values(refund),dieFeeZn=values(dieFeeZn),insertionFee=values(insertionFee),'
-               'saleOpeFeeZn=values(saleOpeFeeZn),grossProfit=values(grossProfit)'
+               '%s,%s,%s,%s)',
+               # 'ON DUPLICATE KEY UPDATE saleMoney=values(saleMoney),plat=values(plat),'
+               # 'saleMoneyZn=values(saleMoneyZn),ebayFeeEbay=values(ebayFeeEbay),'
+               # 'ebayFeeZnEbay=values(ebayFeeZnEbay),ppFee=values(ppFee),'
+               # 'ppFeeZn=values(ppFeeZn),costMoney=values(costMoney),'
+               # 'expressFare=values(expressFare),inPackageMoney=values(inPackageMoney),'
+               # 'refund=values(refund),dieFeeZn=values(dieFeeZn),insertionFee=values(insertionFee),'
+               # 'saleOpeFeeZn=values(saleOpeFeeZn),grossProfit=values(grossProfit)'
                ]
         self.warehouse_cur.executemany(''.join(sql), rows)
         self.warehouse_con.commit()
@@ -75,4 +76,5 @@ if __name__ == "__main__":
     month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
     worker = ProfitFetcher()
     # month_first_day = '2020-06-01'
+    # today = '2020-06-30'
     worker.work(month_first_day, today)
