@@ -119,7 +119,7 @@ class VoVaWorker(BaseService):
 
 
 if __name__ == '__main__':
-    worker = VovaFee()
+    worker = VoVaWorker()
     worker.run()
 
 

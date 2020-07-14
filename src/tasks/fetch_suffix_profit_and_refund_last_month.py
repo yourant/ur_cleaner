@@ -29,8 +29,8 @@ def get_last_month_end_day():
 if __name__ == "__main__":
     last_month_first_day = str(get_last_month_first_day())[:10]
     last_month_end_day = str(get_last_month_end_day())[:10]
-
-
+    # last_month_first_day = '2020-01-01'
+    # last_month_end_day = '2020-01-31'
     # fetch suffix profit
     profit_worker = ProfitFetcher()
     profit_worker.work(last_month_first_day, last_month_end_day)

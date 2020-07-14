@@ -9,7 +9,6 @@ import datetime
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
 from src.services import oauth as aliOauth
-from concurrent.futures import ThreadPoolExecutor
 
 
 class AliSync(BaseService):
