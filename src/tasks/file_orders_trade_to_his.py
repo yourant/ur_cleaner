@@ -23,7 +23,7 @@ class FileOrdersToHis(BaseService):
         sql = "exec  P_S_CodeRuleGet 230,'';"
         self.cur.execute(sql)
         ret = self.cur.fetchone()
-        return ret
+        return ret['MaxBillCode']
 
     def get_order_ids(self, begin, end):
         sql = "SELECT nid FROM P_Trade (nolock) WHERE FilterFlag = 100 AND CONVERT(VARCHAR(10),CLOSINGDATE,121) BETWEEN  %s AND %s"
@@ -37,7 +37,7 @@ class FileOrdersToHis(BaseService):
         now = datetime.datetime.now()
         begin = '2019-01-01'
         end = datetime.datetime(now.year, now.month - 2, 1) - datetime.timedelta(1)
-        # end = '2020-02-29'
+        # end = '2020-03-31'
         try:
             ids = self.get_order_ids(begin, end)
             batch_number = self.get_batch_number()
