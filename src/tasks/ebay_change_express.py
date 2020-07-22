@@ -6,7 +6,7 @@
 from src.services.base_service import BaseService
 import math
 from src.tasks.ebay_change_express_config import special_post_codes
-
+import datetime
 
 class Updater(BaseService):
     def __init__(self):
@@ -46,10 +46,10 @@ class Updater(BaseService):
         else:
             return suffix_orders[:need_order_number]
 
-    def get_order_new_express(self):
+    def get_order_new_express(self, order_time):
         # 找到需要被更改的订单，并根据邮编匹配最佳物流
-        self.get_all_orders('2020-07-20')
-        all_suffix = self.get_low_rate_suffix('2020-07-20')
+        self.get_all_orders(order_time)
+        all_suffix = self.get_low_rate_suffix(order_time)
         out = list()
         for sf in all_suffix:
             to_change_orders = self.get_to_change_order(sf)
@@ -75,16 +75,17 @@ class Updater(BaseService):
 
         sql = f'update p_trade set logicsWayNid = {logistics_ways[order["newName"]]} where nid = {order["nid"]}'
         # self.cur.execute(sql)
-        self.logger.info(f'updating {order["nid"]} set express to {order["newName"]}')
+        self.logger.info(f'updating {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
 
-    def trans(self):
-        orders = self.get_order_new_express()
+    def trans(self, order_time):
+        orders = self.get_order_new_express(order_time)
         for od in orders:
             self.set_order_new_express(od)
 
     def work(self):
         try:
-            self.trans()
+            order_time = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+            self.trans(order_time)
 
         except Exception as why:
             print(why)
