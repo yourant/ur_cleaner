@@ -18,11 +18,8 @@ class FetchEbayLists(BaseService):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
 
-
-
     def getData(self, token):
         suffix = token['suffix']
-        # print(suffix)
         i = 0
         try:
             trade_api = Trading(config_file=self.config)
@@ -63,7 +60,6 @@ class FetchEbayLists(BaseService):
         try:
             response = api.execute('GetItem', {'ItemID': row['ItemID']})
             result = response.dict()
-            # print(result)
             if (result['Ack'] == 'Success'):
                 try:
                     code = result['Item']['SKU'].replace("'", "")

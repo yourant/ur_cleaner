@@ -62,7 +62,7 @@ class WishUploader(BaseService):
         sql = 'update %s set shippingmethod=1 where nid=%s'
         cur = self.cur
         try:
-            cur.execute(sql, (trade_id, table_name))
+            cur.execute(sql, (table_name, trade_id))
             self.logger.info('ship %s' % trade_id)
             self.con.commit()
 

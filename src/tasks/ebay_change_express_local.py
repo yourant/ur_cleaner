@@ -8,6 +8,7 @@ import math
 from src.tasks.ebay_change_express_config import special_post_codes
 import datetime
 
+
 class Updater(BaseService):
     def __init__(self):
         super().__init__()
