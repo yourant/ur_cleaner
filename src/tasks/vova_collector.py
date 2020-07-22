@@ -50,7 +50,7 @@ class Worker(BaseService):
                 html = soup.select('.prod-thumb-big > div > div')
                 for row in html:
                     index = row.get('data-img-id')
-                    value = row.find('img').get('data-src').replace('500_500','150_150')
+                    value = row.find('img').get('data-src').replace('150_150', '500_500')
                     dic['name'] = row.find('img').get('alt')
                     dic['img'][index]  = 'http:' + value
             else:
@@ -78,7 +78,7 @@ class Worker(BaseService):
         i = 0
         for img in images:
             index = 'extra_image' + str(i)
-            extra_images[index] = images[img]
+            extra_images[index] = images[img].replace('150_150', '500_500')
             i = i + 1
             if i == 11:
                 break
@@ -148,7 +148,7 @@ class Worker(BaseService):
                     skuImgId = str(imageIdDic[str(sku['sku_id'])])
                     item['mainImage'] = extra_images['extra_image0']
                     try:
-                        item['varMainImage'] = image['img'][skuImgId]
+                        item['varMainImage'] = image['img'][skuImgId].re
                     except:
                         item['varMainImage'] = list(image['img'].values())[0]
                     skuRows.append({**item, **extra_images})

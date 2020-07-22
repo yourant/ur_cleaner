@@ -23,18 +23,18 @@ class SuffixSkuProfitFetcher(BaseService):
         for row in ret:
             yield (
                 row['dateFlag'], row['orderDate'],row['suffix'], row['pingtai'], row['goodsCode'], row['goodsName'],
-                row['storeName'], row['salerName'], row['skuQty'], row['saleMoneyRmb'], row['refund'],row['profitRmb']
+                row['storeName'], row['salerName'], row['devDate'], row['skuQty'], row['saleMoneyRmb'], row['refund'],row['profitRmb']
             )
 
     def push(self, rows):
         sql = ['insert into cache_suffixSkuProfitReport(',
                'dateFlag,orderDate,suffix,pingtai,goodsCode,goodsName,',
-               'storeName,salerName,skuQty,saleMoneyRmb,refund,profitRmb',
+               'storeName,salerName,devDate,skuQty,saleMoneyRmb,refund,profitRmb',
                ') values (',
                '%s,%s,%s,%s,%s,%s,',
-               '%s,%s,%s,%s,%s,%s',
+               '%s,%s,%s,%s,%s,%s,%s',
                ') ON DUPLICATE KEY UPDATE pingtai=values(pingtai),'
-               'goodsName=values(goodsName),salerName=values(salerName),'
+               'goodsName=values(goodsName),salerName=values(salerName),devDate=values(devDate),'
                'skuQty=values(skuQty),saleMoneyRmb=values(saleMoneyRmb),'
                'refund=values(refund),profitRmb=values(profitRmb)'
                ]
@@ -63,8 +63,8 @@ class SuffixSkuProfitFetcher(BaseService):
             today = str(datetime.datetime.today())[:10]
             last_month = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%Y-%m")
             last_month_first_day = str(last_month + '-01')
-            # last_month_first_day = '2020-03-01'
-            # today = '2020-03-31'
+            # last_month_first_day = '2020-06-01'
+            # today = '2020-06-30'
             self.clear(last_month_first_day, today)
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, last_month_first_day, today)
