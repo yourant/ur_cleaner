@@ -39,6 +39,12 @@ class CreateWytOutBoundOrder(BaseService):
                 }
                 self.update_order(update_params)
 
+            else:
+                # 异常处理
+                # 加其它备注:邮编,地址超长,收货人,尺寸
+                pass
+
+
         except Exception as e:
             self.logger.error('failed cause of {}'.format(e))
 
