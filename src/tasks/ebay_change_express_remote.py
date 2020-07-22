@@ -25,11 +25,26 @@ class Shipper(BaseService):
         获取订单信息
         :return:
         """
-        sql = ("select DISTINCT pt.guid as orderId, ptd.l_ebayitemTxNid  as orderLineItemId, ptd.l_number as itemId, pt.nid as tradeNid, ptd.l_ebayitemTxNid, pt.transactionId as transactionId, pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
+        check_sql = 'select mergeFlag from p_trade(nolock) where nid = %s'
+        single_sql = ("select DISTINCT pt.guid as orderId,pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
                "from p_trade(nolock) as pt LEFT JOIN S_PalSyncInfo as spi on spi.NoteName = pt.suffix "
-               "LEFT JOIN p_tradedt as ptd on pt.nid = ptd.tradeNid "
-               "LEFT JOIN B_LogisticWayReg as l on pt.logicswaynid=l.logisticwaynid and l.platform in ('trades','ebay')"
+               "LEFT JOIN p_tradedt(nolock)  as ptd on pt.nid = ptd.tradeNid "
+               "LEFT JOIN B_LogisticWayReg(nolock)  as l on pt.logicswaynid=l.logisticwaynid and l.platform in ('trades','ebay')"
                " where pt.nid = %s")
+
+        merge_sql = (
+            "select DISTINCT pb.guid as orderId, pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
+            "from p_trade(nolock) as pt LEFT JOIN S_PalSyncInfo as spi on spi.NoteName = pt.suffix "
+            "LEFT JOIN p_tradedt(nolock)  as ptd on pt.nid = ptd.tradeNid "
+            "LEFT JOIN p_trade_b(nolock)  as pb on pt.nid = pb.mergeBillId "
+            "LEFT JOIN B_LogisticWayReg(nolock)  as l on pt.logicswaynid=l.logisticwaynid and l.platform in ('trades','ebay')"
+            " where pt.nid = %s")
+        self.cur.execute(check_sql, (self.order_id,))
+        is_merge = self.cur.fetchone()
+        if is_merge['mergeFlag'] == 1:
+            sql = merge_sql
+        else:
+            sql = single_sql
         self.cur.execute(sql, (self.order_id,))
         ret = self.cur.fetchall()
         return ret
@@ -49,9 +64,9 @@ class Shipper(BaseService):
                     'Shipped': True,
                     'Shipment': {'ShipmentTrackingDetails':
                                       {
-                                          'ShipmentLineItem':
-                                              {'LineItem': {
-                                                  'ItemID': order_info['itemId'], 'TransactionID': order_info['transactionId']}},
+                                          # 'ShipmentLineItem':
+                                          #     {'LineItem': {
+                                          #         'ItemID': order_info['itemId'], 'TransactionID': order_info['transactionId']}},
                                           'ShippingCarrierUsed': order_info['carrierName'],
                                           'ShipmentTrackingNumber': order_info['trackNo'],
                                        }
@@ -107,7 +122,7 @@ class Shipper(BaseService):
 
 
 if __name__ == "__main__":
-    worker = Shipper()
+    worker = Shipper(21381190)
     worker.run()
 
 
