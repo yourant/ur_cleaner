@@ -1,20 +1,15 @@
 import datetime
 import time
 from src.services.base_service import BaseService
-from configs.config import Config
 from src.services import oauth_wyt as wytOauth
 import json
 import requests
 
 
-
-
-class CreateWytOutbonudOrder(BaseService):
+class CreateWytOutBoundOrder(BaseService):
     def __init__(self):
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
-        self.config = Config().get_config('ebay.yaml')
-
 
     def create_wyt_order(self, data):
         action = 'createOutboundOrder'
@@ -36,19 +31,16 @@ class CreateWytOutbonudOrder(BaseService):
                 else:
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
                             ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
-                print(logs)
                 update_params = {
-                    'trackingNum':trackingNum,
-                    'order_id':data['sellerOrderNo'],
+                    'trackingNum': trackingNum,
+                    'order_id': data['sellerOrderNo'],
                     'Logs': logs
 
                 }
                 self.update_order(update_params)
 
-
         except Exception as e:
             self.logger.error('failed cause of {}'.format(e))
-
 
     def get_package_number(self, order_num):
         action = 'queryOutboundOrder'
@@ -58,7 +50,6 @@ class CreateWytOutbonudOrder(BaseService):
         oauth = wytOauth.Wyt()
         params = oauth.get_request_par(data, action)
         trackingNum = ''
-
         res = requests.post(self.base_url, json=params)
         ret = json.loads(res.content)
         if ret['code'] == 0:
@@ -67,8 +58,6 @@ class CreateWytOutbonudOrder(BaseService):
             except:
                 trackingNum = ''
         return trackingNum
-
-
 
     def update_order(self, data):
         sql = 'update p_trade set TrackNo=%s where NID=%s'
@@ -94,7 +83,6 @@ class CreateWytOutbonudOrder(BaseService):
         rows = self.cur.fetchall()
         for row in rows:
             yield row
-
 
     def _parse_order_data(self, order):
         data = {
@@ -148,5 +136,5 @@ class CreateWytOutbonudOrder(BaseService):
 
 # 执行程序
 if __name__ == "__main__":
-    worker = CreateWytOutbonudOrder()
+    worker = CreateWytOutBoundOrder()
     worker.run()
