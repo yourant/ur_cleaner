@@ -23,9 +23,18 @@ class FetchEbayProductsStorage(BaseService):
     def getData(self):
         base_url = "http://openapi.winit.com.cn/openapi/service"
         step = 100
+        data = {
+            "warehouseID": "1000069",
+            "warehouseCode": "UK0001",
+            "inReturnInventory": "Y",
+            "isActive": "Y",
+            "pageSize": str(step),
+            "pageNum": "1"
+        }
+        action = 'queryWarehouseStorage'
         try:
             oauth = wytOauth.Wyt()
-            params = oauth.get_request_par(step)
+            params = oauth.get_request_par(data, action)
             res = requests.post(base_url,json=params)
             ret = json.loads(res.content)
             if ret['code'] == 0:
@@ -34,7 +43,8 @@ class FetchEbayProductsStorage(BaseService):
                 if ret['data']['total'] >= step:
                     page = math.ceil(ret['data']['total']/step)
                     for i in range(2, page + 1):
-                        params = oauth.get_request_par(step, i)
+                        data['pageNum'] = str(i)
+                        params = oauth.get_request_par(data, action)
                         response = requests.post(base_url, json=params)
                         result = json.loads(response.content)
                         rows = self._parse_response(result['data']['list'])

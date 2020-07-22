@@ -31,25 +31,17 @@ class Wyt(object):
         return signature
 
 
-    def get_request_par(self, step, i = 1):
+    def get_request_par(self, data, action, version = '1.0'):
         today = str(datetime.datetime.today())[:19]
-        data = {
-            "warehouseID": "1000069",
-            "warehouseCode": "UK0001",
-            "inReturnInventory": "Y",
-            "isActive": "Y",
-            "pageSize": str(step),
-            "pageNum": str(i)
-        }
         params = {
             'app_key': self.app_key,
             'platform': self.platform,
-            'action': 'queryWarehouseStorage',
+            'action': action,
             'data': json.dumps(data),
             'format': 'json',
             'timestamp': today,
             'sign_method': 'md5',
-            'version': '3.0'
+            'version': version
         }
         sign = self.get_signature(self.token, params)
         client_sign = self.get_signature(self.client_secret, params)

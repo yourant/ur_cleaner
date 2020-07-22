@@ -91,7 +91,8 @@ class Download(BaseService):
         ret['varition1'] = rows[0][0] + ':' + data['color']
         ret['varition2'] = ''
         for row in rows:
-            if('size' in row[0] or 'Size' in row[0]):
+            # print(row)
+            if(('size' in row[0] or 'Size' in row[0]) and data['size']):
                 ret['varition2'] = row[0] + ':' + data['size']
 
         return ret
@@ -99,7 +100,7 @@ class Download(BaseService):
 
 
     async def run(self):
-        # try:
+        try:
             # 获取单属性数据
             list = self.get_var_data()  # 获取数据
             if list:
@@ -107,10 +108,10 @@ class Download(BaseService):
                 self.logger.error('Success to download goods var templates')
             else:
                 self.logger.info('No goods var template need to download')
-        # except Exception as why:
-        #     self.logger.error('Failed to download goods var templates cause of {}'.format(why))
-        # finally:
-        #     self.close()
+        except Exception as why:
+            self.logger.error('Failed to download goods var templates cause of {}'.format(why))
+        finally:
+            self.close()
 
 
 
