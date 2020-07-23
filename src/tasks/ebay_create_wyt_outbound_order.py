@@ -90,14 +90,12 @@ class CreateWytOutBoundOrder(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT * FROM ("
-               "SELECT bw.serviceCode,t.* FROM [dbo].[p_trade] t "
+        sql = ("SELECT bw.serviceCode,t.* FROM "
+               "(SELECT * FROM [dbo].[p_trade] WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = '' "
+               "UNION SELECT * FROM [dbo].[P_TradeUn] WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 6 AND t.expressNid = 5 AND trackno = '' "
-               "UNION SELECT bw.serviceCode,t.* FROM [dbo].[P_TradeUn] t "
-               "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND trackno = '' "
-               ") WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') ")
+               "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') ")
+
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
