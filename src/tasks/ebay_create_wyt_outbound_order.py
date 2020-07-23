@@ -24,14 +24,14 @@ class CreateWytOutBoundOrder(BaseService):
                 # outboundOrderNum = 'WO3383663327'
                 trackingNum = self.get_package_number(outboundOrderNum)
                 if len(trackingNum) == 0:
-                    trackingNum = '待获取跟踪号'
+                    trackingNum = '待取跟踪号'
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
                         data['sellerOrderNo']) +
-                        ' 提交订单成功! 跟踪号: 待获取跟踪号  内部单号:' + str(outboundOrderNum))
+                            ' 提交订单成功! 跟踪号: 待取跟踪号  内部单号:' + str(outboundOrderNum))
                 else:
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
                         data['sellerOrderNo']) +
-                        ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
+                            ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
             else:
                 logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
                         ' 提交订单失败! 跟踪号:  错误信息:' + str(ret['msg']))
