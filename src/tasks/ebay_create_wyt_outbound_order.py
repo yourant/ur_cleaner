@@ -23,10 +23,9 @@ class CreateWytOutbonudOrder(BaseService):
             params = oauth.get_request_par(data, action)
             res = requests.post(self.base_url, json=params)
             ret = json.loads(res.content)
-            print(ret)
+            trackingNum = ''
             if ret['code'] == 0:
                 outboundOrderNum = ret['data']['outboundOrderNum']
-
                 # outboundOrderNum = 'WO3383663327'
                 trackingNum = self.get_package_number(outboundOrderNum)
                 if len(trackingNum) == 0:
@@ -36,15 +35,18 @@ class CreateWytOutbonudOrder(BaseService):
                 else:
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
                             ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
-                print(logs)
-                update_params = {
-                    'trackingNum':trackingNum,
-                    'order_id':data['sellerOrderNo'],
-                    'Logs': logs
 
-                }
-                self.update_order(update_params)
+            else:
+                logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
+                        ' 提交订单失败! 跟踪号:  错误信息:' + str(ret['msg']))
 
+            update_params = {
+                'trackingNum': trackingNum,
+                'order_id': data['sellerOrderNo'],
+                'Logs': logs
+
+            }
+            self.update_order(update_params)
 
         except Exception as e:
             self.logger.error('failed cause of {}'.format(e))
@@ -84,12 +86,13 @@ class CreateWytOutbonudOrder(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT bw.serviceCode,t.* FROM [dbo].[p_trade] t "
+        sql = (
+                "SELECT bw.serviceCode,t.* FROM [dbo].[p_trade] t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
                "WHERE t.FilterFlag = 6 AND t.expressNid = 5 AND trackno = '' "
-               "UNION SELECT bw.serviceCode,t.* FROM [dbo].[P_TradeUn] t "
+               "union SELECT bw.serviceCode,t.* FROM [dbo].[P_TradeUn] t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND trackno = '' ")
+               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND trackno = '' -- and t.nid=21372687 ")
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
@@ -99,7 +102,7 @@ class CreateWytOutbonudOrder(BaseService):
     def _parse_order_data(self, order):
         data = {
             "doorplateNumbers": "0",
-            "address1": order["SHIPTOSTREET"],
+            "address1": order["SHIPTOSTREET"]*100,
             "address2": order["SHIPTOSTREET2"],
             "city": order["SHIPTOCITY"],
             "deliveryWayID": order["serviceCode"],
