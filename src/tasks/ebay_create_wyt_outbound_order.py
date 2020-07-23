@@ -67,7 +67,7 @@ class CreateWytOutBoundOrder(BaseService):
         return trackingNum
 
     def update_order_remark(self, order_id, content):
-        sql = ("if not EXISTS (select id from CG_OutofStock_Total(nolock) where TradeNID=%s) "
+        sql = ("if not EXISTS (select TradeNID from CG_OutofStock_Total(nolock) where TradeNID=%s) "
                " insert into CG_OutofStock_Total(TradeNID,PrintMemoTotal) values(%s,%s)"
                "else update CG_OutofStock_Total set PrintMemoTotal=%s where TradeNID=%s")
         try:
@@ -94,7 +94,8 @@ class CreateWytOutBoundOrder(BaseService):
                "(SELECT * FROM [dbo].[p_trade] WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = '' "
                "UNION SELECT * FROM [dbo].[P_TradeUn] WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') ")
+               "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
+               "-- AND t.NID=21383397 ")
 
         self.cur.execute(sql)
         rows = self.cur.fetchall()
@@ -104,7 +105,7 @@ class CreateWytOutBoundOrder(BaseService):
     def _parse_order_data(self, order):
         data = {
             "doorplateNumbers": "0",
-            "address1": order["SHIPTOSTREET"] * 100,
+            "address1": order["SHIPTOSTREET"],
             "address2": order["SHIPTOSTREET2"],
             "city": order["SHIPTOCITY"],
             "deliveryWayID": order["serviceCode"],
