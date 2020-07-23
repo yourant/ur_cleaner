@@ -9,14 +9,11 @@ import requests
 import json
 
 
-
 class FetchEbayOrderPackageNumber(BaseService):
     def __init__(self):
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
         self.config = Config().get_config('ebay.yaml')
-
-
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
@@ -29,6 +26,7 @@ class FetchEbayOrderPackageNumber(BaseService):
         rows = self.cur.fetchall()
         for row in rows:
             yield row
+
 
     def get_package_number(self, order):
         action = 'queryOutboundOrderList'
@@ -52,7 +50,6 @@ class FetchEbayOrderPackageNumber(BaseService):
             # print(trackingNum)
         return trackingNum
 
-
     def update_order(self, data):
         sql = 'update p_trade set TrackNo=%s where NID=%s'
         out_stock_sql = 'update P_TradeUn set TrackNo=%s where NID=%s'
@@ -66,10 +63,8 @@ class FetchEbayOrderPackageNumber(BaseService):
         except Exception as why:
             self.logger.error(f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
 
-
-
     def get_data_by_id(self, order):
-        while (True):
+        try:
             trackingNum = self.get_package_number(order)
             if trackingNum:
                 logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(order['NID']) +
@@ -79,15 +74,14 @@ class FetchEbayOrderPackageNumber(BaseService):
                     'order_id': order['NID'],
                     'Logs': logs
                 }
-                self.update_order(update_params)         #修改跟踪号，添加操作日志
-                ebayExpress.Shipper(order['NID']).run()  #标记平台发货
-                break
+                # 修改跟踪号，添加操作日志
+                self.update_order(update_params)
+                # 标记平台发货
+                ebayExpress.Shipper(order['NID']).run()
             else:
-                time.sleep(100)
-                #     break
-                #     pass
-
-
+                self.logger.info('tracking no of order {} is empty!'.format(order['NID']))
+        except Exception as e:
+            self.logger.error('failed to get tracking no cause of {}'.format(e))
 
     def run(self):
         BeginTime = time.time()
@@ -95,7 +89,7 @@ class FetchEbayOrderPackageNumber(BaseService):
             rows = self.get_order_data()
             with Pool(8) as pl:
                 pl.map(self.get_data_by_id, rows)
-        except Exception  as e:
+        except Exception as e:
             self.logger.error(e)
         finally:
             self.close()

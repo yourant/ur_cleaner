@@ -27,11 +27,11 @@ class CreateWytOutBoundOrder(BaseService):
                     trackingNum = '待获取跟踪号'
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
                         data['sellerOrderNo']) +
-                            ' 提交订单成功! 跟踪号: 待获取跟踪号  内部单号:' + str(outboundOrderNum))
+                        ' 提交订单成功! 跟踪号: 待获取跟踪号  内部单号:' + str(outboundOrderNum))
                 else:
                     logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
                         data['sellerOrderNo']) +
-                            ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
+                        ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
             else:
                 logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
                         ' 提交订单失败! 跟踪号:  错误信息:' + str(ret['msg']))
@@ -62,7 +62,7 @@ class CreateWytOutBoundOrder(BaseService):
         if ret['code'] == 0:
             try:
                 trackingNum = ret['data']['list'][0]['trackingNum']
-            except:
+            except BaseException:
                 trackingNum = ''
         return trackingNum
 
@@ -71,10 +71,12 @@ class CreateWytOutBoundOrder(BaseService):
                " insert into CG_OutofStock_Total(TradeNID,PrintMemoTotal) values(%s,%s)"
                "else update CG_OutofStock_Total set PrintMemoTotal=%s where TradeNID=%s")
         try:
-            self.cur.execute(sql, (order_id, order_id, content, content, order_id))
+            self.cur.execute(
+                sql, (order_id, order_id, content, content, order_id))
             self.con.commit()
         except Exception as why:
-            self.logger.error(f"failed to modify PrintMemoTotal of order No. {order_id} cause of {why} ")
+            self.logger.error(
+                f"failed to modify PrintMemoTotal of order No. {order_id} cause of {why} ")
 
     def update_order(self, data):
         sql = 'UPDATE p_trade SET TrackNo=%s WHERE NID=%s'
@@ -82,11 +84,16 @@ class CreateWytOutBoundOrder(BaseService):
         log_sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
             self.cur.execute(sql, (data['trackingNum'], data['order_id']))
-            self.cur.execute(out_stock_sql, (data['trackingNum'], data['order_id']))
-            self.cur.execute(log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
+            self.cur.execute(
+                out_stock_sql,
+                (data['trackingNum'],
+                 data['order_id']))
+            self.cur.execute(
+                log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
         except Exception as why:
-            self.logger.error(f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
+            self.logger.error(
+                f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
@@ -145,7 +152,7 @@ class CreateWytOutBoundOrder(BaseService):
                 # print(order)
                 data = self._parse_order_data(order)
                 self.create_wyt_order(data)
-        except Exception  as e:
+        except Exception as e:
             self.logger.error(e)
         finally:
             self.close()
