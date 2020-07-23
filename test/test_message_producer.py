@@ -5,6 +5,7 @@
 import pika
 import time
 import random
+import json
 from pika import credentials
 credentials = credentials.PlainCredentials('youran', 'youran2020')
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.0.203', port=5672, credentials=credentials))
@@ -13,12 +14,13 @@ connection = pika.BlockingConnection(pika.ConnectionParameters(host='192.168.0.2
 #     pika.ConnectionParameters(host='192.168.0.172'))
 channel = connection.channel()
 
-channel.queue_declare(queue='hello')
+channel.queue_declare(queue='wish')
+body = {'request-url': 'wish-update', 'callback-url' 'data': {'param': ''}}
 
 i = 0
 while True:
     time.sleep(random.randint(1, 3))
-    channel.basic_publish(exchange='', routing_key='hello', body=f'Hello {i}')
+    channel.basic_publish(exchange='', routing_key='wish', body=json.dumps(body))
     i += 1
     print(f" [x] Sent 'Hello {i}'")
 
