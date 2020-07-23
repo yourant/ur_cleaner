@@ -80,16 +80,18 @@ class FetchEbayOrderPackageNumber(BaseService):
             self.logger.error('failed to get tracking no cause of {}'.format(e))
 
     def run(self):
-        BeginTime = time.time()
+        begin_time = time.time()
         try:
             rows = self.get_order_data()
-            with Pool(8) as pl:
-                pl.map(self.get_data_by_id, rows)
+            for rw in rows:
+                self.get_data_by_id(rw)
+            # with Pool(8) as pl:
+            #     pl.map(self.get_data_by_id, rows)
         except Exception as e:
             self.logger.error(e)
         finally:
             self.close()
-        print('程序耗时{:.2f}'.format(time.time() - BeginTime))  # 计算程序总耗时
+        print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时
 
 
 # 执行程序
