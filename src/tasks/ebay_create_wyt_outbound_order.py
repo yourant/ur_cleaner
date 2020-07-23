@@ -25,16 +25,20 @@ class CreateWytOutBoundOrder(BaseService):
                 trackingNum = self.get_package_number(outboundOrderNum)
                 if len(trackingNum) == 0:
                     trackingNum = '待获取跟踪号'
-                    logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
+                    logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
+                        data['sellerOrderNo']) +
                             ' 提交订单成功! 跟踪号: 待获取跟踪号  内部单号:' + str(outboundOrderNum))
                 else:
-                    logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
+                    logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(
+                        data['sellerOrderNo']) +
                             ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
             else:
-                # 异常处理
-                # 加其它备注:邮编,地址超长,收货人,尺寸
                 logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(data['sellerOrderNo']) +
                         ' 提交订单失败! 跟踪号:  错误信息:' + str(ret['msg']))
+                # 异常处理
+                # 加其它备注:邮编,地址超长,收货人,尺寸
+                self.update_order_remark(data['sellerOrderNo'], ret['msg'])
+
             update_params = {
                 'trackingNum': trackingNum,
                 'order_id': data['sellerOrderNo'],
@@ -62,27 +66,37 @@ class CreateWytOutBoundOrder(BaseService):
                 trackingNum = ''
         return trackingNum
 
+    def update_order_remark(self, order_id, content):
+        sql = ("if not EXISTS (select TradeNID from CG_OutofStock_Total(nolock) where TradeNID=%s) "
+               " insert into CG_OutofStock_Total(TradeNID,PrintMemoTotal) values(%s,%s)"
+               "else update CG_OutofStock_Total set PrintMemoTotal=%s where TradeNID=%s")
+        try:
+            self.cur.execute(sql, (order_id, order_id, content, content, order_id))
+            self.con.commit()
+        except Exception as why:
+            self.logger.error(f"failed to modify PrintMemoTotal of order No. {order_id} cause of {why} ")
+
     def update_order(self, data):
-        sql = 'update p_trade set TrackNo=%s where NID=%s'
-        out_stock_sql = 'update P_TradeUn set TrackNo=%s where NID=%s'
-        log_sql = 'insert into P_TradeLogs(TradeNID,Operator,Logs) values(%s,%s,%s)'
+        sql = 'UPDATE p_trade SET TrackNo=%s WHERE NID=%s'
+        out_stock_sql = 'UPDATE P_TradeUn SET TrackNo=%s WHERE NID=%s'
+        log_sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
             self.cur.execute(sql, (data['trackingNum'], data['order_id']))
             self.cur.execute(out_stock_sql, (data['trackingNum'], data['order_id']))
-            self.cur.execute(log_sql, (data['order_id'],'ur_cleaner',data['Logs']))
+            self.cur.execute(log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
         except Exception as why:
             self.logger.error(f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = (
-                "SELECT bw.serviceCode,t.* FROM [dbo].[p_trade] t "
+        sql = ("SELECT bw.serviceCode,t.* FROM "
+               "(SELECT * FROM [dbo].[p_trade] WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = '' "
+               "UNION SELECT * FROM [dbo].[P_TradeUn] WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 6 AND t.expressNid = 5 AND isnull(trackno,'') = '' "
-               "union SELECT bw.serviceCode,t.* FROM [dbo].[P_TradeUn] t "
-               "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND isnull(trackno,'') = '' -- and t.nid=21372687 ")
+               "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
+               "-- AND t.NID=21383397 ")
+
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
@@ -91,7 +105,7 @@ class CreateWytOutBoundOrder(BaseService):
     def _parse_order_data(self, order):
         data = {
             "doorplateNumbers": "0",
-            "address1": order["SHIPTOSTREET"]*100,
+            "address1": order["SHIPTOSTREET"],
             "address2": order["SHIPTOSTREET2"],
             "city": order["SHIPTOCITY"],
             "deliveryWayID": order["serviceCode"],
@@ -106,8 +120,8 @@ class CreateWytOutBoundOrder(BaseService):
             "warehouseID": "1000069",
             "zipCode": order["SHIPTOZIP"]
         }
-        detail_sql = "SELECT * FROM p_tradeDt WHERE tradeNid=%s union SELECT * FROM p_tradeDtUn WHERE tradeNid=%s"
-        self.cur.execute(detail_sql, (order["NID"],order["NID"]))
+        detail_sql = "SELECT * FROM p_tradeDt WHERE tradeNid=%s UNION SELECT * FROM p_tradeDtUn WHERE tradeNid=%s"
+        self.cur.execute(detail_sql, (order["NID"], order["NID"]))
         detail = self.cur.fetchall()
         productList = []
         for val in detail:
