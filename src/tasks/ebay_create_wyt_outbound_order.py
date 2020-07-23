@@ -79,10 +79,10 @@ class CreateWytOutBoundOrder(BaseService):
         sql = (
                 "SELECT bw.serviceCode,t.* FROM [dbo].[p_trade] t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 6 AND t.expressNid = 5 AND trackno = '' "
+               "WHERE t.FilterFlag = 6 AND t.expressNid = 5 AND isnull(trackno,'') = '' "
                "union SELECT bw.serviceCode,t.* FROM [dbo].[P_TradeUn] t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND trackno = '' -- and t.nid=21372687 ")
+               "WHERE t.FilterFlag = 1 AND t.expressNid = 5 AND isnull(trackno,'') = '' -- and t.nid=21372687 ")
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
