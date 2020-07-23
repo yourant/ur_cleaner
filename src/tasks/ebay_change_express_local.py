@@ -71,11 +71,13 @@ class Updater(BaseService):
     def set_order_new_express(self, order):
         # 设置订单新的物流方式,经过派单处理之后，在非E邮宝或者缺货状态中，申请跟踪号
         # logicsWayNID
-        logistics_ways = {'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE': 524,
-                         'Royal Mail - Tracked 48 Parcel':283}
+        logistics_ways = {
+            'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE': 524,
+            'Royal Mail - Tracked 48 Parcel': 283
+        }
 
         sql = f'update p_trade set logicsWayNid = {logistics_ways[order["newName"]]} where nid = {order["nid"]}'
-        # self.cur.execute(sql)
+        self.cur.execute(sql)
         self.logger.info(f'updating {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
 
     def trans(self, order_time):
@@ -85,11 +87,13 @@ class Updater(BaseService):
 
     def work(self):
         try:
-            order_time = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
-            self.trans(order_time)
+            today = str(datetime.datetime.now())[:10]
+            yesterday = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+            for day in [today, yesterday]:
+                self.trans(day)
 
         except Exception as why:
-            print(why)
+            self.logger.error(f'fail to finish task cause of {why}')
         finally:
             pass
 
