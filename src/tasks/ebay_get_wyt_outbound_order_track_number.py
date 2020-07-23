@@ -3,6 +3,7 @@ import time
 from src.services.base_service import BaseService
 from configs.config import Config
 from src.services import oauth_wyt as wytOauth
+from src.tasks import ebay_change_express_remote as ebayExpress
 from concurrent.futures import ThreadPoolExecutor as Pool
 import requests
 import json
@@ -78,12 +79,15 @@ class FetchEbayOrderPackageNumber(BaseService):
                     'order_id': order['NID'],
                     'Logs': logs
                 }
-                self.update_order(update_params)
+                self.update_order(update_params)         #修改跟踪号，添加操作日志
+                ebayExpress.Shipper(order['NID']).run()  #标记平台发货
                 break
             else:
                 time.sleep(100)
                 #     break
                 #     pass
+
+
 
     def run(self):
         BeginTime = time.time()
