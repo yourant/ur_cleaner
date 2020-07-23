@@ -87,8 +87,10 @@ class Updater(BaseService):
 
     def work(self):
         try:
-            order_time = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
-            self.trans(order_time)
+            today = str(datetime.datetime.now())[:10]
+            yesterday = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+            for day in [today, yesterday]:
+                self.trans(day)
 
         except Exception as why:
             self.logger.error(f'fail to finish task cause of {why}')
