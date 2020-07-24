@@ -6,6 +6,7 @@
 from src.services.base_service import BaseService
 from configs.config import Config
 from ebaysdk.trading import Connection as Trading
+import datetime
 from ebaysdk import exception
 import json
 
@@ -105,9 +106,25 @@ class Shipper(BaseService):
         except Exception as e:
             self.logger.info(f'fail to set {order_info["tradeNid"]}  to shipping status ')
 
+    def set_log(self, order):
+        """
+        记录操作日志
+        :param order:
+        :return:
+        """
+        sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
+        try:
+            logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 标记发货成功 ')
+            self.cur.execute(sql, (order['tradeNid'], 'ur_cleaner', logs))
+            self.con.commit()
+            # self.logger.info(f'success to set log of {order["nid"]}')
+        except Exception as why:
+            self.logger.error(f'fail to set log of {order["nid"]}')
+
     def trans(self, order_info):
         self.upload_track_number(order_info)
         self.mark_order_status(order_info)
+        self.set_log(order_info)
 
     def run(self):
         try:
