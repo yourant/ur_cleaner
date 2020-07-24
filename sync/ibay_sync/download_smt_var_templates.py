@@ -19,7 +19,7 @@ class Download(BaseService):
 
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/smt/'
+        self.path = '../../runtime/smt2/'
 
     # 获取产品多属性 数据
     def get_var_data(self):
