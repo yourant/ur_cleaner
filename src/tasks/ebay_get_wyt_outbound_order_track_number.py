@@ -92,7 +92,6 @@ class FetchEbayOrderPackageNumber(BaseService):
         try:
             rows = self.get_order_data()
             for rw in rows:
-                print(rw)
                 self.get_data_by_id(rw)
             # with Pool(8) as pl:
             #     pl.map(self.get_data_by_id, rows)
