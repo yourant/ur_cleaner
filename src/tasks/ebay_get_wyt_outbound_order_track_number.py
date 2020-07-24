@@ -17,8 +17,8 @@ class FetchEbayOrderPackageNumber(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待获取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 union "
-               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待获取跟踪号'  and datediff(month,orderTime,getDate()) <= 1")
+        sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 union "
+               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1")
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
