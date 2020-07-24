@@ -12,18 +12,16 @@ from sync.ibay_sync.smt_ibay_server import generate
 from src.services.base_service import BaseService
 
 
-
-
 class Download(BaseService):
     """
     Export goods info to excel file
     """
+
     def __init__(self):
         super().__init__()
         self.path = '../../runtime/smt/'
 
-
-        # 获取产品多属性 数据
+    # 获取产品多属性 数据
     def get_var_data(self):
         sql = 'select  * from proCenter.oa_smtImportToIbayLog where status1=1 and status2=0'
         self.warehouse_cur.execute(sql)
@@ -34,8 +32,9 @@ class Download(BaseService):
     def deal_var_data(self, data):
         for item in data:
             rows = []
-            smtSql = ('select  * from proCenter.oa_smtGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId ' 
-                        ' inner join proCenter.oa_smtGoods gg on gg.infoId=g.id  where goodsCode = %s;')
+            smtSql = (
+                'select  * from proCenter.oa_smtGoodsSku ae inner join proCenter.oa_goodsinfo g on g.id=ae.infoId '
+                ' inner join proCenter.oa_smtGoods gg on gg.infoId=g.id  where goodsCode = %s;')
             self.warehouse_cur.execute(smtSql, item['SKU'])
             smtQuery = self.warehouse_cur.fetchall()
             if smtQuery:
@@ -92,31 +91,26 @@ class Download(BaseService):
         ret['varition2'] = ''
         for row in rows:
             # print(row)
-            if(('size' in row[0] or 'Size' in row[0]) and data['size']):
+            if ('size' in row[0] or 'Size' in row[0]) and data['size']:
                 ret['varition2'] = row[0] + ':' + data['size']
-
         return ret
 
-
-
     async def run(self):
-        try:
+        # try:
             # 获取单属性数据
-            list = self.get_var_data()  # 获取数据
-            if list:
-                self.deal_var_data(list)  # 处理数据 并导出表格
+            data = self.get_var_data()  # 获取数据
+            if data:
+                self.deal_var_data(data)  # 处理数据 并导出表格
                 self.logger.error('Success to download goods var templates')
             else:
                 self.logger.info('No goods var template need to download')
-        except Exception as why:
-            self.logger.error('Failed to download goods var templates cause of {}'.format(why))
-        finally:
-            self.close()
-
+        # except Exception as why:
+        #     self.logger.error('Failed to download goods var templates cause of {}'.format(why))
+        # finally:
+        #     self.close()
 
 
 if __name__ == '__main__':
-
     start = time.time()
     export = Download()
 
@@ -125,8 +119,3 @@ if __name__ == '__main__':
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')
-
-
-
-
-

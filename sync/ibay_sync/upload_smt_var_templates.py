@@ -13,8 +13,6 @@ from sync.ibay_sync.smt_ibay_server import login_session
 from src.services.base_service import BaseService
 
 
-
-
 class Upload(BaseService):
     """
     Export goods info to excel file
@@ -24,9 +22,6 @@ class Upload(BaseService):
         self.path = '../../runtime/smt/'
         self.session = login_session()
         self.upload_url = 'http://139.196.109.214/index.php/import/aliexpressimportxlsvar'
-
-
-
 
     def upload(self, path):
         try:
@@ -54,9 +49,9 @@ class Upload(BaseService):
     def update_log(self, path, content):
         try:
             if path.find('SMT2') != -1:
-                list = path.split('.')
+                data = path.split('.')
                 sql = "update proCenter.oa_smtImportToIbayLog set content=%s where mubanId=%s;"
-                params = (content, list[5])
+                params = (content, data[5])
 
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
@@ -65,14 +60,13 @@ class Upload(BaseService):
         except Exception as why:
             self.logger.error('Failed to update log content cause of {}'.format(why))
 
-
     def remark_data(self, path, muban_id):
         try:
             now = str(datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
             if path.find('SMT2') != -1:
-                list = path.split('.')
+                data = path.split('.')
                 sql = "update proCenter.oa_smtImportToIbayLog set completeDate2=%s,status2=%s where mubanId=%s;"
-                params = (now, 1, list[5])
+                params = (now, 1, data[5])
 
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
@@ -81,8 +75,6 @@ class Upload(BaseService):
             self.logger.error('Success to remark data')
         except Exception as why:
             self.logger.error('Failed to remark data cause of {}'.format(why))
-
-
 
     async def run(self):
         try:
@@ -96,7 +88,6 @@ class Upload(BaseService):
             self.logger.error('Failed to upload goods var templates cause of {}'.format(why))
         finally:
             self.close()
-
 
 
 if __name__ == '__main__':

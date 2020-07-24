@@ -32,8 +32,8 @@ class FetchEbayOrderPackageNumber(BaseService):
             'sellerOrderNo': order['NID'],
             'dateOrderedStartDate': begin,
             'dateOrderedEndDate': end,
-            'pageSize':10,
-            'pageNum':1
+            'pageSize': 10,
+            'pageNum': 1
         }
         oauth = wytOauth.Wyt()
         params = oauth.get_request_par(data, action)
@@ -52,12 +52,17 @@ class FetchEbayOrderPackageNumber(BaseService):
         log_sql = 'insert into P_TradeLogs(TradeNID,Operator,Logs) values(%s,%s,%s)'
         try:
             self.cur.execute(sql, (data['trackingNum'], data['order_id']))
-            self.cur.execute(out_stock_sql, (data['trackingNum'], data['order_id']))
-            self.cur.execute(log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
+            self.cur.execute(
+                out_stock_sql,
+                (data['trackingNum'],
+                 data['order_id']))
+            self.cur.execute(
+                log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
             self.logger.info(data['Logs'])
         except Exception as why:
-            self.logger.error(f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
+            self.logger.error(
+                f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
 
     def get_data_by_id(self, order):
         try:
@@ -75,9 +80,12 @@ class FetchEbayOrderPackageNumber(BaseService):
                 # 标记平台发货
                 ebayExpress.Shipper(order['NID']).run()
             else:
-                self.logger.info('tracking no of order {} is empty!'.format(order['NID']))
+                self.logger.info(
+                    'tracking no of order {} is empty!'.format(
+                        order['NID']))
         except Exception as e:
-            self.logger.error('failed to get tracking no cause of {}'.format(e))
+            self.logger.error(
+                'failed to get tracking no cause of {}'.format(e))
 
     def run(self):
         begin_time = time.time()
