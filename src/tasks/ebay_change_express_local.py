@@ -92,7 +92,7 @@ class Updater(BaseService):
         """
         sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
-            logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 更为物流方式为 ' + order['newName'])
+            logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 更改物流方式为 ' + order['newName'])
             self.cur.execute(sql, (order['nid'], 'ur_cleaner', logs))
             self.con.commit()
             # self.logger.info(f'success to set log of {order["nid"]}')
