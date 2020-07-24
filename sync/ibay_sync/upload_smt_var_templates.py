@@ -35,7 +35,7 @@ class Upload(BaseService):
             if html:
                     mubanId = re.findall(r'\d+', html)
                     # print(mubanId)
-                    if mubanId :
+                    if mubanId:
                         self.remark_data(path, mubanId[0])
             else:
                 if len(table) > 1:
@@ -52,11 +52,9 @@ class Upload(BaseService):
                 data = path.split('.')
                 sql = "update proCenter.oa_smtImportToIbayLog set content=%s where mubanId=%s;"
                 params = (content, data[5])
-
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
-
-                # os.remove(path)  # 删除excel文件
+                os.remove(path)  # 删除excel文件
         except Exception as why:
             self.logger.error('Failed to update log content cause of {}'.format(why))
 
@@ -67,10 +65,8 @@ class Upload(BaseService):
                 data = path.split('.')
                 sql = "update proCenter.oa_smtImportToIbayLog set completeDate2=%s,status2=%s where mubanId=%s;"
                 params = (now, 1, data[5])
-
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
-
                 os.remove(path)
             self.logger.error('Success to remark data')
         except Exception as why:
