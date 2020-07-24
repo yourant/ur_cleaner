@@ -96,7 +96,7 @@ class Download(BaseService):
         return ret
 
     async def run(self):
-        # try:
+        try:
             # 获取单属性数据
             data = self.get_var_data()  # 获取数据
             if data:
@@ -104,10 +104,10 @@ class Download(BaseService):
                 self.logger.error('Success to download goods var templates')
             else:
                 self.logger.info('No goods var template need to download')
-        # except Exception as why:
-        #     self.logger.error('Failed to download goods var templates cause of {}'.format(why))
-        # finally:
-        #     self.close()
+        except Exception as why:
+            self.logger.error('Failed to download goods var templates cause of {}'.format(why))
+        finally:
+            self.close()
 
 
 if __name__ == '__main__':
