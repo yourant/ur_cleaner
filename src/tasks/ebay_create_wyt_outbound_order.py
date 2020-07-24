@@ -47,9 +47,10 @@ class CreateWytOutBoundOrder(BaseService):
                 'Logs': logs
             }
             self.update_order(update_params)
+            self.logger.info(f'success to create {data["sellerOrderNo"]}')
 
         except Exception as e:
-            self.logger.error('failed cause of {}'.format(e))
+            self.logger.error(f'failed to create {data["sellerOrderNo"]} cause of {e}')
 
     def get_package_number(self, order_num):
         # 获取跟踪号
@@ -102,9 +103,9 @@ class CreateWytOutBoundOrder(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT bw.serviceCode,t.* FROM "
-               "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) = 1"
-               " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) = 1 ) t "
+        sql = ("SELECT top 10 bw.serviceCode,t.* FROM "
+               "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
+               " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
                "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
                "-- AND t.NID=21383397 ")
@@ -155,9 +156,8 @@ class CreateWytOutBoundOrder(BaseService):
         try:
             rows = self.get_order_data()
             for order in rows:
-                print(order)
-                # data = self._parse_order_data(order)
-                # self.create_wyt_order(data)
+                data = self._parse_order_data(order)
+                self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
         finally:
