@@ -16,12 +16,11 @@ class Shipper(BaseService):
     上传跟踪号到eBay后台
     """
 
-    def __init__(self, order_id):
+    def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.order_id = order_id
 
-    def get_orders(self):
+    def get_orders(self, order_id):
         """
         获取订单信息
         :return:
@@ -40,13 +39,13 @@ class Shipper(BaseService):
             "LEFT JOIN p_trade_b(nolock)  as pb on pt.nid = pb.mergeBillId "
             "LEFT JOIN B_LogisticWayReg(nolock)  as l on pt.logicswaynid=l.logisticwaynid and l.platform in ('trades','ebay')"
             " where pt.nid = %s")
-        self.cur.execute(check_sql, (self.order_id,))
+        self.cur.execute(check_sql, (order_id,))
         is_merge = self.cur.fetchone()
         if is_merge['mergeFlag'] == 1:
             sql = merge_sql
         else:
             sql = single_sql
-        self.cur.execute(sql, (self.order_id,))
+        self.cur.execute(sql, (order_id,))
         ret = self.cur.fetchall()
         return ret
 
@@ -121,16 +120,16 @@ class Shipper(BaseService):
         except Exception as why:
             self.logger.error(f'fail to set log of {order["tradeNid"]}')
 
-    def trans(self, order_info):
-        self.upload_track_number(order_info)
-        self.mark_order_status(order_info)
-        self.set_log(order_info)
+    def ship(self, order_id=''):
+        orders = self.get_orders(order_id)
+        for od in orders:
+            self.upload_track_number(od)
+            self.mark_order_status(od)
+            self.set_log(od)
 
     def run(self):
         try:
-            orders = self.get_orders()
-            for od in orders:
-                self.trans(od)
+            self.ship()
 
         except Exception as why:
             self.logger.error('fail to  finish task cause of {} '.format(why))
