@@ -138,7 +138,7 @@ class Shipper(BaseService):
 
 
 if __name__ == "__main__":
-    worker = Shipper(21381190)
+    worker = Shipper()
     worker.run()
 
 
