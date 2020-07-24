@@ -13,8 +13,6 @@ from sync.ibay_sync.smt_ibay_server import login_session
 from src.services.base_service import BaseService
 
 
-
-
 class Upload(BaseService):
     """
     Export goods info to excel file
@@ -24,8 +22,6 @@ class Upload(BaseService):
         self.path = '../../runtime/smt/'
         self.session = login_session()
         self.upload_url = 'http://139.196.109.214/index.php/import/aliexpressimportxls'
-
-
 
     def upload(self, path):
         try:
@@ -39,10 +35,10 @@ class Upload(BaseService):
             if html:
                     mubanId = re.findall(r'\d+', html)
                     # print(mubanId)
-                    if mubanId :
+                    if mubanId:
                         self.remark_data(path, mubanId[0])
             else:
-                if len(table)>1:
+                if len(table) > 1:
                     log = table[1].findAll('td')[0].getText()
                     self.update_log(path, log)
 
@@ -50,13 +46,12 @@ class Upload(BaseService):
             self.logger.error('{} is failed to upload cause of {}'.format(path, why))
             # os.remove(path)  # 删除excel文件
 
-
     def update_log(self, path, content):
         try:
             if path.find('SMT1') != -1:
-                list = path.split('.')
+                data = path.split('.')
                 sql = "update proCenter.oa_smtImportToIbayLog set content=%s where ibaySuffix=%s and sku=%s;"
-                params = (content, list[6], list[5])
+                params = (content, data[6], data[5])
 
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
@@ -80,8 +75,6 @@ class Upload(BaseService):
         except Exception as why:
             self.logger.error('Failed to remark data cause of {}'.format(why))
 
-
-
     async def run(self):
         try:
             # 获取所有表格
@@ -96,12 +89,9 @@ class Upload(BaseService):
             self.close()
 
 
-
 if __name__ == '__main__':
-
     start = time.time()
     export = Upload()
-
     loop = asyncio.get_event_loop()
     loop.run_until_complete(export.run())
     end = time.time()
