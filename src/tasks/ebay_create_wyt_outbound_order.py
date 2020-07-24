@@ -8,10 +8,12 @@ import requests
 
 class CreateWytOutBoundOrder(BaseService):
     def __init__(self):
+        # 初始化
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
 
     def create_wyt_order(self, data):
+        # 创建万邑通出库单
         action = 'createOutboundOrder'
         try:
             oauth = wytOauth.Wyt()
@@ -50,6 +52,7 @@ class CreateWytOutBoundOrder(BaseService):
             self.logger.error('failed cause of {}'.format(e))
 
     def get_package_number(self, order_num):
+        # 获取跟踪号
         action = 'queryOutboundOrder'
         data = {
             'outboundOrderNum': order_num
@@ -67,6 +70,7 @@ class CreateWytOutBoundOrder(BaseService):
         return trackingNum
 
     def update_order_remark(self, order_id, content):
+        # 标记失败状态
         sql = ("if not EXISTS (select TradeNID from CG_OutofStock_Total(nolock) where TradeNID=%s) "
                " insert into CG_OutofStock_Total(TradeNID,PrintMemoTotal) values(%s,%s)"
                "else update CG_OutofStock_Total set PrintMemoTotal=%s where TradeNID=%s")
@@ -79,6 +83,7 @@ class CreateWytOutBoundOrder(BaseService):
                 f"failed to modify PrintMemoTotal of order No. {order_id} cause of {why} ")
 
     def update_order(self, data):
+        # 更新订单跟踪号
         sql = 'UPDATE p_trade SET TrackNo=%s WHERE NID=%s'
         out_stock_sql = 'UPDATE P_TradeUn SET TrackNo=%s WHERE NID=%s'
         log_sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
@@ -110,6 +115,7 @@ class CreateWytOutBoundOrder(BaseService):
             yield row
 
     def _parse_order_data(self, order):
+        # 整理数据格式
         data = {
             "doorplateNumbers": "0",
             "address1": order["SHIPTOSTREET"],
@@ -145,18 +151,18 @@ class CreateWytOutBoundOrder(BaseService):
         return data
 
     def run(self):
-        BeginTime = time.time()
+        begin_time = time.time()
         try:
             rows = self.get_order_data()
             for order in rows:
-                # print(order)
-                data = self._parse_order_data(order)
-                self.create_wyt_order(data)
+                print(order)
+                # data = self._parse_order_data(order)
+                # self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
         finally:
             self.close()
-        print('程序耗时{:.2f}'.format(time.time() - BeginTime))  # 计算程序总耗时
+        print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时
 
 
 # 执行程序
