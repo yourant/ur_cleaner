@@ -77,8 +77,27 @@ class Updater(BaseService):
         }
 
         sql = f'update p_trade set logicsWayNid = {logistics_ways[order["newName"]]} where nid = {order["nid"]}'
-        self.cur.execute(sql)
-        self.logger.info(f'updating {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
+        try:
+            self.cur.execute(sql)
+            self.set_log(order)
+            self.logger.info(f'success to update {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
+        except Exception as why:
+            self.logger.info(f'fail to update {order["nid"]} of {order["suffix"]} cause of {why}')
+
+    def set_log(self, order):
+        """
+        记录操作日志
+        :param order:
+        :return:
+        """
+        sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
+        try:
+            logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 更为物流方式为 ' + order['newName'])
+            self.cur.execute(sql, (order['nid'], 'ur_cleaner', logs))
+            self.con.commit()
+            # self.logger.info(f'success to set log of {order["nid"]}')
+        except Exception as why:
+            self.logger.error(f'fail to set log of {order["nid"]}')
 
     def trans(self, order_time):
         orders = self.get_order_new_express(order_time)
