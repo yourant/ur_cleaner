@@ -11,7 +11,6 @@ import re
 from bs4 import BeautifulSoup
 from src.services.base_service import BaseService
 
-
 """
 vova 任務采集。
 """
@@ -39,6 +38,7 @@ class Worker(BaseService):
         ret = self.warehouse_cur.fetchall()
         for row in ret:
             yield row
+
 
     # 获取 图片字典 颜色字典  大小字典
     def get_style_info(self, soup, type=''):
@@ -110,7 +110,7 @@ class Worker(BaseService):
             # 获取 SKU 信息
             product_id = task_id.split('-')[-1]
             url = "https://www.vova.com/ajax.php?act=get_goods_sku_style&virtual_goods_id=" + \
-                product_id[1:]
+                  product_id[1:]
             skuRes = requests.get(url)
             res = skuRes.json()
             if res['code'] == 0:
@@ -122,7 +122,7 @@ class Worker(BaseService):
                     item['mid'] = row['id']
                     item['parentId'] = row['goodsCode']
                     item['childId'] = row['goodsCode'] + \
-                        '_' + '0' * (2 - len(str(i))) + str(i)
+                                      '_' + '0' * (2 - len(str(i))) + str(i)
                     try:
                         item['quantity'] = sku['storage']
                     except BaseException:
@@ -204,15 +204,16 @@ class Worker(BaseService):
                 self.warehouse_cur.execute(insert_sql,
                                            (row['mid'], row['parentId'], row['proName'], row['description'],
                                             row['tags'], row['childId'], row['color'], row['proSize'], row['quantity'],
-                                               float(
-                                               row['price']), float(
+                                            float(
+                                                row['price']), float(
                                                row['msrPrice']), row['shipping'],
-                                               float(row['shippingWeight']),
-                                               row['shippingTime'],
-                                               row['varMainImage'], row['extra_image0'], row['extra_image1'], row['extra_image2'],
-                                               row['extra_image3'], row['extra_image4'], row['extra_image5'],
-                                               row['extra_image6'], row['extra_image7'], row['extra_image8'],
-                                               row['extra_image9'], row['extra_image10'], row['mainImage']))
+                                            float(row['shippingWeight']),
+                                            row['shippingTime'],
+                                            row['varMainImage'], row['extra_image0'], row['extra_image1'],
+                                            row['extra_image2'],
+                                            row['extra_image3'], row['extra_image4'], row['extra_image5'],
+                                            row['extra_image6'], row['extra_image7'], row['extra_image8'],
+                                            row['extra_image9'], row['extra_image10'], row['mainImage']))
 
             self.warehouse_cur.execute(update_sql, (u'采集成功', job_id))
             self.warehouse_con.commit()

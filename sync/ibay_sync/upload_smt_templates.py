@@ -19,7 +19,7 @@ class Upload(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.path = '../../runtime/smt/'
+        self.path = '../../runtime/smt1/'
         self.session = login_session()
         self.upload_url = 'http://139.196.109.214/index.php/import/aliexpressimportxls'
 
@@ -44,7 +44,7 @@ class Upload(BaseService):
 
         except Exception as why:
             self.logger.error('{} is failed to upload cause of {}'.format(path, why))
-            # os.remove(path)  # 删除excel文件
+            os.remove(path)  # 删除excel文件
 
     def update_log(self, path, content):
         try:
