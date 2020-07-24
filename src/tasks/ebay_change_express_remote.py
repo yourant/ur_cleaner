@@ -119,7 +119,7 @@ class Shipper(BaseService):
             self.con.commit()
             # self.logger.info(f'success to set log of {order["nid"]}')
         except Exception as why:
-            self.logger.error(f'fail to set log of {order["nid"]}')
+            self.logger.error(f'fail to set log of {order["tradeNid"]}')
 
     def trans(self, order_info):
         self.upload_track_number(order_info)
