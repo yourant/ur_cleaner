@@ -24,8 +24,10 @@ class FetchEbayLists(BaseService):
         try:
             trade_api = Trading(config_file=self.config)
             while True:
-                fromDay = str(datetime.datetime.today() + datetime.timedelta(days=120 * i))[:10]
-                endDay = str(datetime.datetime.today() + datetime.timedelta(days=120 * (i + 1) - 1))[:10]
+                fromDay = str(datetime.datetime.today() +
+                              datetime.timedelta(days=120 * i))[:10]
+                endDay = str(datetime.datetime.today() +
+                             datetime.timedelta(days=120 * (i + 1) - 1))[:10]
                 # print(fromDay,endDay)
                 trade_response = trade_api.execute(
                     'GetSellerList',
@@ -38,11 +40,12 @@ class FetchEbayLists(BaseService):
                 trade_res = trade_response.dict()
                 # print(trade_res)
                 try:
-                    dataNum = int(trade_res['PaginationResult']['TotalNumberOfEntries'])
-                except:
+                    dataNum = int(
+                        trade_res['PaginationResult']['TotalNumberOfEntries'])
+                except BaseException:
                     dataNum = 0
 
-                if (trade_res['Ack'] == 'Success' and dataNum > 0):
+                if trade_res['Ack'] == 'Success' and dataNum > 0:
                     item = trade_res['ItemArray']['Item']
                     if isinstance(item, list):
                         for row in item:
@@ -54,16 +57,18 @@ class FetchEbayLists(BaseService):
                     break
                 i += 1
         except exception.ConnectionError as e:
-            self.logger.error('Suffix {} connect to failed cause of {}'.format(suffix,e))
+            self.logger.error(
+                'Suffix {} connect to failed cause of {}'.format(
+                    suffix, e))
 
     def _parse_vars(self, api, row, suffix):
         try:
             response = api.execute('GetItem', {'ItemID': row['ItemID']})
             result = response.dict()
-            if (result['Ack'] == 'Success'):
+            if result['Ack'] == 'Success':
                 try:
                     code = result['Item']['SKU'].replace("'", "")
-                except:
+                except BaseException:
                     code = ''
                 # 多属性
                 if 'Variations' in result['Item']:
@@ -72,16 +77,17 @@ class FetchEbayLists(BaseService):
                         for item in result['Item']['Variations']['Variation']:
                             # print(item)
                             try:
-                                newSku = item['SKU'].split('@#')[0].split('*')[0].replace("'", "")
-                            except:
+                                newSku = item['SKU'].split(
+                                    '@#')[0].split('*')[0].replace("'", "")
+                            except BaseException:
                                 newSku = item['SKU']
                             try:
                                 paypal = result['Item']['PayPalEmailAddress']
-                            except:
+                            except BaseException:
                                 paypal = ''
                             try:
                                 sku = item['SKU'].replace("'", "")
-                            except:
+                            except BaseException:
                                 sku = ''
                             ele = {
                                 'code': code,
@@ -101,16 +107,17 @@ class FetchEbayLists(BaseService):
                             # self.save_data(ele)
                     else:
                         try:
-                            newSku = Variation['SKU'].split('@#')[0].split('*')[0].replace("'", "")
-                        except:
+                            newSku = Variation['SKU'].split(
+                                '@#')[0].split('*')[0].replace("'", "")
+                        except BaseException:
                             newSku = Variation['SKU']
                         try:
                             paypal = result['Item']['PayPalEmailAddress']
-                        except:
+                        except BaseException:
                             paypal = ''
                         try:
                             sku = Variation['SKU'].replace("'", "")
-                        except:
+                        except BaseException:
                             sku = ''
 
                         ele = {
@@ -132,17 +139,18 @@ class FetchEbayLists(BaseService):
                         # self.save_data(ele)
                 else:  # 单属性
                     try:
-                        newSku = result['Item']['SKU'].split('@#')[0].split('*')[0].replace("'", "")
-                    except:
+                        newSku = result['Item']['SKU'].split(
+                            '@#')[0].split('*')[0].replace("'", "")
+                    except BaseException:
                         newSku = result['Item']['SKU']
                     # print(item)
                     try:
                         paypal = result['Item']['PayPalEmailAddress']
-                    except:
+                    except BaseException:
                         paypal = ''
                     try:
                         sku = result['Item']['SKU'].replace("'", "")
-                    except:
+                    except BaseException:
                         sku = ''
                     ele = {
                         'code': code,
@@ -161,34 +169,34 @@ class FetchEbayLists(BaseService):
                     col.insert_one(ele)
                     # self.save_data(ele)
         except Exception as e:
-            self.logger.error('Suffix {} get listing detail failed cause of {}'.format(suffix,e))
-
-
-
+            self.logger.error(
+                'Suffix {} get listing detail failed cause of {}'.format(
+                    suffix, e))
 
     def save_data(self, row):
         sql = f'insert into ibay365_ebay_lists(code,sku,newsku,itemid,suffix,selleruserid,storage,listingType,country,paypal,site,updateTime) ' \
-             'values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+            'values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
         try:
-            self.cur.execute(sql,(row['code'],row['sku'],row['newSku'],row['itemid'],row['suffix'],row['selleruserid'],row['storage'],
-                                  row['listingType'],row['country'],row['paypal'],row['site'],row['updateTime']))
+            self.cur.execute(sql, (row['code'], row['sku'], row['newSku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'],
+                                   row['listingType'], row['country'], row['paypal'], row['site'], row['updateTime']))
             self.con.commit()
         except Exception as why:
             self.logger.error(f"fail to save sku {row} cause of {why} ")
 
     def get_ebay_token(self):
         sql = ('SELECT  NoteName AS suffix,EuSellerID AS storeName, MIN(EbayTOKEN) AS token '
-               'FROM [dbo].[S_PalSyncInfo] WHERE SyncEbayEnable=1 and notename in (select dictionaryName from B_Dictionary '
+               'FROM [dbo].[S_PalSyncInfo] WHERE SyncEbayEnable=1 '
+               'and notename in (select dictionaryName from B_Dictionary '
                "where  CategoryID=12 and FitCode ='eBay' and used = 0) "
-               # "and NoteName in ('eBay-C86-syho_63','eBay-C91-heir918','eBay-C92-ha199597','eBay-C79-jlh-79','eBay-C99-tianru98','eBay-C95-shi_7040','eBay-C96-sysy_3270','eBay-E23-sarodyconsulting134','eBay-E37-howa589680','eBay-E38-cameron878_2','eBay-E39-berr_9671','eBay-33-moonstair8','eBay-34-starstair9')"
+               # "and NoteName in ('eBay-C86-syho_63','eBay-C91-heir918','eBay-C92-ha199597','eBay-C79-jlh-79',
+               # 'eBay-C99-tianru98','eBay-C95-shi_7040','eBay-C96-sysy_3270','eBay-E23-sarodyconsulting134',
+               # 'eBay-E37-howa589680','eBay-E38-cameron878_2','eBay-E39-berr_9671','eBay-33-moonstair8','eBay-34-starstair9')"
                # "and NoteName='eBay-38-followsun5' "
                "GROUP BY NoteName,EuSellerID ORDER BY NoteName ;")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
             yield row
-
-
 
     def clean(self):
         col.delete_many({})
@@ -197,14 +205,13 @@ class FetchEbayLists(BaseService):
         self.con.commit()
         self.logger.info('success to clear ebay product list')
 
-
-
     def save_trans(self):
         rows = self.pull()
         self.push_batch(rows)
         mongo.close()
 
-    def pull(self):
+    @staticmethod
+    def pull():
         # rows = col.find({'sku':{'$regex':"8C1085"}})
         rows = col.find()
         for row in rows:
@@ -218,7 +225,8 @@ class FetchEbayLists(BaseService):
             step = 1000
             end = math.ceil(number / step)
             for i in range(0, end):
-                value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
+                value = ','.join(
+                    map(str, rows[i * step: min((i + 1) * step, number)]))
                 sql = f'insert into ibay365_ebay_lists(code,sku,newsku,itemid,suffix,selleruserid,storage,listingType,country,paypal,site,updateTime) values {value}'
                 try:
                     self.cur.execute(sql)
@@ -226,7 +234,8 @@ class FetchEbayLists(BaseService):
                     self.logger.info(
                         f"success to save data of ebay products from {i * step} to  {min((i + 1) * step, number)}")
                 except Exception as why:
-                    self.logger.error(f"fail to save data of ebay products cause of {why} ")
+                    self.logger.error(
+                        f"fail to save data of ebay products cause of {why} ")
         except Exception as why:
             self.logger.error(f"fail to save ebay products cause of {why} ")
 
@@ -240,19 +249,14 @@ class FetchEbayLists(BaseService):
             pl.close()
             pl.join()
             self.save_trans()
-        except Exception  as e:
+        except Exception as e:
             self.logger.error(e)
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - BeginTime))  # 计算程序总耗时
 
+
 # 执行程序
 if __name__ == "__main__":
     worker = FetchEbayLists()
     worker.run()
-
-
-
-
-
-

@@ -19,7 +19,7 @@ def generate(data, file_name):
     if type(data) is list:
         input_file = pd.DataFrame(data)
     else:
-        input_file = pd.DataFrame.from_dict(data, orient='index')
+        input_file = pd.DataFrame(data, index=[0])
     try:
         input_file.to_excel(file_name, 'Sheet1', index=False)
     except Exception as why:
