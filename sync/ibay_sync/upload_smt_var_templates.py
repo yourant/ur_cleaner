@@ -63,7 +63,7 @@ class Upload(BaseService):
             now = str(datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
             if path.find('SMT2') != -1:
                 data = path.split('.')
-                sql = "update proCenter.oa_smtImportToIbayLog set completeDate2=%s,status2=%s where mubanId=%s;"
+                sql = "update proCenter.oa_smtImportToIbayLog set content='',completeDate2=%s,status2=%s where mubanId=%s;"
                 params = (now, 1, data[5])
                 self.warehouse_cur.execute(sql, params)
                 self.warehouse_con.commit()
