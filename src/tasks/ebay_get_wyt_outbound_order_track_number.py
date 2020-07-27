@@ -3,13 +3,13 @@ import time
 from src.services.base_service import BaseService
 from configs.config import Config
 from src.services import oauth_wyt as wytOauth
-from src.tasks import ebay_change_express_remote as ebayExpress
+from src.tasks.ebay_change_express_remote import Shipper
 from concurrent.futures import ThreadPoolExecutor as Pool
 import requests
 import json
 
 
-class FetchEbayOrderPackageNumber(BaseService):
+class FetchEbayOrderPackageNumber(Shipper):
     def __init__(self):
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
@@ -17,8 +17,10 @@ class FetchEbayOrderPackageNumber(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 union "
-               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1")
+        sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
+               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')  union "
+               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
+               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')")
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
@@ -78,7 +80,7 @@ class FetchEbayOrderPackageNumber(BaseService):
                 # 修改跟踪号，添加操作日志
                 self.update_order(update_params)
                 # 标记平台发货
-                ebayExpress.Shipper(order['NID']).run()
+                self.ship(order['NID'])
             else:
                 self.logger.info(
                     'tracking no of order {} is empty!'.format(

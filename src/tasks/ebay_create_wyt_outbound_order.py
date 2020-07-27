@@ -103,7 +103,7 @@ class CreateWytOutBoundOrder(BaseService):
 
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
-        sql = ("SELECT top 10 bw.serviceCode,t.* FROM "
+        sql = ("SELECT  bw.serviceCode,t.* FROM "
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
