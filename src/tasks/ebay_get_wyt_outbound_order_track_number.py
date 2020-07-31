@@ -19,7 +19,7 @@ class FetchEbayOrderPackageNumber(Shipper):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
         sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
                "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')  union "
-               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
+               "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
                "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')")
         self.cur.execute(sql)
         rows = self.cur.fetchall()

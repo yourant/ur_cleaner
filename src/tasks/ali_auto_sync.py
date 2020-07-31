@@ -9,6 +9,7 @@ import datetime
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
 from src.services import oauth as aliOauth
+from multiprocessing.pool import ThreadPool as Pool
 
 
 class AliSync(BaseService):
@@ -19,7 +20,7 @@ class AliSync(BaseService):
         super().__init__()
         # self.oauth = oauth.Ali('tb853697605')
 
-    @retry(stop=stop_after_attempt(3))
+    # @retry(stop=stop_after_attempt(3))
     def get_order_details(self, order_info):
         order_id = order_info['orderId']
         oauth = aliOauth.Ali(order_info['account'])
@@ -51,8 +52,6 @@ class AliSync(BaseService):
                     "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag ")
 
         check_sql = "P_CG_UpdateStockOutOfByStockOrder %s"
-
-
         update_sql = ("update cg_stockorderM  set alibabaorderid=%s," 
                      # "expressFee=%s-%s, alibabamoney=%s " 
                      "expressFee=%s, alibabamoney=%s, ordermoney=%s" 
@@ -67,10 +66,8 @@ class AliSync(BaseService):
                        "LEFT JOIN B_goodsSku as gs on cgd.goodsskuid = gs.nid " \
                        "LEFT JOIN cg_stockorderm as cgm on cgd.stockordernid= cgm.nid " \
                        "where billnumber=%s"
-
-
         try:
-            self.cur.execute(search_sql,order_id)
+            self.cur.execute(search_sql, order_id)
             ret = self.cur.fetchone()
             if ret:
                 qty = ret['total_amt']
@@ -82,8 +79,10 @@ class AliSync(BaseService):
                 expressFee = check_info['expressFee']
                 if qty == check_qty:
                     self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
+                    # self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
+                    self.cur.execute(update_price, (order_money, total_cost_money, qty) * 2 +
+                                     (order_money, total_cost_money, qty) * 1 + (bill_number,))
                     self.cur.execute(check_sql, (bill_number,))
-                    self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
                     self.con.commit()
                     self.logger.info('checking %s' % bill_number)
         except Exception as e:
@@ -91,22 +90,24 @@ class AliSync(BaseService):
 
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
-
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=61))[:10]
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
-                " 'caigoueasy' else loginId end  as account "
+                " 'caigoueasy' else loginId end  as account ,MakeDate "
                 "from CG_StockOrderD  as cd with(nolock)  "
                 "LEFT JOIN CG_StockOrderM  as cm with(nolock) on cd.stockordernid = cm.nid  "
                 "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
                 "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
-                "where  ABS(taxPrice-costPrice) > 0.1 AND MakeDate > %s  AND CheckFlag=1 AND isnull(loginId,'')<>'' "
-                 "and cm.deptId != 46 "
+                "where  CheckFlag=1 AND MakeDate > %s  AND isnull(loginId,'')<>'' "
+                 "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
+                 "AND OrderMoney <> alibabamoney "
+                 # " AND ABS(taxPrice-costPrice) > 0.1"
+                 # "and cm.deptId != 46 "
                  # "where 1=1 "
+                # "and BillNumber = 'CGD-2020-07-15-0799' "
                 # "and alibabaOrderid = '1069212930532682293' "
+                " order by MakeDate "
                 )
-
-
         self.cur.execute(query, (someDays))
         ret = self.cur.fetchall()
         for row in ret:
@@ -116,6 +117,7 @@ class AliSync(BaseService):
         try:
             ret = self.get_order_details(order)
             if ret:
+                # print(ret)
                 self.check_order(ret)
         except Exception as e:
             self.logger.error(e)
@@ -123,6 +125,12 @@ class AliSync(BaseService):
     def work(self):
         try:
             orders = self.get_order_from_py()
+
+            # pl = Pool(8)
+            # pl.map(self.check, orders)
+            # pl.close()
+            # pl.join()
+
             for order in orders:
                 self.check(order)
         except Exception as e:

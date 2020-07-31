@@ -150,8 +150,9 @@ class Worker(BaseService):
                                 break
                     skuImgId = str(imageIdDic[str(sku['sku_id'])])
                     item['mainImage'] = extra_images['extra_image0']
+                    # print(image['img'][skuImgId])
                     try:
-                        item['varMainImage'] = image['img'][skuImgId].re
+                        item['varMainImage'] = image['img'][skuImgId]
                     except BaseException:
                         item['varMainImage'] = list(image['img'].values())[0]
                     skuRows.append({**item, **extra_images})
