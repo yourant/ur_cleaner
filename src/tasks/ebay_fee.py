@@ -43,7 +43,7 @@ class EbayFee(BaseService):
     def get_ebay_token(self):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
                " where notename in (select dictionaryName from B_Dictionary "
-               "where  CategoryID=12 and FitCode ='eBay' and used = 0)  "
+               "where  CategoryID=12 and FitCode ='eBay' and used = 0 and  notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring')"
                "  GROUP BY notename")
                # " having notename='eBay-A6-vitalityang1'")
         self.cur.execute(sql)
