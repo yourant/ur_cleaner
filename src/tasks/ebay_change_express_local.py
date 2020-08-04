@@ -13,6 +13,7 @@ class Updater(BaseService):
     def __init__(self):
         super().__init__()
         self.all_orders = dict()
+        self.rate = 0.25
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
@@ -20,8 +21,8 @@ class Updater(BaseService):
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
-            if row['rate'] < 0.25:
-                row['number_to_change'] = math.ceil((0.22 - float(row['rate'])) * row['allOrderNumber'])
+            if row['rate'] < self.rate:
+                row['number_to_change'] = math.ceil((self.rate - float(row['rate'])) * row['allOrderNumber'])
                 yield row
 
     def get_all_orders(self, order_time):
