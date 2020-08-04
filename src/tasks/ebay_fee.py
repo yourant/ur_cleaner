@@ -169,7 +169,6 @@ class EbayFee(BaseService):
                     try:
                         data = fu.result()
                         for row in data:
-                            # print(row)
                             self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
