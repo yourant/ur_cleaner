@@ -107,7 +107,7 @@ class CreateWytOutBoundOrder(BaseService):
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
-               "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
+               # "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
                "-- AND t.NID=21383397 ")
 
         self.cur.execute(sql)
