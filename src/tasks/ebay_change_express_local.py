@@ -20,7 +20,7 @@ class Updater(BaseService):
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
-            if row['rate'] < 0.22:
+            if row['rate'] < 0.25:
                 row['number_to_change'] = math.ceil((0.22 - float(row['rate'])) * row['allOrderNumber'])
                 yield row
 
