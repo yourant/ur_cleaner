@@ -18,9 +18,11 @@ class FetchEbayOrderPackageNumber(Shipper):
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
         sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
-               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')  union "
+               " and suffix in ('eBay-C127-qiju_58', 'eBay-C128-qiju80', 'eBay-C129-njh-7385', 'eBay-C130-kjdw32', 'eBay-C33-graduateha7', 'eBay-C77-henghua_99', 'eBay-C78-hh2-61', 'eBay-C79-jlh-79', 'eBay-C80-hhsm-99', 'eBay-C84-powj20', 'eBay-C131-feng-4682', 'eBay-C132-hljf-26', 'eBay-C133-pol-6836', 'eBay-C134-mnj_93', 'eBay-C25-sunnyday0329', 'eBay-C85-hongse-6', 'eBay-C88-yt2343', 'eBay-C135-chang_8398', 'eBay-C136-baoch-6338', 'eBay-C137-bcsha-14', 'eBay-C138-clbc83', 'eBay-C45-realizeoh1', 'eBay-C46-displaywo2', 'eBay-C48-passengerwa4', 'eBay-C49-traditionaloh5', 'eBay-C64-bridgeha2', 'eBay-C65-concertwo3', 'eBay-C66-dictionaryye4', 'eBay-C67-expressionhe5', 'eBay-C99-tianru98', 'eBay-C100-lnt995', 'eBay-C101-trw-54', 'eBay-C123-anjua_803', 'eBay-C124-dalian5821', 'eBay-C95-shi_7040', 'eBay-C96-sysy_3270', 'eBay-B11-mainlandye1', 'eBay-B12-preventhe2', 'eBay-C57-captainha1', 'eBay-C59-restaurantwo3', 'eBay-B9-butterflywo1', 'eBay-B10-supposehe2', 'eBay-C149-ejy_94', 'eBay-C150-ygv_80', 'eBay-C151-kqq_37', 'eBay-C153-jcy368', 'eBay-C152-qage-77', 'eBay-C28-snowyday0329', 'eBay-73-outsidehe1', 'eBay-C139-jui384', 'eBay-C140-dlguy66', 'eBay-C141-aishan-42', 'eBay-C142-polo1_13')"
+               " union "
                "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
-               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')")
+               " and suffix in ('eBay-C127-qiju_58', 'eBay-C128-qiju80', 'eBay-C129-njh-7385', 'eBay-C130-kjdw32', 'eBay-C33-graduateha7', 'eBay-C77-henghua_99', 'eBay-C78-hh2-61', 'eBay-C79-jlh-79', 'eBay-C80-hhsm-99', 'eBay-C84-powj20', 'eBay-C131-feng-4682', 'eBay-C132-hljf-26', 'eBay-C133-pol-6836', 'eBay-C134-mnj_93', 'eBay-C25-sunnyday0329', 'eBay-C85-hongse-6', 'eBay-C88-yt2343', 'eBay-C135-chang_8398', 'eBay-C136-baoch-6338', 'eBay-C137-bcsha-14', 'eBay-C138-clbc83', 'eBay-C45-realizeoh1', 'eBay-C46-displaywo2', 'eBay-C48-passengerwa4', 'eBay-C49-traditionaloh5', 'eBay-C64-bridgeha2', 'eBay-C65-concertwo3', 'eBay-C66-dictionaryye4', 'eBay-C67-expressionhe5', 'eBay-C99-tianru98', 'eBay-C100-lnt995', 'eBay-C101-trw-54', 'eBay-C123-anjua_803', 'eBay-C124-dalian5821', 'eBay-C95-shi_7040', 'eBay-C96-sysy_3270', 'eBay-B11-mainlandye1', 'eBay-B12-preventhe2', 'eBay-C57-captainha1', 'eBay-C59-restaurantwo3', 'eBay-B9-butterflywo1', 'eBay-B10-supposehe2', 'eBay-C149-ejy_94', 'eBay-C150-ygv_80', 'eBay-C151-kqq_37', 'eBay-C153-jcy368', 'eBay-C152-qage-77', 'eBay-C28-snowyday0329', 'eBay-73-outsidehe1', 'eBay-C139-jui384', 'eBay-C140-dlguy66', 'eBay-C141-aishan-42', 'eBay-C142-polo1_13')"
+               )
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
@@ -87,7 +89,7 @@ class FetchEbayOrderPackageNumber(Shipper):
                         order['NID']))
         except Exception as e:
             self.logger.error(
-                'failed to get tracking no cause of {}'.format(e))
+                'failed to get tracking no of order {} cause of {}'.format(order['NID'], e))
 
     def run(self):
         begin_time = time.time()
