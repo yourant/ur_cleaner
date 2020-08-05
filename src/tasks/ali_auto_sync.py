@@ -40,7 +40,7 @@ class AliSync(BaseService):
 
     def check_order(self, check_info):
         order_id = check_info['order_id']
-        search_sql = ("select cgsm.billnumber," 
+        search_sql = ("select cgsm.NID,cgsm.billnumber," 
                     "sum(sd.amount) total_amt," 
                     "sum(sd.amount*sd.price) as total_money, "
                     "sum(sd.amount * gs.costprice) as total_cost_money "   # 2020-06-22  修改
@@ -66,6 +66,7 @@ class AliSync(BaseService):
                        "LEFT JOIN B_goodsSku as gs on cgd.goodsskuid = gs.nid " \
                        "LEFT JOIN cg_stockorderm as cgm on cgd.stockordernid= cgm.nid " \
                        "where billnumber=%s"
+        log_sql = "INSERT INTO CG_StockLogs(OrderType,OrderNID,Operator,Logs) VALUES(%s,%s,%s,%s)"
         try:
             self.cur.execute(search_sql, order_id)
             ret = self.cur.fetchone()
@@ -80,9 +81,10 @@ class AliSync(BaseService):
                 if qty == check_qty:
                     self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
                     # self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
-                    self.cur.execute(update_price, (order_money, total_cost_money, qty) * 2 +
-                                     (order_money, total_cost_money, qty) * 1 + (bill_number,))
+                    self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
                     self.cur.execute(check_sql, (bill_number,))
+                    log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
+                    self.cur.execute(log_sql, ('采购订单', ret['NID'], 'ur_cleaner', log))
                     self.con.commit()
                     self.logger.info('checking %s' % bill_number)
         except Exception as e:
