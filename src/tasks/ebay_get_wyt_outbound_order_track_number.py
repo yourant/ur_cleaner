@@ -18,9 +18,11 @@ class FetchEbayOrderPackageNumber(Shipper):
     def get_order_data(self):
         # 万邑通仓库 派至非E邮宝 订单  和 万邑通仓库 缺货订单
         sql = ("SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
-               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')  union "
+               " and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
+               " union "
                "SELECT * FROM [dbo].[p_tradeun](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND trackno ='待取跟踪号'  and datediff(month,orderTime,getDate()) <= 1 "
-               "AND suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338')")
+               " and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
+               )
         self.cur.execute(sql)
         rows = self.cur.fetchall()
         for row in rows:
@@ -87,7 +89,7 @@ class FetchEbayOrderPackageNumber(Shipper):
                         order['NID']))
         except Exception as e:
             self.logger.error(
-                'failed to get tracking no cause of {}'.format(e))
+                'failed to get tracking no of order {} cause of {}'.format(order['NID'], e))
 
     def run(self):
         begin_time = time.time()
