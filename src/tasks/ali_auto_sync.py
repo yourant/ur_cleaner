@@ -102,7 +102,7 @@ class AliSync(BaseService):
                 "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
                 "where  CheckFlag=1 AND MakeDate > %s  AND isnull(loginId,'')<>'' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
-                 "AND ABS(OrderMoney - alibabamoney) > 0.01 "
+                 "AND ABS(OrderMoney - alibabamoney) > 0.1 "
                  # " AND ABS(taxPrice-costPrice) > 0.1"
                  # "and cm.deptId != 46 "
                  # "where 1=1 "
