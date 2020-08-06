@@ -27,7 +27,7 @@ class Worker(BaseService):
 
     @staticmethod
     def get_wish_campaign_id():
-        rows = query_db.find({}).limit(1000)
+        rows = query_db.find({}).sort("last_updated_time", -1).limit(10000)
         for row in rows:
             yield row
 

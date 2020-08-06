@@ -46,7 +46,7 @@ class Worker(BaseService):
         url = 'https://merchant.wish.com/api/v2/product-boost/campaign/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
         limit = 500
         start = 0
         try:
@@ -55,6 +55,7 @@ class Worker(BaseService):
                     "limit": limit,
                     'start': start,
                     'access_token': token,
+                    "last_updated_time": since
                 }
                 ret = dict()
                 for i in range(2):
