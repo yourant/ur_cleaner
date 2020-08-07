@@ -16,14 +16,17 @@ class BaseService(object):
         self.logger = log.SysLogger().log
         self.mssql = db.DataBase('mssql')
         self.con = self.mssql.connection
-        self.cur = self.con.cursor(as_dict=True)
+        if self.con:
+            self.cur = self.con.cursor(as_dict=True)
         self.mysql = db.DataBase('mysql')
         self.warehouse_con = self.mysql.connection
-        self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
+        if self.warehouse_con:
+            self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
         self.ibay = db.DataBase('ibay')
         self.ibay_con = self.ibay.connection
-        self.ibay_con.set_client_encoding('utf8')
-        self.ibay_cur = self.ibay_con.cursor()
+        if self.ibay_con:
+            self.ibay_con.set_client_encoding('utf8')
+            self.ibay_cur = self.ibay_con.cursor()
 
     def close(self):
         try:
