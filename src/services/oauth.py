@@ -36,7 +36,11 @@ class Ali(object):
             res = requests.post(base_url, data=post_data)
             body = res.content
             ret = json.loads(body)
-            return ret['access_token']
+            try:
+                access_token = ret['access_token']
+            except BaseException:
+                access_token = ''
+            return access_token
 
         except Exception as e:
             self.logger.error('%s:error while getting access token' % e)
