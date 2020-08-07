@@ -82,6 +82,7 @@ class Updater(BaseService):
             self.cur.execute(sql)
             self.set_log(order)
             self.calculate_express_fee(order)
+            self.con.commit()
             self.logger.info(f'success to update {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
         except Exception as why:
             self.logger.info(f'fail to update {order["nid"]} of {order["suffix"]} cause of {why}')
@@ -92,7 +93,7 @@ class Updater(BaseService):
         log_sql = f"exec S_WriteTradeLogs  '{order['nid']}', '运费计算', 'ur_cleaner'"
         self.cur.execute(calculate_sql)
         self.cur.execute(log_sql)
-
+        self.con.commit()
 
     def set_log(self, order):
         """
