@@ -22,11 +22,11 @@ class BaseService(object):
         self.warehouse_con = self.mysql.connection
         if self.warehouse_con:
             self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
-        self.ibay = db.DataBase('ibay')
-        self.ibay_con = self.ibay.connection
-        if self.ibay_con:
-            self.ibay_con.set_client_encoding('utf8')
-            self.ibay_cur = self.ibay_con.cursor()
+        # self.ibay = db.DataBase('ibay')
+        # self.ibay_con = self.ibay.connection
+        # if self.ibay_con:
+        #     self.ibay_con.set_client_encoding('utf8')
+        #     self.ibay_cur = self.ibay_con.cursor()
 
     def close(self):
         try:
