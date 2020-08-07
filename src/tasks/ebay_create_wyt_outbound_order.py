@@ -21,6 +21,7 @@ class CreateWytOutBoundOrder(BaseService):
             res = requests.post(self.base_url, json=params)
             ret = json.loads(res.content)
             trackingNum = ''
+            outboundOrderNum = ''
             if ret['code'] == 0:
                 outboundOrderNum = ret['data']['outboundOrderNum']
                 # outboundOrderNum = 'WO3383663327'
@@ -42,6 +43,7 @@ class CreateWytOutBoundOrder(BaseService):
                 self.update_order_remark(data['sellerOrderNo'], ret['msg'])
 
             update_params = {
+                'orderNum': outboundOrderNum,
                 'trackingNum': trackingNum,
                 'order_id': data['sellerOrderNo'],
                 'Logs': logs
@@ -85,11 +87,11 @@ class CreateWytOutBoundOrder(BaseService):
 
     def update_order(self, data):
         # 更新订单跟踪号
-        sql = 'UPDATE p_trade SET TrackNo=%s WHERE NID=%s'
+        sql = 'UPDATE p_trade SET TrackNo=%s,BUILD=%s WHERE NID=%s'
         out_stock_sql = 'UPDATE P_TradeUn SET TrackNo=%s WHERE NID=%s'
         log_sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
-            self.cur.execute(sql, (data['trackingNum'], data['order_id']))
+            self.cur.execute(sql, (data['trackingNum'], data['orderNum'], data['order_id']))
             self.cur.execute(
                 out_stock_sql,
                 (data['trackingNum'],
@@ -109,7 +111,7 @@ class CreateWytOutBoundOrder(BaseService):
                "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
                " where suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
                # "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
-               "-- AND t.NID=21383397 ")
+               "-- WHERE t.NID=21684395 ")
 
         self.cur.execute(sql)
         rows = self.cur.fetchall()
