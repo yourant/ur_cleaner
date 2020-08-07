@@ -35,7 +35,7 @@ class AliSync(BaseService):
             out['qty'] = sum([ele['quantity'] for ele in ret['productItems']])
             return out
         except Exception as e:
-            self.logger.error('error while get order details %s' % e)
+            self.logger.error('error while get order details about %s cause of %s' % (order_id, e))
             return out
 
     def check_order(self, check_info):
@@ -100,7 +100,7 @@ class AliSync(BaseService):
                 "LEFT JOIN CG_StockOrderM  as cm with(nolock) on cd.stockordernid = cm.nid  "
                 "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
                 "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
-                "where  CheckFlag=1 AND MakeDate > %s  AND isnull(loginId,'')<>'' "
+                "where  CheckFlag=1 AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
                  "AND ABS(OrderMoney - alibabamoney) > 0.1 "
                  # " AND ABS(taxPrice-costPrice) > 0.1"
