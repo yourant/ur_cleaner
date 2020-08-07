@@ -36,7 +36,7 @@ class BaseService(object):
             # self.warehouse_con.close()
             self.mysql.close()
             self.mssql.close()
-            self.ibay.close()
+            # self.ibay.close()
             self.logger.info('close connection')
         except Exception as e:
             self.logger.error('fail to close connection cause of {}'.format(e))
