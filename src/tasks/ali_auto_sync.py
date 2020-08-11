@@ -92,7 +92,7 @@ class AliSync(BaseService):
 
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=61))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
@@ -100,12 +100,10 @@ class AliSync(BaseService):
                 "LEFT JOIN CG_StockOrderM  as cm with(nolock) on cd.stockordernid = cm.nid  "
                 "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
                 "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
-                "where  CheckFlag=1 AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
+                "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购未入库
+                 "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
                  "AND ABS(OrderMoney - alibabamoney) > 0.1 "
-                 # " AND ABS(taxPrice-costPrice) > 0.1"
-                 # "and cm.deptId != 46 "
-                 # "where 1=1 "
                 # "and BillNumber = 'CGD-2020-07-15-0799' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
