@@ -12,6 +12,15 @@ class CreateWytOutBoundOrder(BaseService):
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
 
+    def check_order_current_status(self, order):
+        # 检查当前状态
+        sql = f'select nid from p_trade(nolock) where nid = {order["NID"]} and FilterFlag = 6 '
+        self.cur.execute(sql)
+        ret = self.cur.fetchone()
+        if ret:
+            return True
+        return False
+
     def create_wyt_order(self, data):
         # 创建万邑通出库单
         action = 'createOutboundOrder'
@@ -160,7 +169,8 @@ class CreateWytOutBoundOrder(BaseService):
             rows = self.get_order_data()
             for order in rows:
                 data = self._parse_order_data(order)
-                self.create_wyt_order(data)
+                if self.check_order_current_status(order)
+                    self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
         finally:
