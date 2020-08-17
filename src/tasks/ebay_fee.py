@@ -163,7 +163,7 @@ class EbayFee(BaseService):
     def run(self):
         try:
             tokens = self.get_ebay_token()
-            with ThreadPoolExecutor(16) as pool:
+            with ThreadPoolExecutor(4) as pool:
                 future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
