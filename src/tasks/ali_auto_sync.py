@@ -92,6 +92,7 @@ class AliSync(BaseService):
 
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=61))[:10]
         someDays = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
@@ -104,6 +105,9 @@ class AliSync(BaseService):
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
                  "AND ABS(OrderMoney - alibabamoney) > 0.1 "
+                 # " AND ABS(taxPrice-costPrice) > 0.1"
+                 # "and cm.deptId != 46 "
+                 # "where 1=1 "
                 # "and BillNumber = 'CGD-2020-07-15-0799' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
@@ -130,8 +134,8 @@ class AliSync(BaseService):
             # pl.map(self.check, orders)
             # pl.close()
             # pl.join()
-
             for order in orders:
+                print(order)
                 self.check(order)
         except Exception as e:
             self.logger(e)

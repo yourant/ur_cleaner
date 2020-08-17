@@ -26,14 +26,15 @@ class Shipper(BaseService):
         :return:
         """
         check_sql = 'select mergeFlag from p_trade(nolock) where nid = %s'
-        single_sql = ("select DISTINCT pt.guid as orderId,pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
+        single_sql = ("select DISTINCT pt.version as orderId,pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
                "from p_trade(nolock) as pt LEFT JOIN S_PalSyncInfo as spi on spi.NoteName = pt.suffix "
                "LEFT JOIN p_tradedt(nolock)  as ptd on pt.nid = ptd.tradeNid "
                "LEFT JOIN B_LogisticWayReg(nolock)  as l on pt.logicswaynid=l.logisticwaynid and l.platform in ('trades','ebay')"
                " where pt.nid = %s")
 
+        #  pt.guid as orderId  ==> pt.version as orderId  修改时间 2020-08-15
         merge_sql = (
-            "select DISTINCT pb.guid as orderId, pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
+            "select DISTINCT pb.version as orderId, pt.nid as tradeNid,  pt.trackNo, spi.ebayToken, carrierEN as carrierName, pt.logicswaynid  "
             "from p_trade(nolock) as pt LEFT JOIN S_PalSyncInfo as spi on spi.NoteName = pt.suffix "
             "LEFT JOIN p_tradedt(nolock)  as ptd on pt.nid = ptd.tradeNid "
             "LEFT JOIN p_trade_b(nolock)  as pb on pt.nid = pb.mergeBillId "
@@ -83,7 +84,7 @@ class Shipper(BaseService):
                     if ret["Ack"] == 'Success' or ret["Ack"] == 'Warning':
                         self.logger.info(f'success to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]} ')
                     else:
-                        self.logger.info(f'fail to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]} cause of {res} ')
+                        self.logger.info(f'fail to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]}')
                     break
                 except Exception as why:
                     self.logger.info(f'retry {i + 1} times.fail to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]} cause of {why} ')
@@ -140,5 +141,6 @@ class Shipper(BaseService):
 if __name__ == "__main__":
     worker = Shipper()
     worker.run()
+    # worker.ship(21926028)
 
 
