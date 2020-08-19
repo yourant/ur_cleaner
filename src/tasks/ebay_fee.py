@@ -26,6 +26,8 @@ class EbayFee(BaseService):
         else:
             self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
                                 + datetime.timedelta(days=1))[:10]
+        # else:
+        #     self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
 
     def _get_batch_id(self):
         sql = ("select max(batchId) batchId from y_fee"
@@ -133,22 +135,27 @@ class EbayFee(BaseService):
                                 ):
                 fee = dict()
                 fee['feeType'] = fee_type
+                fee['description'] = row.get('Description', '')
+                fee['itemId'] = row.get('ItemID', '')
+                fee['memo'] = row.get('Memo', '')
+                fee['transactionId'] = row.get('TransactionID', '')
+                fee['orderId'] = row.get('OrderId', '')
                 fee['Date'] = str(row.Date)
                 fee['value'] = row.NetDetailAmount.value
                 fee['currency'] = row.NetDetailAmount._currencyID
                 fee['accountName'] = ebay_token['notename']
-                fee['ItemID'] = row.ItemID
                 if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
                     self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
                 if float(row.NetDetailAmount.value) != 0:
                     yield fee
 
     def save_data(self, row):
-        sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId)' \
-              ' values(%s,%s,%s,%s,%s,%s)'
+        sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,transactionId,orderId)' \
+              ' values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
         try:
             self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], row['currency'],
-                             row['Date'], self.batch_id))
+                             row['Date'], self.batch_id, row['description'], row['itemId'], row['memo'],
+                             row['transactionId'], row['orderId']))
             self.logger.info("putting %s" % row['accountName'])
             self.con.commit()
         except pymssql.IntegrityError as e:
