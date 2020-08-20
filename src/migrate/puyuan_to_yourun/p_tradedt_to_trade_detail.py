@@ -14,7 +14,7 @@ class Worker(BaseService):
 
     def get_data_from_old_base(self):
 
-        sql = f"select top 100 * from p_tradedt(nolock)  order by nid desc  "
+        sql = f"select top 100 * from p_tradedt_his(nolock) "
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -78,7 +78,7 @@ class Worker(BaseService):
     def run(self):
         try:
             rows = self.get_data_from_old_base()
-            self.put_data_to_new_base_single(rows)
+            self.put_data_to_new_base_multiple(rows)
 
         except Exception as why:
             self.logger.error(f'fail to get data cause of {why}')
