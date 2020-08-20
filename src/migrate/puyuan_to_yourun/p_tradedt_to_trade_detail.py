@@ -21,7 +21,7 @@ class Worker(BaseService):
             yield (
                 row['NID'],
                 row['TradeNID'],
-                str(row['L_EBAYITEMTXNID']),
+                row['L_EBAYITEMTXNID'],
                 row['L_NAME'],
                 row['L_NUMBER'],
                 row['L_QTY'],
