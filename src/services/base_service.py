@@ -32,7 +32,7 @@ class BaseService(object):
             self.erp = db.DataBase('erp')
             self.erp_con = self.erp.connection
             if self.erp_con:
-                self.erp_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
+                self.erp_cur = self.erp_con.cursor(pymysql.cursors.DictCursor)
         # self.ibay = db.DataBase('ibay')
         # self.ibay_con = self.ibay.connection
         # if self.ibay_con:

@@ -43,7 +43,7 @@ class DataBase(object):
                 import pymysql
                 data_base_config = config.get_config('erp')
                 if data_base_config:
-                    return pymysql.connect(**config.get_config('mysql'))
+                    return pymysql.connect(**config.get_config('erp'))
 
             if self.base_name == 'ibay':
                 import psycopg2
