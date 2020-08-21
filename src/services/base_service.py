@@ -7,6 +7,10 @@ from src.services import log, db
 import pymysql
 import psycopg2
 import psycopg2.extras
+from configs.config import Config
+
+config = Config()
+
 
 class BaseService(object):
     """
@@ -22,6 +26,13 @@ class BaseService(object):
         self.warehouse_con = self.mysql.connection
         if self.warehouse_con:
             self.warehouse_cur = self.warehouse_con.cursor(pymysql.cursors.DictCursor)
+
+        erp = config.get_config('erp')
+        if erp:
+            self.erp = db.DataBase('erp')
+            self.erp_con = self.erp.connection
+            if self.erp_con:
+                self.erp_cur = self.erp_con.cursor(pymysql.cursors.DictCursor)
         # self.ibay = db.DataBase('ibay')
         # self.ibay_con = self.ibay.connection
         # if self.ibay_con:
@@ -36,6 +47,9 @@ class BaseService(object):
             # self.warehouse_con.close()
             self.mysql.close()
             self.mssql.close()
+            erp = config.get_config('erp')
+            if erp:
+                self.erp.close()
             # self.ibay.close()
             self.logger.info('close connection')
         except Exception as e:

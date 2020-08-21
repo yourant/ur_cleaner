@@ -30,7 +30,7 @@ class Config(Singleton):
     def get_config(self, key):
         if key == 'ebay.yaml':
             return os.sep.join([os.path.split(self.config_path)[0]] + ['ebay.yaml'])
-        return self.config[key]
+        return self.config.get(key, '')
 
 
 if __name__ == '__main__':
