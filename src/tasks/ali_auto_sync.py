@@ -135,7 +135,7 @@ class AliSync(BaseService):
             # pl.close()
             # pl.join()
             for order in orders:
-                print(order)
+                # print(order)
                 self.check(order)
         except Exception as e:
             self.logger(e)
