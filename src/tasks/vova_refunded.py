@@ -102,7 +102,7 @@ class VoVaWorker(BaseService):
         try:
             # self.clean()
             tokens = self.get_vova_token()
-            with ThreadPoolExecutor(4) as pool:
+            with ThreadPoolExecutor(2) as pool:
                 future = {pool.submit(self.get_vova_fee, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
