@@ -18,6 +18,7 @@ class EbayFee(BaseService):
     """
     fetch ebay fee using api
     """
+
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
@@ -25,7 +26,7 @@ class EbayFee(BaseService):
             self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
         else:
             self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
-                                + datetime.timedelta(days=1))[:10]
+                                - datetime.timedelta(days=3))[:10]
         # else:
         #     self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
 
@@ -46,9 +47,11 @@ class EbayFee(BaseService):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
                " where notename in (select dictionaryName from B_Dictionary "
                "where  CategoryID=12 and FitCode ='eBay' and used = 0 ) and "
-               " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring','eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
-               "  GROUP BY notename")
-               # " having notename='eBay-A6-vitalityang1'")
+               " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring',"
+               "'eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
+               "  GROUP BY notename"
+               # " having notename='eBay-45-cocoskyna0'"
+               )
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -129,10 +132,9 @@ class EbayFee(BaseService):
     def _parse_response(self, ret, ebay_token):
         for row in ret:
             fee_type = row.AccountDetailsEntryType
-            if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping',
-                                'PayPalOTPSucc', 'PaymentCCOnce',
-                                'PaymentCC', 'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown'
-                                ):
+            record_id = row.get('RefNumber', '')
+            if fee_type not in ('FeeFinalValue', 'FeeFinalValueShipping', 'PayPalOTPSucc', 'PaymentCCOnce', 'PaymentCC',
+                                'CreditFinalValue', 'CreditFinalValueShipping', 'Unknown') and record_id != '0':
                 fee = dict()
                 fee['feeType'] = fee_type
                 fee['description'] = row.get('Description', '')
@@ -140,6 +142,7 @@ class EbayFee(BaseService):
                 fee['memo'] = row.get('Memo', '')
                 fee['transactionId'] = row.get('TransactionID', '')
                 fee['orderId'] = row.get('OrderId', '')
+                fee['recordId'] = record_id
                 fee['Date'] = str(row.Date)
                 fee['value'] = row.NetDetailAmount.value
                 fee['currency'] = row.NetDetailAmount._currencyID
@@ -150,12 +153,20 @@ class EbayFee(BaseService):
                     yield fee
 
     def save_data(self, row):
-        sql = 'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,transactionId,orderId)' \
-              ' values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
+        sql = ("if not EXIS TS (select recordId from y_fee(nolock) where recordId=%s) "
+               'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,'
+               'transactionId,orderId,recordId) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
+               "else update y_fee set total=%s,currency_code=%s,fee_time=%s,batchId=%s "
+               "where recordId=%s"
+               )
         try:
-            self.cur.execute(sql, (row['accountName'], row['feeType'], row['value'], row['currency'],
-                             row['Date'], self.batch_id, row['description'], row['itemId'], row['memo'],
-                             row['transactionId'], row['orderId']))
+            self.cur.execute(sql, (
+                row['recordId'],
+                row['accountName'], row['feeType'], row['value'], row['currency'],
+                row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
+                row['transactionId'], row['orderId'], row['recordId'],
+                row['value'], row['currency'], row['Date'], str(row['Date'])[:10], row['orderId']
+            ))
             self.logger.info("putting %s" % row['accountName'])
             self.con.commit()
         except pymssql.IntegrityError as e:
@@ -163,10 +174,10 @@ class EbayFee(BaseService):
         except Exception as e:
             self.logger.error("%s while trying to save data" % e)
 
-    def save_trans(self, token):
-        ret = self.get_ebay_fee(token)
-        for row in ret:
-            self.save_data(row)
+    # def save_trans(self, token):
+    #     ret = self.get_ebay_fee(token)
+    #     for row in ret:
+    #         self.save_data(row)
 
     def run(self):
         try:
@@ -189,7 +200,3 @@ class EbayFee(BaseService):
 if __name__ == '__main__':
     worker = EbayFee()
     worker.run()
-
-
-
-
