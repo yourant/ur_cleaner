@@ -16,7 +16,7 @@ class VoVaWorker(BaseService):
     """
     def __init__(self):
         super().__init__()
-        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=4))[:10]
+        self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
 
     def get_vova_token(self):
         sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;"
@@ -102,7 +102,7 @@ class VoVaWorker(BaseService):
         try:
             # self.clean()
             tokens = self.get_vova_token()
-            with ThreadPoolExecutor(16) as pool:
+            with ThreadPoolExecutor(4) as pool:
                 future = {pool.submit(self.get_vova_fee, token): token for token in tokens}
                 for fu in as_completed(future):
                     try:
