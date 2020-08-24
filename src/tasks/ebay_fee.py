@@ -147,8 +147,8 @@ class EbayFee(BaseService):
                 fee['value'] = row.NetDetailAmount.value
                 fee['currency'] = row.NetDetailAmount._currencyID
                 fee['accountName'] = ebay_token['notename']
-                # if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
-                #     self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
+                if float(row.NetDetailAmount.value) >= 10 or float(row.NetDetailAmount.value) <= -10:
+                    self.logger.warning('%s:%s' % (fee_type, float(row.NetDetailAmount.value)))
                 if float(row.NetDetailAmount.value) != 0:
                     yield fee
 
