@@ -22,13 +22,14 @@ class EbayFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        if not self._get_batch_id():
-            self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
-        else:
-            self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
-                                - datetime.timedelta(days=3))[:10]
+        # if not self._get_batch_id():
+        #     self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
         # else:
-        #     self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=1))[:10]
+        #     self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
+        #                         - datetime.timedelta(days=3))[:10]
+
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
+        # self.batch_id = '2020-08-01'
 
     def _get_batch_id(self):
         sql = ("select max(batchId) batchId from y_fee"
@@ -153,7 +154,8 @@ class EbayFee(BaseService):
                     yield fee
 
     def save_data(self, row):
-        sql = ("if not EXISTS (select recordId from y_fee(nolock) where recordId=%s) "
+        sql = (
+                "if not EXISTS (select recordId from y_fee(nolock) where recordId=%s) "
                'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,'
                'transactionId,orderId,recordId) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
                "else update y_fee set total=%s,currency_code=%s,fee_time=%s,batchId=%s "

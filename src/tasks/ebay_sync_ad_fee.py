@@ -57,8 +57,12 @@ class EbayFee(BaseService):
                "            CHARINDEX('Ad rate:',memo)  - CHARINDEX('sale price: gbp',LOWER(memo)) - 18) "
                "WHEN CHARINDEX('sale price: c',LOWER(memo)) > 0 THEN SUBSTRING(memo,CHARINDEX('sale price: c',LOWER(memo)) + 15, "
                "            CHARINDEX('Ad rate:',memo)  - CHARINDEX('sale price: c',LOWER(memo)) - 17) "
-               "WHEN CHARINDEX('sale price: &#163;',memo) > 0 THEN SUBSTRING(memo,CHARINDEX('sale price: &#163;',LOWER(memo)) + len('sale price: &#163;'), 																									CHARINDEX('Ad rate:',memo)  - CHARINDEX('sale price: &#163;',LOWER(memo)) - len('sale price: &#163;') - 2) "
-               "ELSE '' END AS transaction_price "
+               "WHEN CHARINDEX('sale price: &#163;',memo) > 0 THEN SUBSTRING(memo,CHARINDEX('sale price: &#163;',LOWER(memo)) + len('sale price: &#163;'), 																									"
+               " CHARINDEX('Ad rate:',memo)  - CHARINDEX('sale price: &#163;',LOWER(memo)) - len('sale price: &#163;') - 2) "
+               "ELSE '' END AS transaction_price, "
+               "CASE WHEN CHARINDEX('按 ',memo) > 0 THEN SUBSTRING(memo,CHARINDEX('按 ',LOWER(memo)) + 2, 7)"
+               " WHEN CHARINDEX('at a rate of ',memo) > 0 THEN SUBSTRING(memo,CHARINDEX('at a rate of ',LOWER(memo)) + 13, 7) "
+               "ELSE 1.00000 END AS trans_code_to_ad_code_rate "
                "FROM y_fee (nolock) f "
                "LEFT JOIN B_CurrencyCode(nolock) b ON b.CURRENCYCODE=f.currency_code "
                "LEFT JOIN B_CurrencyCode(nolock) c ON c.CURRENCYCODE=(CASE WHEN CHARINDEX('成交價：GBP',memo) > 0 THEN 'GBP' "
@@ -131,9 +135,10 @@ class EbayFee(BaseService):
 
     def save_data(self, rows):
         try:
-            sql = ("insert into cache_ebayAdFee(suffix, sku, ad_code, ad_code_rate, ad_fee, ad_rate, fee_time, description, "
-                   "item_id, transaction_code, transaction_code_rate, transaction_price, shipping_fee, shipping_name, update_time) "
-                   "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)")
+            sql = ("insert into cache_ebayAdFee(suffix, sku, ad_code, ad_code_rate, ad_fee, ad_rate, fee_time, "
+                   "description, item_id, transaction_code, transaction_code_rate, trans_code_to_ad_code_rate, "
+                   "transaction_price, shipping_fee, shipping_name, update_time) "
+                   "values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)")
             self.warehouse_cur.executemany(sql, rows)
             self.warehouse_con.commit()
         except Exception as e:
@@ -162,7 +167,8 @@ class EbayFee(BaseService):
                         ad_fee_list = (row['suffix'], ship_info['sku'], row['ad_code'], row['ad_code_rate'],
                                        row['ad_fee'], row['ad_rate'], row['fee_time'], row['description'],
                                        row['itemId'], row['transaction_code'], row['transaction_code_rate'],
-                                       row['transaction_price'], ship_info['shipping_fee'], ship_info['shipping_name'],
+                                       row['trans_code_to_ad_code_rate'], row['transaction_price'],
+                                       ship_info['shipping_fee'], ship_info['shipping_name'],
                                        today)
                         res.append(ad_fee_list)
                     self.save_data(res)
