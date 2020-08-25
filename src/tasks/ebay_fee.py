@@ -153,7 +153,7 @@ class EbayFee(BaseService):
                     yield fee
 
     def save_data(self, row):
-        sql = ("if not EXIS TS (select recordId from y_fee(nolock) where recordId=%s) "
+        sql = ("if not EXISTS (select recordId from y_fee(nolock) where recordId=%s) "
                'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,'
                'transactionId,orderId,recordId) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
                "else update y_fee set total=%s,currency_code=%s,fee_time=%s,batchId=%s "
