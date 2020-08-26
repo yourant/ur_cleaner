@@ -129,6 +129,20 @@ class CreateWytOutBoundOrder(BaseService):
 
     def _parse_order_data(self, order):
         # 整理数据格式
+
+        current_order_info_sql = ("SELECT  bw.serviceCode,t.* FROM "
+               "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
+               " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
+               "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
+               " where t.nid = %s and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts) "
+                                   )
+
+        self.cur.execute(current_order_info_sql, order['NID'])
+        new_order = self.cur.fetchone()
+        if not new_order:
+            return
+
+        order = new_order
         data = {
             "doorplateNumbers": "0",
             "address1": order["SHIPTOSTREET"],
@@ -169,7 +183,7 @@ class CreateWytOutBoundOrder(BaseService):
             rows = self.get_order_data()
             for order in rows:
                 data = self._parse_order_data(order)
-                if self.check_order_current_status(order):
+                if data and self.check_order_current_status(order):
                     self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
