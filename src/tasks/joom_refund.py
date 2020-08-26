@@ -129,7 +129,7 @@ class Worker(BaseService):
         try:
             tokens = self.get_joom_token()
             self.clean()
-            pl = Pool(16)
+            pl = Pool(2)
             pl.map(self.get_order, tokens)
             pl.close()
             pl.join()
