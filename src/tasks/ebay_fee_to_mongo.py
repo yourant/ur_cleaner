@@ -12,6 +12,11 @@ from ebaysdk import exception
 from src.services.base_service import BaseService
 from configs.config import Config
 import pymssql
+from pymongo import MongoClient
+
+mongo = MongoClient('192.168.0.150', 27017)
+mongodb = mongo['operation']
+col = mongodb['ebay_fee']
 
 
 class EbayFee(BaseService):
@@ -28,8 +33,8 @@ class EbayFee(BaseService):
         #     self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
         #                         - datetime.timedelta(days=3))[:10]
 
-        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=3))[:10]
-        # self.batch_id = '2020-08-01'
+        # self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
+        self.batch_id = '2020-08-01'
 
     def _get_batch_id(self):
         sql = ("select max(batchId) batchId from y_fee"
@@ -159,6 +164,7 @@ class EbayFee(BaseService):
                 if float(row.NetDetailAmount.value) != 0:
                     yield fee
 
+
     def save_data(self, row):
         sql = (
                 "if not EXISTS (select recordId from y_fee(nolock) where recordId=%s) "
@@ -197,7 +203,8 @@ class EbayFee(BaseService):
                         data = fu.result()
                         for row in data:
                             # print(1231)
-                            self.save_data(row)
+                            col.insert_one(row)
+                            # self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
         except Exception as e:
