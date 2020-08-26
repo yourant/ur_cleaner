@@ -19,7 +19,8 @@ class VoVaWorker(BaseService):
         self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
 
     def get_vova_token(self):
-        sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;"
+        sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token " \
+              "FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=30;"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -97,7 +98,6 @@ class VoVaWorker(BaseService):
         except Exception as e:
             self.logger.error(f'fail to save {row["order_id"]} cause of duplicate key or {e}')
 
-
     def run(self):
         try:
             # self.clean()
@@ -108,7 +108,6 @@ class VoVaWorker(BaseService):
                     try:
                         data = fu.result()
                         for row in data:
-                            # print(123)
                             self.save_data(row)
                     except Exception as e:
                         self.logger.error(e)
