@@ -13,7 +13,7 @@ class Updater(BaseService):
     def __init__(self):
         super().__init__()
         self.all_orders = dict()
-        self.rate = 0.25
+        self.rate = 0.22
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
