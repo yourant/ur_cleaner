@@ -5,16 +5,14 @@
 
 
 import datetime
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from src.services.base_service import BaseService
 from configs.config import Config
-import pymssql
 from pymongo import MongoClient
+from multiprocessing.pool import ThreadPool as Pool
 
-mongo = MongoClient('192.168.0.150', 27017)
+mongo = MongoClient('localhost', 27017)
 mongodb = mongo['operation']
 col = mongodb['ebay_fee']
 
@@ -27,27 +25,8 @@ class EbayFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        # if not self._get_batch_id():
-        #     self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
-        # else:
-        #     self.batch_id = str(datetime.datetime.strptime(self._get_batch_id(), '%Y-%m-%d')
-        #                         - datetime.timedelta(days=3))[:10]
-
-        # self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
         self.batch_id = '2020-08-01'
 
-    def _get_batch_id(self):
-        sql = ("select max(batchId) batchId from y_fee"
-               " where notename in "
-               "(select DictionaryName from B_Dictionary nolock "
-               "where CategoryID=12 and FitCode ='eBay')"
-               )
-        try:
-            self.cur.execute(sql)
-            ret = self.cur.fetchone()
-            return ret['batchId']
-        except Exception as why:
-            self.logger.error('fail to get max batchId cause of {}'.format(why))
 
     def get_ebay_token(self):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
@@ -56,18 +35,12 @@ class EbayFee(BaseService):
                " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring',"
                "'eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
                "  GROUP BY notename"
-               # " having notename='eBay-45-cocoskyna0'"
+               # " having notename='04-cheong'"
                )
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
             yield row
-
-    def get_ebay_fee(self, ebay_token):
-        par = self.get_request_params(ebay_token)
-        for ret in self._get_ebay_fee(par):
-            for fee in self._parse_response(ret, ebay_token):
-                yield fee
 
     def get_request_params(self, ebay_token):
         """
@@ -78,8 +51,8 @@ class EbayFee(BaseService):
         end_date = str(datetime.datetime.now())[:10]
         if begin_date > end_date:
             begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
-        # begin_date = '2020-08-01'
-        # end_date = '2020-08-03'
+        begin_date = '2020-08-01'
+        end_date = '2020-08-02'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
@@ -93,53 +66,62 @@ class EbayFee(BaseService):
 
         return par
 
-    def _get_ebay_fee(self, par):
+    def _get_ebay_fee(self, par, ebay_token):
         api = Trading(siteid=0, config_file=self.config, timeout=40)
-        currency = ['GBP', 'USD']
+        currency = ['USD', 'GBP']
         for cur in currency:
-            for i in range(3):
-                try:
-                    par['Currency'] = cur
-                    response = api.execute('GetAccount', par)
+            try:
+                par['Currency'] = cur
+                response = None
+
+                # 网络出错就重试俩次
+                for i in range(2):
                     try:
-                        total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
-                        if total_pages == 1:
-                            ret = response.reply.AccountEntries.AccountEntry
-                            yield ret
-                        if total_pages > 1:
-                            ret = response.reply.AccountEntries.AccountEntry
-                            yield ret
-                            for page in range(1, total_pages):
-                                par['Pagination']['PageNumber'] = page
-                                response = api.execute('GetAccount', par)
-                                ret = response.reply.AccountEntries.AccountEntry
-                                yield ret
+                        response = api.execute('GetAccount', par)
+                        break
+                    except exception.ConnectionError as why:
+                        self.logger.warn(f'error while request GetAccount of {ebay_token["notename"]} '
+                                         f'with bill of {cur} cause of {why}')
                         break
                     except Exception as why:
-                        self.logger.error('error while getting accountEntry cause of {}'.format(why))
+                        self.logger.error(f'trying {i + 1} times to get accountEntry cause of {why}')
 
-                except exception.ConnectionError as why:
-                    self.logger.info(
-                        f'retry {i + 1} times.fail to get ebay fee cause of {why} ')
-                    # self.logger.warning(why)
-                    # par.pop('Currency')
-                    # response = api.execute('GetAccount', par)
-                    # total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
-                    # if total_pages == 1:
-                    #     ret = response.reply.AccountEntries.AccountEntry
-                    #     yield ret
-                    # if total_pages > 1:
-                    #     ret = response.reply.AccountEntries.AccountEntry
-                    #     yield ret
-                    #     for page in range(1, total_pages):
-                    #         par['Pagination']['PageNumber'] = page
-                    #         response = api.execute('GetAccount', par)
-                    #         ret = response.reply.AccountEntries.AccountEntry
-                    #         yield ret
-                    # break
-                    # to-do read time out exception
-                except Exception as why:
-                    self.logger.error(why)
+                if response:
+                    total_pages = int(response.reply.PaginationResult.TotalNumberOfPages)
+                    if not hasattr(response.reply, 'AccountEntries'):
+                        self.logger.warning(f'{ebay_token["notename"]} has no bill of {cur}')
+                    else:
+                        if total_pages == 1:
+                            ret = response.reply.AccountEntries.AccountEntry
+                            ret = self._parse_response(ret, ebay_token)
+                            for row in ret:
+                                self.save(row)
+                        if total_pages > 1:
+                            ret = response.reply.AccountEntries.AccountEntry
+                            ret = self._parse_response(ret, ebay_token)
+                            for row in ret:
+                                self.save(row)
+                            for page in range(1, total_pages):
+                                par['Pagination']['PageNumber'] = page
+                                current_response = None
+
+                                # 如果网络出错就重试俩次
+                                for i in range(2):
+                                    try:
+                                        current_response = api.execute('GetAccount', par)
+                                        break
+                                    except exception.ConnectionError as why:
+                                        self.logger.warn(f'error while getting accountEntry cause of {why}')
+                                        break
+                                    except Exception as why:
+                                        self.logger.error(f'trying {i + 1} times to get accountEntry cause of {why}')
+                                if current_response:
+                                    ret = current_response.reply.AccountEntries.AccountEntry
+                                    ret = self._parse_response(ret, ebay_token)
+                                    for row in ret:
+                                        self.save(row)
+            except exception.ConnectionError as why:
+                self.logger.error('error while getting accountEntry cause of {}'.format(why))
 
     def _parse_response(self, ret, ebay_token):
         for row in ret:
@@ -164,53 +146,27 @@ class EbayFee(BaseService):
                 if float(row.NetDetailAmount.value) != 0:
                     yield fee
 
+    def save(self, row):
+        col.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
 
-    def save_data(self, row):
-        sql = (
-                "if not EXISTS (select recordId from y_fee(nolock) where recordId=%s) "
-               'insert into y_fee(notename,fee_type,total,currency_code,fee_time,batchId,description,itemId,memo,'
-               'transactionId,orderId,recordId) values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
-               "else update y_fee set total=%s,currency_code=%s,fee_time=%s,batchId=%s "
-               "where recordId=%s"
-               )
+    def work(self, ebay_token):
+        par = self.get_request_params(ebay_token)
         try:
-            self.cur.execute(sql, (
-                row['recordId'],
-                row['accountName'], row['feeType'], row['value'], row['currency'],
-                row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
-                row['transactionId'], row['orderId'], row['recordId'],
-                row['value'], row['currency'], row['Date'], str(row['Date'])[:10], row['orderId']
-            ))
-            # self.logger.info("putting %s" % row['accountName'])
-            self.con.commit()
-        except pymssql.IntegrityError as e:
-            pass
-        except Exception as e:
-            self.logger.error("%s while trying to save data" % e)
-
-    # def save_trans(self, token):
-    #     ret = self.get_ebay_fee(token)
-    #     for row in ret:
-    #         self.save_data(row)
+            self._get_ebay_fee(par, ebay_token)
+            self.logger.info(f'success to finish job of getting fee of {ebay_token["notename"]}')
+        except Exception as why:
+            self.logger.error(f'fail to work in get fee of {ebay_token["notename"]} cause of {why}')
 
     def run(self):
         try:
             tokens = self.get_ebay_token()
-            with ThreadPoolExecutor(4) as pool:
-                future = {pool.submit(self.get_ebay_fee, token): token for token in tokens}
-                for fu in as_completed(future):
-                    try:
-                        data = fu.result()
-                        for row in data:
-                            # print(1231)
-                            col.insert_one(row)
-                            # self.save_data(row)
-                    except Exception as e:
-                        self.logger.error(e)
+            with Pool(2) as pl:
+                pl.map(self.work, tokens)
         except Exception as e:
             self.logger.error(e)
         finally:
             self.close()
+            mongo.close()
 
 
 if __name__ == '__main__':
