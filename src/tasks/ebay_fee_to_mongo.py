@@ -160,7 +160,7 @@ class EbayFee(BaseService):
     def run(self):
         try:
             tokens = self.get_ebay_token()
-            with Pool(2) as pl:
+            with Pool(4) as pl:
                 pl.map(self.work, tokens)
         except Exception as e:
             self.logger.error(e)
