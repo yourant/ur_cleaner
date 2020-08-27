@@ -12,7 +12,7 @@ from configs.config import Config
 from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
 
-mongo = MongoClient('localhost', 27017)
+mongo = MongoClient('192.168.0.172', 27017)
 mongodb = mongo['operation']
 col = mongodb['ebay_fee']
 
@@ -27,7 +27,6 @@ class EbayFee(BaseService):
         self.config = Config().get_config('ebay.yaml')
         self.batch_id = '2020-08-01'
 
-
     def get_ebay_token(self):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
                " where notename in (select dictionaryName from B_Dictionary "
@@ -35,7 +34,7 @@ class EbayFee(BaseService):
                " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring',"
                "'eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
                "  GROUP BY notename"
-               # " having notename='04-cheong'"
+               # " having notename='06-happygirl'"
                )
         self.cur.execute(sql)
         ret = self.cur.fetchall()
@@ -52,7 +51,7 @@ class EbayFee(BaseService):
         if begin_date > end_date:
             begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
         begin_date = '2020-08-01'
-        end_date = '2020-08-02'
+        end_date = '2020-08-27'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
