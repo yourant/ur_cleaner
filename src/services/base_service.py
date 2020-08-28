@@ -62,7 +62,9 @@ class BaseService(object):
             erp = config.get_config('erp')
             if erp:
                 self.erp.close()
-            self.ibay.close()
+            ibay = config.get_config('ibay')
+            if ibay:
+                self.ibay.close()
 
             self.logger.info('close connection')
         except Exception as e:
