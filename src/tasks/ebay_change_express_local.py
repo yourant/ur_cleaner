@@ -57,7 +57,7 @@ class Updater(BaseService):
             to_change_orders = self.get_to_change_order(sf)
             for od in to_change_orders:
                 for code in special_post_codes:
-                    if od['shipToZip'].startswith(code):
+                    if str.upper(od['shipToZip']).startswith(code):
                         od['newName'] = 'Royal Mail - Tracked 48 Parcel'
                         od['suffixChangNumber'] = sf['number_to_change']
                         out.append(od)
