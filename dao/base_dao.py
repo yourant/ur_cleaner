@@ -50,9 +50,10 @@ class BaseDao(object):
                 return pymysql.connect(**config.get_config('mysql'))
 
             if base_name == 'erp':
-                data_base_config = config.get_config('erp')
-                if data_base_config:
-                    return pymysql.connect(**config.get_config('erp'))
+                return pymysql.connect(**config.get_config('erp'))
+
+            if base_name == 'yun':
+                return pymysql.connect(**config.get_config('yun'))
 
             if base_name == 'ibay':
                 import psycopg2
@@ -80,6 +81,9 @@ class BaseDao(object):
             if base_name == 'ibay':
                 cur = connection.cursor()
 
+            if base_name == 'yun':
+                cur = connection.cursor()
+
         return cur
 
     def close_cur(self, cur):
@@ -103,8 +107,8 @@ class BaseDao(object):
 
 if __name__ == '__main__':
     do = BaseDao()
-    first_mysql = do.get_cur('mysql')
-    first_mysql.execute('select * from proCenter.oa_goods limit 1')
+    first_mysql = do.get_cur('yun')
+    first_mysql.execute('select * from user limit 1')
     ret = first_mysql.fetchone()
     print(ret)
     do.close_cur(first_mysql)
