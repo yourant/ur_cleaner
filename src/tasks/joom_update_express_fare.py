@@ -4,11 +4,11 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import datetime
 
 
-class Updater(BaseService):
+class Updater(CommonService):
 
     def __init__(self):
         super().__init__()
