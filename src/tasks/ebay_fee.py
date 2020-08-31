@@ -51,8 +51,8 @@ class EbayFee(BaseService):
         end_date = str(datetime.datetime.now())[:10]
         if begin_date > end_date:
             begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
-        begin_date = '2020-08-27'
-        end_date = '2020-08-28'
+        # begin_date = '2020-08-28'
+        # end_date = '2020-08-29'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
@@ -198,7 +198,7 @@ class EbayFee(BaseService):
             with Pool(4) as pl:
                 pl.map(self.work, tokens)
 
-            self.insert_to_sql()
+            # self.insert_to_sql()
         except Exception as e:
             self.logger.error(e)
         finally:
