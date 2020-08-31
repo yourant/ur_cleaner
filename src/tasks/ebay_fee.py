@@ -25,7 +25,7 @@ class EbayFee(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=5))[:10]
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
         # self.batch_id = '2020-08-01'
 
     def get_ebay_token(self):
@@ -51,8 +51,8 @@ class EbayFee(BaseService):
         end_date = str(datetime.datetime.now())[:10]
         if begin_date > end_date:
             begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
-        # begin_date = '2020-08-14'
-        # end_date = '2020-08-27'
+        begin_date = '2020-08-27'
+        end_date = '2020-08-28'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
@@ -194,9 +194,9 @@ class EbayFee(BaseService):
 
     def run(self):
         try:
-            # tokens = self.get_ebay_token()
-            # with Pool(4) as pl:
-            #     pl.map(self.work, tokens)
+            tokens = self.get_ebay_token()
+            with Pool(4) as pl:
+                pl.map(self.work, tokens)
 
             self.insert_to_sql()
         except Exception as e:
