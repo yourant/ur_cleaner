@@ -27,11 +27,15 @@ class Worker(CommonService):
         self.token = config['ur_center']['token']
         self.op_token = config['op_center']['token']
         self.base_name = 'mssql'
+        self.warehouse = 'mysql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
 
     def close(self):
         self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_products(self):
         sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE  (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19  and devDatetime >= date_sub(curdate(),interval 7 day)")

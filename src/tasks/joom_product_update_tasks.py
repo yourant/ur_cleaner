@@ -14,11 +14,15 @@ class Updating(CommonService):
         super().__init__()
         self.rd = redis.Redis(host='192.168.0.150', port='6379', db=0)
         self.base_name = 'mssql'
+        self.warehouse = 'mysql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
 
     def close(self):
         self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_products(self):
         sql = ( 'select productId from proCenter.joom_cateProduct '
