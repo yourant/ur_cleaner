@@ -103,13 +103,15 @@ class Fetcher(BaseService):
         return str(year) + '-' + str(month) + '-' + '01'
 
     def update_goods_status(self, end_date):
+        today = datetime.datetime.now().day
         begin_date = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
-        sql = ('UPDATE cache_devGoodsProfit t ' +
-                'SET goodsStatus = (SELECT goodsStatus AS goodsStatus FROM cache_devGoodsSoldDetail d WHERE d.goodsCode = t.goodsCode order by orderTime desc limit 1)' +
-                'WHERE exists(select 1 from cache_devGoodsSoldDetail t2 where t2.goodsCode = t.goodsCode AND t2.goodsStatus = t.goodsStatus)' +
-                "AND orderTime BETWEEN %s AND %s;")
-        self.warehouse_cur.execute(sql, (begin_date, end_date))
-        self.warehouse_con.commit()
+        if today == 5 or today == 15 or today == 25:
+            sql = ('UPDATE cache_devGoodsProfit t ' +
+                    'SET goodsStatus = (SELECT goodsStatus AS goodsStatus FROM cache_devGoodsSoldDetail d WHERE d.goodsCode = t.goodsCode order by orderTime desc limit 1)' +
+                    'WHERE exists(select 1 from cache_devGoodsSoldDetail t2 where t2.goodsCode = t.goodsCode AND t2.goodsStatus = t.goodsStatus)' +
+                    "AND orderTime BETWEEN %s AND %s;")
+            self.warehouse_cur.execute(sql, (begin_date, end_date))
+            self.warehouse_con.commit()
 
     def work(self):
         try:
