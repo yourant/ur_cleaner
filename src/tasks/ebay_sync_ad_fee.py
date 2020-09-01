@@ -3,7 +3,7 @@
 # @Time: 2020-08-20 16:26
 # Author: henry
 
-
+import os
 import datetime
 from src.services.base_service import BaseService
 from configs.config import Config
@@ -174,6 +174,8 @@ class EbayFee(BaseService):
 
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

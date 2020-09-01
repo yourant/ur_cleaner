@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 from src.services.base_service import CommonService
 import re
 
@@ -93,6 +94,8 @@ class LogAnalysis(CommonService):
 
         except Exception as why:
             self.logger.error(why)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

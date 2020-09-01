@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 from src.services.base_service import CommonService
 
 
@@ -30,6 +31,8 @@ class UpdateGoodsStatus(CommonService):
                     self.logger.error(f'failed to update goods status of step {i} cause of {why}')
         except Exception as why:
             self.logger.error(f'failed to update goods status  cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

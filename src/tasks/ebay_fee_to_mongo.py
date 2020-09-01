@@ -3,7 +3,7 @@
 # @Time: 2018-10-19 16:26
 # Author: turpure
 
-
+import os
 import datetime
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
@@ -169,6 +169,8 @@ class EbayFee(CommonService):
                 pl.map(self.work, tokens)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()

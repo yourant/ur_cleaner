@@ -7,6 +7,8 @@ from pymongo import MongoClient
 import math
 import json
 import requests
+import os
+
 
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['ebay']
@@ -91,6 +93,8 @@ class FetchEbayProductsStorage(CommonService):
             self.getData()
         except Exception  as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - beginTime))  # 计算程序总耗时

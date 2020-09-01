@@ -3,6 +3,7 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 from configs.config import Config
 import requests
@@ -81,7 +82,9 @@ class Worker(CommonService):
             with Pool(32) as pl:
                 pl.map(self.get_data_by_id, products)
         except Exception as why:
-                self.logger.error('fail to push wish template  cause of {} '.format(why))
+            self.logger.error('fail to push wish template  cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()

@@ -3,6 +3,7 @@
 # @Time: 2019-09-17 16:57
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 import aiohttp
 import json
@@ -156,6 +157,8 @@ class Producer(CommonService):
             self.sync()
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

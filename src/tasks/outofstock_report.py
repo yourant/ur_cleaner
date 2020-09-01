@@ -3,6 +3,7 @@
 # @Time: 2018-11-28 9:45
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 
 
@@ -34,6 +35,8 @@ class StockReporter(CommonService):
             self.logger.info('update out of stock info')
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

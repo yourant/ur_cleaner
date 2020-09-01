@@ -3,7 +3,7 @@
 # @Time: 2018-10-19 16:26
 # Author: turpure
 
-
+import os
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ebaysdk.trading import Connection as Trading
@@ -141,6 +141,8 @@ class EbayBalance(CommonService):
                         self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

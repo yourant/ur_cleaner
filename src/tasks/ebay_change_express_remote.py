@@ -3,6 +3,7 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 from configs.config import Config
 from ebaysdk.trading import Connection as Trading
@@ -140,6 +141,8 @@ class Shipper(CommonService):
 
         except Exception as why:
             self.logger.error('fail to  finish task cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

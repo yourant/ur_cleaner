@@ -3,6 +3,8 @@
 # @Time: 2020-07-21 13:14
 # Author: turpure
 
+
+import os
 from src.services.base_service import CommonService
 import math
 from src.tasks.ebay_change_express_config import special_post_codes
@@ -131,6 +133,8 @@ class Updater(CommonService):
 
         except Exception as why:
             self.logger.error(f'fail to finish task cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             pass
 

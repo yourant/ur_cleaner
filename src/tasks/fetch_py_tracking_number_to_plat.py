@@ -2,7 +2,7 @@ from src.services.base_service import CommonService
 from configs.config import Config
 import datetime
 from ebaysdk.trading import Connection as Trading
-
+import os
 
 class Marker(CommonService):
 
@@ -83,6 +83,8 @@ class Marker(CommonService):
             self.update_ebay_tracking_number(data)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

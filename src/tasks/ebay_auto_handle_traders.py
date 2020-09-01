@@ -3,6 +3,8 @@
 # @Time: 2020-07-24 11:30
 # Author: turpure
 
+
+import os
 import datetime
 from src.services.base_service import BaseService
 
@@ -100,6 +102,8 @@ class Worker(BaseService):
             self.trans()
         except Exception as why:
             self.logger.error('fail to finish task cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

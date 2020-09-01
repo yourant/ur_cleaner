@@ -1,4 +1,5 @@
 import datetime
+import os
 import time
 from src.services.base_service import CommonService
 from src.services import oauth_wyt as wytOauth
@@ -193,6 +194,8 @@ class CreateWytOutBoundOrder(CommonService):
                     self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时

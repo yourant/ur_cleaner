@@ -7,6 +7,7 @@ from configs.config import Config
 from multiprocessing.pool import ThreadPool as Pool
 from pymongo import MongoClient
 import math
+import os
 
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['ebay']
@@ -257,6 +258,8 @@ class FetchEbayLists(CommonService):
             self.save_trans()
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - BeginTime))  # 计算程序总耗时

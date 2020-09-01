@@ -7,6 +7,7 @@
 upload tracking number of wish's merged trades
 """
 
+import os
 import requests
 import json
 from src.services.base_service import CommonService
@@ -88,6 +89,8 @@ class WishUploader(CommonService):
             pool.map(self.upload_trans, self.get_trades_info())
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

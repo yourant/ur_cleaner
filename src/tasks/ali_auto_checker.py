@@ -3,6 +3,8 @@
 # @Time: 2018-10-20 15:56
 # Author: turpure
 
+
+import os
 import json
 import requests
 from tenacity import retry, stop_after_attempt
@@ -151,6 +153,8 @@ class AliChecker(CommonService):
                 self.check(order)
         except Exception as e:
             self.logger(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

@@ -3,6 +3,7 @@
 # @Time: 2018-11-08 13:04
 # Author: turpure
 
+import os
 import datetime
 from src.services.base_service import CommonService
 
@@ -16,19 +17,14 @@ class SuffixSkuProfitFetcher(CommonService):
         super().__init__()
         self.base_name = 'mssql'
         self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
 
-        def __init__(self):
-            super().__init__()
-            self.base_name = 'mssql'
-            self.warehouse = 'mysql'
-            self.cur = self.base_dao.get_cur(self.base_name)
-            self.con = self.base_dao.get_connection(self.base_name)
-            self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
-            self.warehouse_con = self.base_dao.get_connection(self.warehouse)
-
-        def close(self):
-            self.base_dao.close_cur(self.cur)
-            self.base_dao.close_cur(self.warehouse_cur)
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def fetch(self, date_flag, begin_date, end_date):
         sql = 'EXEC guest.oauth_reportSuffixSkuProfitBackup @dateFlag=%s, @beginDate=%s, @endDate=%s'
@@ -88,6 +84,8 @@ class SuffixSkuProfitFetcher(CommonService):
             self.update_developer()
         except Exception as why:
             self.logger.error('fail to fetch suffix sku profit cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

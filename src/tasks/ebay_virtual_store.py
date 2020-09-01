@@ -3,7 +3,7 @@
 # @Time: 2019-03-28 10:32
 # Author: turpure
 
-
+import os
 from src.services.base_service import CommonService
 
 
@@ -28,6 +28,8 @@ class EbayVirtual(CommonService):
             self.cur.commit()
         except Exception as why:
             self.logger.error(why)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

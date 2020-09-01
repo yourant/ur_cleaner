@@ -5,7 +5,7 @@ from src.services import oauth_wyt as wytOauth
 from src.tasks.ebay_change_express_remote import Shipper
 import requests
 import json
-
+import os
 
 class FetchEbayOrderPackageNumber(Shipper):
     def __init__(self):
@@ -99,6 +99,8 @@ class FetchEbayOrderPackageNumber(Shipper):
             #     pl.map(self.get_data_by_id, rows)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时

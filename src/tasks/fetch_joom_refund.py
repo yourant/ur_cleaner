@@ -2,6 +2,7 @@
 # coding:utf-8
 # Author: turpure
 
+import os
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.services.base_service import CommonService
@@ -101,6 +102,8 @@ class Worker(CommonService):
                         self.logger.error(e)
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

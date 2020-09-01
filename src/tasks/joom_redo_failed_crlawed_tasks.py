@@ -3,6 +3,7 @@
 # @Time: 2020-03-14 10:07
 # Author: turpure
 
+import os
 import requests
 import json
 import os
@@ -76,7 +77,8 @@ class Worker(CommonService):
                 self.redo_tasks(tk)
         except Exception as why:
             self.logger.error(why)
-            raise Exception('fail to finish task!')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

@@ -3,6 +3,7 @@
 # @Time: 2018-10-30 15:07
 # Author: turpure
 
+import os
 import datetime
 from src.services.base_service import CommonService
 
@@ -70,6 +71,8 @@ class Fetcher(CommonService):
                 self.logger.info('success to fetch dev sold details')
         except Exception as why:
             self.logger.error('fail to fetch dev sold details of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

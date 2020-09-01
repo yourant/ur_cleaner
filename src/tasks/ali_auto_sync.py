@@ -3,6 +3,8 @@
 # @Time: 2018-10-20 15:56
 # Author: turpure
 
+
+import os
 import json
 import requests
 import datetime
@@ -136,6 +138,8 @@ class AliSync(CommonService):
                 self.check(order)
         except Exception as e:
             self.logger.error(f'fail to finish work of ali syncing cause of {e}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

@@ -3,6 +3,7 @@
 # @Time: 2018-10-20 10:02
 # Author: turpure
 
+import os
 import datetime
 from src.services.base_service import CommonService
 
@@ -63,9 +64,10 @@ class FileOrdersToHis(CommonService):
                 self.cur.execute(sql, (id, batch_number))
                 self.con.commit()
 
-
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

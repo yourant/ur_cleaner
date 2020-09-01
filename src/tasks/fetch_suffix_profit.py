@@ -3,6 +3,7 @@
 # @Time: 2018-11-08 13:04
 # Author: turpure
 
+import os
 import datetime
 from src.services.base_service import CommonService
 
@@ -76,6 +77,8 @@ class ProfitFetcher(CommonService):
                 self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch suffix profit cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

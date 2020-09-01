@@ -4,7 +4,7 @@
 # Author: turpure
 
 
-import math
+import os
 import re
 import datetime
 from src.services.base_service import CommonService
@@ -103,6 +103,8 @@ class Worker(CommonService):
             pl.join()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

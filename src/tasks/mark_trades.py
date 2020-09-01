@@ -3,6 +3,7 @@
 # @Time: 2018-10-19 13:51
 # Author: turpure
 
+import os
 import datetime
 import re
 from src.services.base_service import CommonService
@@ -123,6 +124,8 @@ class Marker(CommonService):
             self.mark_trades_trans()
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

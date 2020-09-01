@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
@@ -99,6 +100,8 @@ class Worker(CommonService):
             pl.join()
         except Exception as why:
             self.logger.error('fail to get wish campaign list  cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

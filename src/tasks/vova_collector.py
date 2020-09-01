@@ -3,6 +3,7 @@
 # @Time: 2020-03-14 10:07
 # Author: turpure
 
+import os
 import time
 import datetime
 import requests
@@ -241,6 +242,8 @@ class Worker(CommonService):
 
         except Exception as why:
             self.logger.error(why)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时

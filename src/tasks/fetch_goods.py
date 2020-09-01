@@ -3,7 +3,7 @@
 # @Time: 2020-05-20 15:07
 # Author: turpure
 
-import datetime
+import os
 from src.services.base_service import CommonService
 
 
@@ -50,6 +50,8 @@ class Fetcher(CommonService):
             self.logger.info('success to fetch  goods')
         except Exception as why:
             self.logger.error(f'fail to fetch goods cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

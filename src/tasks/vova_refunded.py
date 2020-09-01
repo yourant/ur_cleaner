@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.services.base_service import CommonService
@@ -120,6 +121,8 @@ class VoVaWorker(CommonService):
                         self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

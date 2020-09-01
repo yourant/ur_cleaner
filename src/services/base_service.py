@@ -4,7 +4,6 @@
 # Author: turpure
 
 from dao.base_dao import BaseDao
-
 from src.services import log, db
 import pymysql
 from configs.config import Config

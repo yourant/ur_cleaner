@@ -9,7 +9,7 @@ from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from configs.config import Config
 import json
-
+import os
 
 class Worker(CommonService):
     """
@@ -85,6 +85,8 @@ class Worker(CommonService):
 
         except Exception as why:
             self.logger.error('fail to update ebay inventory cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

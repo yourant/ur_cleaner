@@ -3,6 +3,7 @@
 # @Time: 2018-10-19 13:13
 # Author: turpure
 
+import os
 import datetime
 from src.services.base_service import CommonService
 
@@ -59,6 +60,8 @@ class EbayInterceptor(CommonService):
             self.con.commit()
         except Exception as e:
             self.logger.debug(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
 
         finally:
             self.close()

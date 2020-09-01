@@ -3,6 +3,7 @@
 # @Time: 2018-11-26 10:39
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 import datetime
 
@@ -133,6 +134,8 @@ class RiskController(CommonService):
             self.save_to_base(trades)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

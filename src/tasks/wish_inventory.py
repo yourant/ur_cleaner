@@ -2,6 +2,7 @@
 # coding:utf-8
 # Author: turpure
 
+import os
 from multiprocessing.pool import ThreadPool as Pool
 from src.services.base_service import CommonService
 import requests
@@ -69,6 +70,8 @@ class Worker(CommonService):
 
         except Exception as why:
             self.logger.error('fail to update wish inventory cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

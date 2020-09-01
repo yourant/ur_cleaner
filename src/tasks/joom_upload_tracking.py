@@ -3,6 +3,7 @@
 # @Time: 2019-06-10 14:20
 # Author: turpure
 
+import os
 from src.services.base_service import CommonService
 import requests
 import json
@@ -151,6 +152,8 @@ class Uploader(CommonService):
 
         except Exception as why:
             self.logger.error('fail to upload tracking number to joom cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 
