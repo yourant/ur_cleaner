@@ -198,7 +198,7 @@ class EbayFee(BaseService):
             with Pool(4) as pl:
                 pl.map(self.work, tokens)
 
-            # self.insert_to_sql()
+            self.insert_to_sql()
         except Exception as e:
             self.logger.error(e)
         finally:
