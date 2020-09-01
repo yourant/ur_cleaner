@@ -51,8 +51,8 @@ class EbayFee(BaseService):
         end_date = str(datetime.datetime.now())[:10]
         if begin_date > end_date:
             begin_date = str(datetime.datetime.now() - datetime.timedelta(days=2))[:10]
-        # begin_date = '2020-08-14'
-        # end_date = '2020-08-27'
+        # begin_date = '2020-08-28'
+        # end_date = '2020-08-29'
         begin_date += "T00:00:00.000Z"
         end_date += "T01:00:00.000Z"  # utc time
         par = {
@@ -191,6 +191,7 @@ class EbayFee(BaseService):
         # for row in rows:
         #     print(row)
         self.insert(rows)
+        self.logger.info(f'success to push fee between {begin} and {end}')
 
     def run(self):
         try:

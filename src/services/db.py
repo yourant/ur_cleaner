@@ -46,8 +46,10 @@ class DataBase(object):
                     return pymysql.connect(**config.get_config('erp'))
 
             if self.base_name == 'ibay':
-                import psycopg2
-                return psycopg2.connect(**config.get_config('ibay'))
+                data_base_config = config.get_config('ibay')
+                if data_base_config:
+                    import psycopg2
+                    return psycopg2.connect(**config.get_config('ibay'))
 
         except Exception as why:
             SysLogger().log.info('can not connect {} cause of {}'.format(self.base_name, why))

@@ -3,12 +3,24 @@
 # @Time: 2018-10-30 15:09
 # Author: turpure
 
+from dao.base_dao import BaseDao
+
 from src.services import log, db
 import pymysql
 import psycopg2
 import psycopg2.extras
 from configs.config import Config
 config = Config()
+
+
+class CommonService(object):
+    """
+    wrap log and db service
+    """
+    base_dao = BaseDao()
+
+    def __init__(self):
+        self.logger = self.base_dao.logger
 
 
 class BaseService(object):
@@ -50,10 +62,13 @@ class BaseService(object):
             erp = config.get_config('erp')
             if erp:
                 self.erp.close()
-            self.ibay.close()
+            ibay = config.get_config('ibay')
+            if ibay:
+                self.ibay.close()
 
             self.logger.info('close connection')
         except Exception as e:
             self.logger.error('fail to close connection cause of {}'.format(e))
+
 
 

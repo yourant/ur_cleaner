@@ -8,9 +8,9 @@ import requests
 from tenacity import retry, stop_after_attempt
 from src.services.base_service import BaseService
 from src.services import oauth as aliOauth
-from concurrent.futures import ThreadPoolExecutor
 import re
 import datetime
+
 
 class AliChecker(BaseService):
     """
@@ -28,9 +28,7 @@ class AliChecker(BaseService):
         out = dict()
         try:
             res = requests.get(base_url)
-            # ret = json.loads(res.content)['result']
             response = json.loads(res.content)
-            # print(response)
             try:
                 if response['success'] == 'true':
                     ret = response['result']
@@ -51,7 +49,7 @@ class AliChecker(BaseService):
 
     def check_order(self, check_info):
         order_id = check_info['order_id']
-        serch_sql = "select cgsm.NID,cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," \
+        search_sql = "select cgsm.NID,cgsm.billnumber,cgsm.recorder,cgsm.audier,cgsm.checkflag," \
                     "cgsm.audiedate, sum(sd.amount) total_amt," \
                     "sum(sd.amount * gs.costprice) as total_cost_money, " \
                     "sum(sd.amount*sd.price) as total_money, cgsm.expressfee " \
@@ -69,18 +67,6 @@ class AliChecker(BaseService):
         update_sql = "update cg_stockorderM set isSubmit=1,is1688Order=1 , alibabaorderid=%s," \
                      "expressFee=%s, alibabamoney=%s where billNumber = %s"
 
-        # 2017-08-08 change the method of computing price and express fee
-        # weight_sql = ""
-        # 2020-08-03 修改
-        # update_price = "update cgd set money= money + amount*(%s-%s)/%s," \
-        #                "allmoney= money + amount*(%s-%s)/%s, " \
-        #                "cgd.beforeavgprice= cgd.price, " \
-        #                "cgd.price= cgd.price + (%s-%s)/%s," \
-        #                "cgd.taxprice= cgd.taxprice + (%s-%s)/%s " \
-        #                "from cg_stockorderd  as cgd  LEFT JOIN cg_stockorderm" \
-        #                " as cgm on cgd.stockordernid= cgm.nid " \
-        #                "where billnumber=%s"
-
         update_price = "update cgd set money= gs.costprice * amount + amount*(%s-%s)/%s," \
                        "allmoney= gs.costprice * amount + amount*(%s-%s)/%s, " \
                        "cgd.beforeavgprice= gs.costprice, " \
@@ -94,25 +80,20 @@ class AliChecker(BaseService):
         log_sql = u"INSERT INTO CG_StockLogs(OrderType,OrderNID,Operator,Logs) VALUES(%s,%s,%s,%s)".encode("utf8")
 
         try:
-            self.cur.execute(serch_sql)
+            self.cur.execute(search_sql)
             ret = self.cur.fetchone()
             if not ret:
                 self.logger.info('no need to check %s' % order_id)
                 return
             qty = ret['total_amt']
-            total_money = ret['total_money']
             total_cost_money = ret['total_cost_money']
             bill_number = ret['billnumber']
             audier = ret['audier']
             check_qty = check_info['qty']
             express_fee = check_info['expressFee']
             order_money = check_info['sumPayment']
-            avg_before_price = (order_money - express_fee) / check_qty
-            avg_express_fee = express_fee / check_qty
-            # avg_price = avg_express_fee + avg_before_price
             if qty == check_qty:
                 self.cur.execute(update_sql, (order_id, express_fee, order_money, bill_number))
-                # cur.execute(update_price, (order_money, total_money, qty)*4 + (bill_number,))
                 self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
                 self.cur.execute(update_status, (audier, order_money, bill_number))
                 self.cur.execute(check_sql, (bill_number,))
@@ -146,25 +127,17 @@ class AliChecker(BaseService):
         self.cur.execute(query)
         ret = self.cur.fetchall()
         for row in ret:
-            # try:
                 note = row['note']
                 order_ids = re.findall(r': (\d+)', note)
                 for order in order_ids:
                     if len(order) > 10:
                         item = {'orderId': order, 'account': row['account']}
-                        # print(item)
                         yield item
-            # except Exception as e:
-            #     self.logger.error(u'error while getting order number of {}'.format(row['note']))
-
 
     def check(self, order):
-        # try:
             ret = self.get_order_details(order)
             if ret:
                 self.check_order(ret)
-        # except Exception as e:
-        #     self.logger.error(e)
 
     def work(self):
         try:
