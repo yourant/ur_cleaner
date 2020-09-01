@@ -48,6 +48,10 @@ class Fetcher(CommonService):
                    row['joomProfit'] if 'joomProfit' in row else 0,
                    row['amazonSold'] if 'amazonSold' in row else 0,
                    row['amazonProfit'] if 'amazonProfit' in row else 0,
+                   row['vovaSold'] if 'vovaSold' in row else 0,
+                   row['vovaProfit'] if 'vovaProfit' in row else 0,
+                   row['lazadaSold'] if 'lazadaSold' in row else 0,
+                   row['lazadaProfit'] if 'lazadaProfit' in row else 0,
                    row['dateFlag'] if 'dateFlag' in row else 0,
                    row['orderTime'] if 'orderTime' in row else ''
                    )
@@ -57,12 +61,17 @@ class Fetcher(CommonService):
         #     print(row)
         sql = ('insert into cache_devGoodsProfit('
                'developer,goodsCode,devDate,goodsStatus,sold,amt,profit,rate,ebaySold,ebayProfit,wishSold,wishProfit,'
-               'smtSold,smtProfit,joomSold,joomProfit,amazonSold,amazonProfit,dateFlag,orderTime)'
-               'values(%s,%s,%s, %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)'
-                ' ON DUPLICATE KEY UPDATE goodsStatus=values(goodsStatus),sold=values(sold),amt=values(amt),profit=values(profit),'
-               'rate=values(rate),ebaySold=values(ebaySold),ebayProfit=values(ebayProfit),wishSold=values(wishSold),'
-               'wishProfit=values(wishProfit),smtSold=values(smtSold),joomSold=values(joomSold),joomProfit=values(joomProfit),'
-               'amazonSold=values(amazonSold),amazonProfit=values(amazonProfit)'
+               'smtSold,smtProfit,joomSold,joomProfit,amazonSold,amazonProfit,vovaSold,vovaProfit,'
+               'lazadaSold,lazadaProfit,dateFlag,orderTime)'
+               'values(%s,%s,%s, %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) '
+                ' ON DUPLICATE KEY UPDATE goodsStatus=values(goodsStatus),sold=values(sold),amt=values(amt), '
+               'profit=values(profit),rate=values(rate),ebaySold=values(ebaySold),ebayProfit=values(ebayProfit), '
+               'wishSold=values(wishSold),wishProfit=values(wishProfit),'
+               'smtSold=values(smtSold),smtProfit=values(smtProfit),'
+               'joomSold=values(joomSold),joomProfit=values(joomProfit),'
+               'amazonSold=values(amazonSold),amazonProfit=values(amazonProfit),'
+               'vovaSold=values(vovaSold),vovaProfit=values(vovaProfit),'
+               'lazadaSold=values(lazadaSold),lazadaProfit=values(lazadaProfit)'
                )
         self.warehouse_cur.executemany(sql, rows)
         self.warehouse_con.commit()
