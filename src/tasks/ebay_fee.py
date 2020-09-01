@@ -191,6 +191,7 @@ class EbayFee(BaseService):
         # for row in rows:
         #     print(row)
         self.insert(rows)
+        self.logger.info(f'success to push fee between {begin} and {end}')
 
     def run(self):
         try:
