@@ -3,10 +3,10 @@
 # @Time: 2020-07-22 11:30
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker template
     """
