@@ -3,17 +3,28 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
+import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class SkuCounter(BaseService):
+class SkuCounter(CommonService):
     """
     counter order number day by day
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def fetch(self, date_flag, begin_date, end_date):
         sql = 'oauth_skuCount @dateFlag=%s,@beginDate=%s,@endDate=%s'
@@ -41,6 +52,8 @@ class SkuCounter(BaseService):
                 self.push(res)
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

@@ -2,18 +2,25 @@
 # coding:utf-8
 # Author: turpure
 
+import os
 from multiprocessing.pool import ThreadPool as Pool
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
 
@@ -64,6 +71,8 @@ class Worker(BaseService):
 
         except Exception as why:
             self.logger.error('fail to update joom inventory cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

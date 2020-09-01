@@ -3,17 +3,28 @@
 # @Time: 2018-12-13 13:46
 # Author: turpure
 
+import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class RefundFetcher(BaseService):
+class RefundFetcher(CommonService):
     """
     fetch refund detail and put it into dw
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def fetch(self, begin_date, end_date):
         sql = 'oauth_saleRefund @beginDate=%s,@endDate=%s'
@@ -59,6 +70,8 @@ class RefundFetcher(BaseService):
             self.push(rows)
         except Exception as why:
             self.logger.error('fail to fetch refund detail cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

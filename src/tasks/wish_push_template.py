@@ -3,7 +3,8 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 from configs.config import Config
 import requests
 from concurrent.futures import ThreadPoolExecutor as Pool
@@ -16,7 +17,7 @@ mongodb = mongo['operation']
 col = mongodb['wish_template']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     push wish template
     """
@@ -25,6 +26,12 @@ class Worker(BaseService):
         config = Config().config
         self.token = config['ur_center']['token']
         self.op_token = config['op_center']['token']
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_products(self):
         sql = ("SELECT gi.id FROM `proCenter`.`oa_goodsinfo` `gi` LEFT JOIN `proCenter`.`oa_goods` `g` ON g.nid = gi.goodsId WHERE  (`picStatus` = '已完善') AND (`completeStatus` LIKE '%wish%') and goodsStatus in ('爆款','旺款','浮动款','Wish新款','在售') and length(ifnull(requiredKeywords,'')) >19  and devDatetime >= date_sub(curdate(),interval 7 day)")
@@ -75,7 +82,9 @@ class Worker(BaseService):
             with Pool(32) as pl:
                 pl.map(self.get_data_by_id, products)
         except Exception as why:
-                self.logger.error('fail to push wish template  cause of {} '.format(why))
+            self.logger.error('fail to push wish template  cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()

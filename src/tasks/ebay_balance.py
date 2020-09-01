@@ -3,29 +3,38 @@
 # @Time: 2018-10-19 16:26
 # Author: turpure
 
-
+import os
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError
-from ebaysdk import exception
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 import pymssql
 
 
-class EbayBalance(BaseService):
+class EbayBalance(CommonService):
     """
     fetch ebay account balance using api
     """
+
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_ebay_token(self):
         sql = ("select sp.noteName,max(sp.ebaytoken) AS ebaytoken, bd.Used "
-               "from S_PalSyncInfo  as sp LEFT JOIN B_Dictionary as bd "
+               "from S_PalSyncInfo(nolock)  as sp LEFT JOIN B_Dictionary(nolock) as bd "
                "on sp.NoteName = bd.DictionaryName "
                "where  bd.cateGoryId=12 and bd.fitCode='eBay' "
                "GROUP BY sp.noteName, bd.Used")
@@ -132,6 +141,8 @@ class EbayBalance(BaseService):
                         self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

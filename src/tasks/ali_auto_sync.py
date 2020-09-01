@@ -3,24 +3,29 @@
 # @Time: 2018-10-20 15:56
 # Author: turpure
 
+
+import os
 import json
 import requests
 import datetime
-from tenacity import retry, stop_after_attempt
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from src.services import oauth as aliOauth
-from multiprocessing.pool import ThreadPool as Pool
 
 
-class AliSync(BaseService):
+class AliSync(CommonService):
     """
     check purchased orders
     """
+
     def __init__(self):
         super().__init__()
-        # self.oauth = oauth.Ali('tb853697605')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
 
-    # @retry(stop=stop_after_attempt(3))
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+
     def get_order_details(self, order_info):
         order_id = order_info['orderId']
         oauth = aliOauth.Ali(order_info['account'])
@@ -44,9 +49,9 @@ class AliSync(BaseService):
                     "sum(sd.amount) total_amt," 
                     "sum(sd.amount*sd.price) as total_money, "
                     "sum(sd.amount * gs.costprice) as total_cost_money "   # 2020-06-22  修改
-                    "from cg_stockorderd  as sd "
-                    "LEFT JOIN cg_stockorderm  as cgsm on sd.stockordernid= cgsm.nid " 
-                    "LEFT JOIN b_goodssku  as gs on sd.goodsskuid= gs.nid " 
+                    "from cg_stockorderd(nolock)  as sd "
+                    "LEFT JOIN cg_stockorderm(nolock)  as cgsm on sd.stockordernid= cgsm.nid " 
+                    "LEFT JOIN b_goodssku(nolock)  as gs on sd.goodsskuid= gs.nid " 
                     "where alibabaOrderid = %s " 
                     "GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," 
                     "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag ")
@@ -97,10 +102,10 @@ class AliSync(BaseService):
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
-                "from CG_StockOrderD  as cd with(nolock)  "
-                "LEFT JOIN CG_StockOrderM  as cm with(nolock) on cd.stockordernid = cm.nid  "
-                "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
-                "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
+                "from CG_StockOrderD(nolock)  as cd   "
+                "LEFT JOIN CG_StockOrderM(nolock)  as cm  on cd.stockordernid = cm.nid  "
+                "LEFT JOIN S_AlibabaCGInfo(nolock) as info  on Cm.AliasName1688 = info.AliasName  "
+                "LEFT JOIN B_GoodsSKU(nolock) as g  on cd.goodsskuid = g.nid  "
                 "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购未入库
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
@@ -121,7 +126,6 @@ class AliSync(BaseService):
         try:
             ret = self.get_order_details(order)
             if ret:
-                # print(ret)
                 self.check_order(ret)
         except Exception as e:
             self.logger.error(e)
@@ -130,15 +134,12 @@ class AliSync(BaseService):
         try:
             orders = self.get_order_from_py()
 
-            # pl = Pool(8)
-            # pl.map(self.check, orders)
-            # pl.close()
-            # pl.join()
             for order in orders:
-                # print(order)
                 self.check(order)
         except Exception as e:
-            self.logger(e)
+            self.logger.error(f'fail to finish work of ali syncing cause of {e}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

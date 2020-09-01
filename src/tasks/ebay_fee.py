@@ -3,11 +3,11 @@
 # @Time: 2018-10-19 16:26
 # Author: turpure
 
-
+import os
 import datetime
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
@@ -17,7 +17,7 @@ mongodb = mongo['operation']
 col = mongodb['ebay_fee']
 
 
-class EbayFee(BaseService):
+class EbayFee(CommonService):
     """
     fetch ebay fee using api
     """
@@ -26,11 +26,16 @@ class EbayFee(BaseService):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
         self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
-        # self.batch_id = '2020-08-01'
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_ebay_token(self):
-        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
-               " where notename in (select dictionaryName from B_Dictionary "
+        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo(nolock)"
+               " where notename in (select dictionaryName from B_Dictionary(nolock) "
                "where  CategoryID=12 and FitCode ='eBay' and used = 0 ) and "
                " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring',"
                "'eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
@@ -177,7 +182,7 @@ class EbayFee(BaseService):
 
     def clean(self, begin, end):
         sql = ("DELETE FROM [dbo].[y_fee] WHERE notename IN "
-               "(SELECT dictionaryName FROM B_Dictionary WHERE  CategoryID=12 AND FitCode ='eBay' AND used = 0) "
+               "(SELECT dictionaryName FROM B_Dictionary(nolock) WHERE  CategoryID=12 AND FitCode ='eBay' AND used = 0) "
                " AND fee_time >= %s  AND fee_time < %s ")
         self.cur.execute(sql, (begin, end))
         self.con.commit()
@@ -188,8 +193,6 @@ class EbayFee(BaseService):
         end = str(datetime.datetime.now())[:10]
         self.clean(begin, end)
         rows = self.get_data(begin, end)
-        # for row in rows:
-        #     print(row)
         self.insert(rows)
         self.logger.info(f'success to push fee between {begin} and {end}')
 
@@ -202,6 +205,8 @@ class EbayFee(BaseService):
             self.insert_to_sql()
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()

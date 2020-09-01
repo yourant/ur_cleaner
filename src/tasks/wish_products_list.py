@@ -4,9 +4,10 @@
 # Author: turpure
 
 
+import os
 import math
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
@@ -19,13 +20,19 @@ operation = mongo['operation']
 table = operation['wish_products']
 
 
-class Downloader(BaseService):
+class Downloader(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
@@ -214,6 +221,8 @@ class Sync(BaseService):
             self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()

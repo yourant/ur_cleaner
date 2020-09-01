@@ -4,19 +4,27 @@
 # Author: turpure
 
 
+import os
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 
 
-class VoVaWorker(BaseService):
+class VoVaWorker(CommonService):
     """
     get VoVa Refund
     """
+
     def __init__(self):
         super().__init__()
         self.begin_date = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_vova_token(self):
         sql = "SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token " \
@@ -113,6 +121,8 @@ class VoVaWorker(BaseService):
                         self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

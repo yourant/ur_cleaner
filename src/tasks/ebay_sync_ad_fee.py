@@ -3,7 +3,7 @@
 # @Time: 2020-08-20 16:26
 # Author: henry
 
-
+import os
 import datetime
 from src.services.base_service import BaseService
 from configs.config import Config
@@ -158,7 +158,6 @@ class EbayFee(BaseService):
             self.clean(begin, end)
             data = self.get_ebay_item_from_py(begin, end)
             for item in data:
-                # print(item)
                 res = []
                 rows = self.get_ebay_ad_fee_from_py(item['itemId'], begin, end)
                 ship_info = self.get_ebay_shipping_fee_from_ibay(item['itemId'])
@@ -173,19 +172,10 @@ class EbayFee(BaseService):
                         res.append(ad_fee_list)
                     self.save_data(res)
 
-            # with ThreadPoolExecutor(16) as pool:
-            #     future = {pool.submit(self.get_ebay_shipping_fee_from_ibay, row['itemId']): row for row in data}
-            #     for fu in as_completed(future):
-            #         try:
-            #             ship_info = fu.result()
-            #             print(ship_info)
-            #             rows = self.get_ebay_ad_fee_from_py(row['itemId'], begin, end)
-            #             # for row in data:
-            #             #     self.save_data(row)
-            #         except Exception as e:
-            #             self.logger.error(e)
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

@@ -3,7 +3,8 @@
 # @Time: 2019-09-17 16:57
 # Author: turpure
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 import aiohttp
 import json
 import asyncio
@@ -16,9 +17,16 @@ mongodb = mongo['vova']
 col = mongodb['vova_listing']
 
 
-class Producer(BaseService):
+class Producer(CommonService):
+
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_vova_token(self):
         sql = 'SELECT AliasName AS suffix,MerchantID AS selleruserid,APIKey AS token FROM [dbo].[S_SyncInfoVova] WHERE SyncInvertal=0;'
@@ -149,6 +157,8 @@ class Producer(BaseService):
             self.sync()
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

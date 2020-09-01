@@ -3,18 +3,29 @@
 # @Time: 2020-03-14 10:07
 # Author: turpure
 
+import os
 import time
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 """
 库存情况。
 """
 
 
-class Worker(BaseService):
+class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_stock_waring_info(self):
         sql = "EXEC oauth_stockStatus 1,1,1000000;"
@@ -76,6 +87,8 @@ class Worker(BaseService):
             self.insert(orders)
         except Exception as why:
             self.logger.error(why)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
         print('程序耗时{:.2f}'.format(time.time() - begin_time))  # 计算程序总耗时

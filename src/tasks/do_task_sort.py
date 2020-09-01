@@ -3,10 +3,24 @@
 # @Time: 2019-04-02 17:16
 # Author: turpure
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 
 
-class Sorter(BaseService):
+class Sorter(CommonService):
+
+    def __init__(self):
+        super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_tasks(self):
         sql = 'select batchNumber, picker from task_sort where isDone=0'
@@ -57,6 +71,8 @@ class Sorter(BaseService):
                 self.after_task(row)
         except Exception as why:
             self.logger.error('fail to do task cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

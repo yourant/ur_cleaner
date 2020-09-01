@@ -4,20 +4,27 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from src.services.tracking_api import Tracker
 import concurrent.futures
 from multiprocessing import Process, Queue
 import datetime
 
 
-class EbayTracker(BaseService):
+class EbayTracker(CommonService):
     """
     get ebay order tracking info
     """
-    def __init__(self, queue):
+
+    def __init__(self):
         super().__init__()
         self.queue = queue
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_track_no(self):
         sql = ("select  pt.nid as tradeId, expressNid, bw.name as expressName, trackNo, suffix, "

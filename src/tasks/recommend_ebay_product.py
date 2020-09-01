@@ -3,6 +3,7 @@
 # @Time: 2019-11-06 13:19
 # Author: turpure
 
+import os
 from src.services.base_service import BaseService
 from pymongo import MongoClient, DESCENDING
 import random
@@ -55,6 +56,8 @@ class Worker(BaseService):
                 self.dispatch(rule, products)
         except Exception as why:
             self.logger.error(f'fail to dispatch ebay recommended products cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             self.mongo.close()

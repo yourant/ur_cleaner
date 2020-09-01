@@ -3,22 +3,29 @@
 # @Time: 2018-10-20 15:56
 # Author: turpure
 
+
+import os
 import json
 import requests
 from tenacity import retry, stop_after_attempt
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from src.services import oauth as aliOauth
 import re
 import datetime
 
 
-class AliChecker(BaseService):
+class AliChecker(CommonService):
     """
     check purchased orders
     """
     def __init__(self):
         super().__init__()
-        # self.oauth = oauth.Ali('tb853697605')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     @retry(stop=stop_after_attempt(3))
     def get_order_details(self, order_info):
@@ -146,6 +153,8 @@ class AliChecker(BaseService):
                 self.check(order)
         except Exception as e:
             self.logger(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

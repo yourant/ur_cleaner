@@ -4,10 +4,9 @@
 # Author: turpure
 
 
-import math
-import time
+import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 from bson import ObjectId
@@ -20,29 +19,33 @@ col_task = mongodb['wish_task']
 col_log = mongodb['wish_log']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
         self.today = datetime.datetime.today() - datetime.timedelta(hours=8)
         self.log_type = {1: "刊登商品", 2: "添加多属性"}
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
         self.tokens = self.get_tokens()
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     @staticmethod
     def get_wish_tasks():
         ret = col_task.find({'status': 'todo'})
-        # ret = col_task.find({'template_id': '5efc51fb0ed6291539697b94'})
-        # ret = col_task.find({'_id': ObjectId('5efc51faab10176d076e26b3')})
         for row in ret:
             yield row
 
     def get_tokens(self):
-        sql = "SELECT AccessToken as token,aliasname as suffix FROM S_WishSyncInfo WHERE  " \
+        sql = "SELECT AccessToken as token,aliasname as suffix FROM S_WishSyncInfo(nolock) WHERE  " \
               " aliasname is not null and aliasname not in " \
-              " (select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish')"
+              " (select DictionaryName from B_Dictionary(nolock) where CategoryID=12 and used=1 and FitCode='Wish')"
 
         self.cur.execute(sql)
         ret = self.cur.fetchall()
@@ -248,6 +251,8 @@ class Worker(BaseService):
             # self.sync_data()
         except Exception as why:
             self.logger.error('fail to upload wish template cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
             mongo.close()
@@ -270,4 +275,4 @@ class Worker(BaseService):
 if __name__ == "__main__":
     worker = Worker()
     worker.work()
-    # print(worker.today)
+    # print(workder.today)

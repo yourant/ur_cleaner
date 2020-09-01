@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 from src.services.base_service import CommonService
 import datetime
 
@@ -38,6 +39,8 @@ class Updater(CommonService):
             self.logger.info('success to update joom express-fare ')
         except Exception as why:
             self.logger.error('failed to update joom express-fare cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

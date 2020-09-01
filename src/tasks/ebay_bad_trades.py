@@ -3,17 +3,24 @@
 # @Time: 2018-10-19 13:13
 # Author: turpure
 
+import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class EbayInterceptor(BaseService):
+class EbayInterceptor(CommonService):
     """
     intercept ebay fraud trades
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_trades_info(self):
         sql = 'www_ebay_bad_trades'
@@ -27,7 +34,7 @@ class EbayInterceptor(BaseService):
         max_bill_code_query = "P_S_CodeRuleGet 140,''"
         exception_trade_handler = "p_exceptionTradeToException %s,4,'其它异常单',%s"
         normal_trade_handler = 'www_normal2exception %s,%s'
-        free_reservation = """if(isnull((select top 1 filterflag from P_trade where nid=%s),0)>5)
+        free_reservation = """if(isnull((select top 1 filterflag from P_trade(nolock) where nid=%s),0)>5)
                                 BEGIN EXEC P_KC_FreeReservationNum %s end"""
 
         update_trade_dt_un = 'update p_tradedtun set L_shippingamt=1 where tradenid =%s'
@@ -53,6 +60,8 @@ class EbayInterceptor(BaseService):
             self.con.commit()
         except Exception as e:
             self.logger.debug(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
 
         finally:
             self.close()

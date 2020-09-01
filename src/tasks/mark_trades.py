@@ -3,18 +3,26 @@
 # @Time: 2018-10-19 13:51
 # Author: turpure
 
+import os
 import datetime
 import re
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class Marker(BaseService):
+class Marker(CommonService):
     """
     mark trades out of stock
     """
+
     def __init__(self):
         super().__init__()
         self.goods_status = ('春节放假', '清仓', '停产', '停售', '线下清仓', '线上清仓', '线上清仓50P', '线上清仓100P')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"
@@ -116,6 +124,8 @@ class Marker(BaseService):
             self.mark_trades_trans()
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

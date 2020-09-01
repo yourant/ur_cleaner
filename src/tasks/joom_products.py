@@ -4,10 +4,10 @@
 # Author: turpure
 
 
-import math
+import os
 import re
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
@@ -18,13 +18,19 @@ mongodb = mongo['operation']
 col = mongodb['joom_products']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
         sql = 'select AccessToken, aliasName from S_JoomSyncInfo'
@@ -97,6 +103,8 @@ class Worker(BaseService):
             pl.join()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

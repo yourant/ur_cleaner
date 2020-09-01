@@ -3,17 +3,28 @@
 # @Time: 2018-10-30 15:07
 # Author: turpure
 
+import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class Fetcher(BaseService):
+class Fetcher(CommonService):
     """
     fetch developer sold detail from erp and put them into data warehouse
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def fetch(self, date_flag, begin_date, end_date):
         sql = 'oauth_oauth_devGoodsSoldDetail @dateFlag=%s, @beginDate=%s, @endDate=%s'
@@ -60,6 +71,8 @@ class Fetcher(BaseService):
                 self.logger.info('success to fetch dev sold details')
         except Exception as why:
             self.logger.error('fail to fetch dev sold details of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

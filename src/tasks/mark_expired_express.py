@@ -3,12 +3,22 @@
 # @Time: 2019-05-14 15:07
 # Author: turpure
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 import re
 import datetime
 
 
-class Checker(BaseService):
+class Checker(CommonService):
+
+    def __init__(self):
+        super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_trades(self):
         sql = ("select pt.nid, logs,addressOwner,name from p_tradeun(nolock) as pt"
@@ -91,6 +101,8 @@ class Checker(BaseService):
             self.check(express_info)
         except Exception as why:
             self.logger.error(why)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

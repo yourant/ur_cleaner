@@ -4,10 +4,20 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 
 
-class UpdateGoodsStatus(BaseService):
+class UpdateGoodsStatus(CommonService):
+
+    def __init__(self):
+        super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def run(self):
         try:
@@ -21,6 +31,8 @@ class UpdateGoodsStatus(BaseService):
                     self.logger.error(f'failed to update goods status of step {i} cause of {why}')
         except Exception as why:
             self.logger.error(f'failed to update goods status  cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

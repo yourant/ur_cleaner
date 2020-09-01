@@ -4,7 +4,8 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
@@ -16,7 +17,7 @@ col = mongodb['wish_productboost_performance']
 query_db = mongodb['wish_productboost']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker template
     """
@@ -24,6 +25,12 @@ class Worker(BaseService):
     def __init__(self):
         super().__init__()
         self.tokens = dict()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     @staticmethod
     def get_wish_campaign_id():
@@ -93,6 +100,8 @@ class Worker(BaseService):
             pl.join()
         except Exception as why:
             self.logger.error('fail to get wish campaign list  cause of {} '.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 

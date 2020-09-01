@@ -3,12 +3,12 @@
 # @Time: 2018-10-20 10:02
 # Author: turpure
 
+import os
 import json
 import datetime
 import requests
-import concurrent
 from concurrent.futures import ThreadPoolExecutor
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from pymongo import MongoClient
 
 
@@ -17,12 +17,19 @@ mongodb = mongo['wish']
 col = mongodb['wish_refunded']
 
 
-class WishRefund(BaseService):
+class WishRefund(CommonService):
     """
     get refunded orders of wish
     """
+
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def run_sql(self, sql):
         self.cur.execute(sql)
@@ -31,11 +38,11 @@ class WishRefund(BaseService):
             yield row
 
     def get_wish_token(self):
-        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " 
+        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo(nolock) WHERE  " 
               # "  datediff(DAY,LastSyncTime,getdate())<5 and "
                "aliasname is not null"
                 " and  AliasName not in "
-               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
+               "(select DictionaryName from B_Dictionary(nolock) where CategoryID=12 and used=1 and FitCode='Wish') "
                )
         tokens = self.run_sql(sql)
         return tokens
@@ -133,6 +140,8 @@ class WishRefund(BaseService):
 
         except Exception as e:
             self.logger.error(e)
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             mongo.close()
             self.close()

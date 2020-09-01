@@ -4,6 +4,7 @@
 # Author: turpure
 
 
+import os
 from src.services.base_service import BaseService
 import requests
 
@@ -61,6 +62,8 @@ class JoomCategoryFetcher(BaseService):
 
         except Exception as why:
             self.logger.error(f'failed to fetch joom category cause of {why}')
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
 
         finally:
             self.close()

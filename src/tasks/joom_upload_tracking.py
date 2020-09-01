@@ -3,12 +3,26 @@
 # @Time: 2019-06-10 14:20
 # Author: turpure
 
-from src.services.base_service import BaseService
+import os
+from src.services.base_service import CommonService
 import requests
 import json
 
 
-class Uploader(BaseService):
+class Uploader(CommonService):
+
+    def __init__(self):
+        super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_task(self):
         sql = "select tradeNid, trackNumber, expressName, isMerged from task_joom_tracking where ifnull(isDone,0)=0 and id=16"
@@ -138,6 +152,8 @@ class Uploader(BaseService):
 
         except Exception as why:
             self.logger.error('fail to upload tracking number to joom cause of {}'.format(why))
+            name = os.path.basename(__file__).split(".")[0]
+            raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
 
