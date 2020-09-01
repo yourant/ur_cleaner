@@ -34,8 +34,8 @@ class EbayFee(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_ebay_token(self):
-        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
-               " where notename in (select dictionaryName from B_Dictionary "
+        sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo(nolock)"
+               " where notename in (select dictionaryName from B_Dictionary(nolock) "
                "where  CategoryID=12 and FitCode ='eBay' and used = 0 ) and "
                " notename not in ('01-buy','11-newfashion','eBay-12-middleshine', '10-girlspring',"
                "'eBay-C105-jkl-27','eBay-E48-tys2526','eBay-E50-Haoyiguoji')"
@@ -182,7 +182,7 @@ class EbayFee(CommonService):
 
     def clean(self, begin, end):
         sql = ("DELETE FROM [dbo].[y_fee] WHERE notename IN "
-               "(SELECT dictionaryName FROM B_Dictionary WHERE  CategoryID=12 AND FitCode ='eBay' AND used = 0) "
+               "(SELECT dictionaryName FROM B_Dictionary(nolock) WHERE  CategoryID=12 AND FitCode ='eBay' AND used = 0) "
                " AND fee_time >= %s  AND fee_time < %s ")
         self.cur.execute(sql, (begin, end))
         self.con.commit()

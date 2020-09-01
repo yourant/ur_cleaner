@@ -123,7 +123,7 @@ class CreateWytOutBoundOrder(CommonService):
         sql = ("SELECT  bw.serviceCode,t.* FROM "
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
-               "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
+               "LEFT JOIN B_LogisticWay(nolock) bw ON t.logicsWayNID=bw.NID "
                " where suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
                # "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
                "-- WHERE t.NID=21684395 ")
@@ -139,7 +139,7 @@ class CreateWytOutBoundOrder(CommonService):
         current_order_info_sql = ("SELECT  bw.serviceCode,t.* FROM "
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
-               "LEFT JOIN B_LogisticWay bw ON t.logicsWayNID=bw.NID "
+               "LEFT JOIN B_LogisticWay(nolock) bw ON t.logicsWayNID=bw.NID "
                " where t.nid = %s and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts) "
                                    )
 
@@ -166,7 +166,7 @@ class CreateWytOutBoundOrder(CommonService):
             "warehouseID": "1000069",
             "zipCode": order["SHIPTOZIP"]
         }
-        detail_sql = "SELECT * FROM p_tradeDt WHERE tradeNid=%s UNION SELECT * FROM p_tradeDtUn WHERE tradeNid=%s"
+        detail_sql = "SELECT * FROM p_tradeDt(nolock) WHERE tradeNid=%s UNION SELECT * FROM p_tradeDtUn(nolock) WHERE tradeNid=%s"
         self.cur.execute(detail_sql, (order["NID"], order["NID"]))
         detail = self.cur.fetchall()
         productList = []

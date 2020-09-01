@@ -30,10 +30,10 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_wish_token(self):
-        sql = ("SELECT aliasName as suffix, AccessToken as token FROM S_WishSyncInfo WHERE  "
+        sql = ("SELECT aliasName as suffix, AccessToken as token FROM S_WishSyncInfo(nolock) WHERE  "
                "aliasname is not null"
                " and  AliasName not in "
-               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
+               "(select DictionaryName from B_Dictionary(nolock) where CategoryID=12 and used=1 and FitCode='Wish') "
                )
         self.cur.execute(sql)
         ret = self.cur.fetchall()
@@ -49,7 +49,7 @@ class Worker(CommonService):
         try:
             tokens = self.get_wish_token()
             self.put(tokens)
-            self.logger.error('success to get tokens of wish')
+            self.logger.info('success to get tokens of wish')
         except Exception as why:
             self.logger.error('fail to get tokens cause of {} '.format(why))
         finally:

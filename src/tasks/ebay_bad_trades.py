@@ -33,7 +33,7 @@ class EbayInterceptor(CommonService):
         max_bill_code_query = "P_S_CodeRuleGet 140,''"
         exception_trade_handler = "p_exceptionTradeToException %s,4,'其它异常单',%s"
         normal_trade_handler = 'www_normal2exception %s,%s'
-        free_reservation = """if(isnull((select top 1 filterflag from P_trade where nid=%s),0)>5)
+        free_reservation = """if(isnull((select top 1 filterflag from P_trade(nolock) where nid=%s),0)>5)
                                 BEGIN EXEC P_KC_FreeReservationNum %s end"""
 
         update_trade_dt_un = 'update p_tradedtun set L_shippingamt=1 where tradenid =%s'

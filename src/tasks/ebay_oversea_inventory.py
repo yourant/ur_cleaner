@@ -35,7 +35,7 @@ class Worker(CommonService):
         self.con.commit()
 
         # 查询
-        sql = "select itemid,sku,quantity,suffix,token from ibay365_quantity_online_oversea"
+        sql = "select itemid,sku,quantity,suffix,token from ibay365_quantity_online_oversea(nolock)"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:

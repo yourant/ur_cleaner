@@ -37,11 +37,11 @@ class WishRefund(CommonService):
             yield row
 
     def get_wish_token(self):
-        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  " 
+        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo(nolock) WHERE  " 
               # "  datediff(DAY,LastSyncTime,getdate())<5 and "
                "aliasname is not null"
                 " and  AliasName not in "
-               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') "
+               "(select DictionaryName from B_Dictionary(nolock) where CategoryID=12 and used=1 and FitCode='Wish') "
                )
         tokens = self.run_sql(sql)
         return tokens

@@ -34,7 +34,7 @@ class EbayBalance(CommonService):
 
     def get_ebay_token(self):
         sql = ("select sp.noteName,max(sp.ebaytoken) AS ebaytoken, bd.Used "
-               "from S_PalSyncInfo  as sp LEFT JOIN B_Dictionary as bd "
+               "from S_PalSyncInfo(nolock)  as sp LEFT JOIN B_Dictionary(nolock) as bd "
                "on sp.NoteName = bd.DictionaryName "
                "where  bd.cateGoryId=12 and bd.fitCode='eBay' "
                "GROUP BY sp.noteName, bd.Used")

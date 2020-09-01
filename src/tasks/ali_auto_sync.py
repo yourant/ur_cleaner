@@ -24,7 +24,6 @@ class AliSync(CommonService):
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-    # @retry(stop=stop_after_attempt(3))
     def get_order_details(self, order_info):
         order_id = order_info['orderId']
         oauth = aliOauth.Ali(order_info['account'])
@@ -48,9 +47,9 @@ class AliSync(CommonService):
                     "sum(sd.amount) total_amt," 
                     "sum(sd.amount*sd.price) as total_money, "
                     "sum(sd.amount * gs.costprice) as total_cost_money "   # 2020-06-22  修改
-                    "from cg_stockorderd  as sd "
-                    "LEFT JOIN cg_stockorderm  as cgsm on sd.stockordernid= cgsm.nid " 
-                    "LEFT JOIN b_goodssku  as gs on sd.goodsskuid= gs.nid " 
+                    "from cg_stockorderd(nolock)  as sd "
+                    "LEFT JOIN cg_stockorderm(nolock)  as cgsm on sd.stockordernid= cgsm.nid " 
+                    "LEFT JOIN b_goodssku(nolock)  as gs on sd.goodsskuid= gs.nid " 
                     "where alibabaOrderid = %s " 
                     "GROUP BY cgsm.billnumber, cgsm.nid,cgsm.recorder," 
                     "cgsm.expressfee,cgsm.audier,cgsm.audiedate,cgsm.checkflag ")
@@ -101,10 +100,10 @@ class AliSync(CommonService):
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
-                "from CG_StockOrderD  as cd with(nolock)  "
-                "LEFT JOIN CG_StockOrderM  as cm with(nolock) on cd.stockordernid = cm.nid  "
-                "LEFT JOIN S_AlibabaCGInfo as info with(nolock) on Cm.AliasName1688 = info.AliasName  "
-                "LEFT JOIN B_GoodsSKU as g with(nolock) on cd.goodsskuid = g.nid  "
+                "from CG_StockOrderD(nolock)  as cd   "
+                "LEFT JOIN CG_StockOrderM(nolock)  as cm  on cd.stockordernid = cm.nid  "
+                "LEFT JOIN S_AlibabaCGInfo(nolock) as info  on Cm.AliasName1688 = info.AliasName  "
+                "LEFT JOIN B_GoodsSKU(nolock) as g  on cd.goodsskuid = g.nid  "
                 "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购未入库
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
@@ -125,7 +124,6 @@ class AliSync(CommonService):
         try:
             ret = self.get_order_details(order)
             if ret:
-                # print(ret)
                 self.check_order(ret)
         except Exception as e:
             self.logger.error(e)
@@ -137,7 +135,7 @@ class AliSync(CommonService):
             for order in orders:
                 self.check(order)
         except Exception as e:
-            self.logger(e)
+            self.logger.error(f'fail to finish work of ali syncing cause of {e}')
         finally:
             self.close()
 
