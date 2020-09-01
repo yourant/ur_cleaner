@@ -6,7 +6,7 @@
 
 import math
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
@@ -19,13 +19,19 @@ operation = mongo['operation']
 table = operation['wish_products']
 
 
-class Downloader(BaseService):
+class Downloader(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "

@@ -3,16 +3,27 @@
 # @Time: 2018-11-26 10:39
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import datetime
 
 
-class RiskController(BaseService):
+class RiskController(CommonService):
     """
     get risky trades
     """
+
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_blacklist(self):
         sql = 'select * from oauth_blacklist'

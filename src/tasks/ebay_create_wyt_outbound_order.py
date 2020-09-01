@@ -1,16 +1,22 @@
 import datetime
 import time
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from src.services import oauth_wyt as wytOauth
 import json
 import requests
 
 
-class CreateWytOutBoundOrder(BaseService):
+class CreateWytOutBoundOrder(CommonService):
+
     def __init__(self):
-        # 初始化
         super().__init__()
         self.base_url = "http://openapi.winit.com.cn/openapi/service"
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def check_order_current_status(self, order):
         # 检查当前状态

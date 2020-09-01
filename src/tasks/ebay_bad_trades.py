@@ -4,16 +4,22 @@
 # Author: turpure
 
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class EbayInterceptor(BaseService):
+class EbayInterceptor(CommonService):
     """
     intercept ebay fraud trades
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_trades_info(self):
         sql = 'www_ebay_bad_trades'

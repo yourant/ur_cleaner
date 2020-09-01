@@ -3,14 +3,21 @@
 # @Time: 2019-09-17 16:57
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import redis
 
 
-class Updating(BaseService):
+class Updating(CommonService):
+
     def __init__(self):
         super().__init__()
         self.rd = redis.Redis(host='192.168.0.150', port='6379', db=0)
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_products(self):
         sql = ( 'select productId from proCenter.joom_cateProduct '

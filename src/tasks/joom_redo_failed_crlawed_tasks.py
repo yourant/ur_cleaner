@@ -7,7 +7,7 @@ import requests
 import json
 import os
 import sys
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 
 
@@ -16,12 +16,18 @@ joom_cralwer采集失败的任务，重新采集。
 """
 
 
-class Worker(BaseService):
+class Worker(CommonService):
 
     def __init__(self):
+        super().__init__()
         config = Config().config
         self.token = config['ur_center']['token']
-        super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def clear(self):
         plat = sys.platform

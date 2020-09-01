@@ -7,7 +7,7 @@
 import datetime
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
@@ -17,7 +17,7 @@ mongodb = mongo['operation']
 col = mongodb['ebay_fee']
 
 
-class EbayFee(BaseService):
+class EbayFee(CommonService):
     """
     fetch ebay fee using api
     """
@@ -26,7 +26,12 @@ class EbayFee(BaseService):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
         self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
-        # self.batch_id = '2020-08-01'
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_ebay_token(self):
         sql = ("SELECT notename,max(ebaytoken) AS ebaytoken FROM S_PalSyncInfo"
@@ -188,8 +193,6 @@ class EbayFee(BaseService):
         end = str(datetime.datetime.now())[:10]
         self.clean(begin, end)
         rows = self.get_data(begin, end)
-        # for row in rows:
-        #     print(row)
         self.insert(rows)
         self.logger.info(f'success to push fee between {begin} and {end}')
 

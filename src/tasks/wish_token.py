@@ -4,12 +4,8 @@
 # Author: turpure
 
 
-import math
-import re
 import datetime
-from src.services.base_service import BaseService
-import requests
-from multiprocessing.pool import ThreadPool as Pool
+from src.services.base_service import CommonService
 
 from pymongo import MongoClient
 
@@ -19,13 +15,19 @@ mongodb = mongo['operation']
 col = mongodb['wish_tokens']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_wish_token(self):
         sql = ("SELECT aliasName as suffix, AccessToken as token FROM S_WishSyncInfo WHERE  "
@@ -47,6 +49,7 @@ class Worker(BaseService):
         try:
             tokens = self.get_wish_token()
             self.put(tokens)
+            self.logger.error('success to get tokens of wish')
         except Exception as why:
             self.logger.error('fail to get tokens cause of {} '.format(why))
         finally:

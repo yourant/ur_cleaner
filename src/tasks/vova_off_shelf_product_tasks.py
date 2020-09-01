@@ -3,15 +3,23 @@
 # @Time: 2019-09-17 16:57
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import aiohttp
 import json
 import asyncio
 import re
 
-class OffShelf(BaseService):
+
+class OffShelf(CommonService):
+
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_vova_token(self):
         # sql = ("EXEC B_VovaOffShelfProducts  '清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +

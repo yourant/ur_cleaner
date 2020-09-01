@@ -2,7 +2,7 @@ from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 import datetime
 import time
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 from multiprocessing.pool import ThreadPool as Pool
 from pymongo import MongoClient
@@ -13,10 +13,16 @@ mongodb = mongo['ebay']
 col = mongodb['ebay_product_list']
 
 
-class FetchEbayLists(BaseService):
+class FetchEbayLists(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def getData(self, token):
         suffix = token['suffix']

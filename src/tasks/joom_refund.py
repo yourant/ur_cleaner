@@ -3,7 +3,7 @@
 # Author: turpure
 
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 import math
@@ -15,13 +15,19 @@ mongodb = mongo['joom']
 col = mongodb['joom_refund']
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     get joom refund
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
         sql = 'select AccessToken, aliasName from S_JoomSyncInfo'

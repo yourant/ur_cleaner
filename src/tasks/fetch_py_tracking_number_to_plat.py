@@ -1,15 +1,21 @@
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 import datetime
 from ebaysdk.trading import Connection as Trading
 
 
-class Marker(BaseService):
+class Marker(CommonService):
 
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
 
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_order_data(self):
         sql = ("SELECT DISTINCT m.nid,e.code,token,suffix,ack,trackNo,transactionid," 
@@ -31,12 +37,10 @@ class Marker(BaseService):
         for row in ret:
             yield row
 
-
     def update_py_trade_status(self, trade_id):
         sql = "UPDATE P_Trade (nolock) SET shippingmethod = 1 WHERE nid=%s"
         self.cur.execute(sql, trade_id)
         self.con.commit()
-
 
     def update_ebay_tracking_number(self, data):
         for item in data:
@@ -73,8 +77,6 @@ class Marker(BaseService):
             except Exception as e:
                 self.logger.error('failed to fetch tracking number of order num {} cause of {}'.format(item['nid'], e))
 
-
-
     def run(self):
         try:
             data = self.get_order_data()
@@ -83,7 +85,6 @@ class Marker(BaseService):
             self.logger.error(e)
         finally:
             self.close()
-
 
 
 if __name__ == '__main__':

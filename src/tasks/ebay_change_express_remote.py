@@ -3,7 +3,7 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 from ebaysdk.trading import Connection as Trading
 import datetime
@@ -11,7 +11,7 @@ from ebaysdk import exception
 import json
 
 
-class Shipper(BaseService):
+class Shipper(CommonService):
     """
     上传跟踪号到eBay后台
     """
@@ -19,6 +19,12 @@ class Shipper(BaseService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_orders(self, order_id):
         """

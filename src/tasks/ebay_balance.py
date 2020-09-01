@@ -6,22 +6,31 @@
 
 import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from tenacity import retry, stop_after_attempt
 from ebaysdk.trading import Connection as Trading
 from ebaysdk.exception import ConnectionError
-from ebaysdk import exception
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 import pymssql
 
 
-class EbayBalance(BaseService):
+class EbayBalance(CommonService):
     """
     fetch ebay account balance using api
     """
+
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_ebay_token(self):
         sql = ("select sp.noteName,max(sp.ebaytoken) AS ebaytoken, bd.Used "

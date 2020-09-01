@@ -1,10 +1,8 @@
 import datetime
 import time
-from src.services.base_service import BaseService
 from configs.config import Config
 from src.services import oauth_wyt as wytOauth
 from src.tasks.ebay_change_express_remote import Shipper
-from concurrent.futures import ThreadPoolExecutor as Pool
 import requests
 import json
 

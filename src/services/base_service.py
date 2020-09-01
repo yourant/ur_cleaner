@@ -7,8 +7,6 @@ from dao.base_dao import BaseDao
 
 from src.services import log, db
 import pymysql
-import psycopg2
-import psycopg2.extras
 from configs.config import Config
 config = Config()
 

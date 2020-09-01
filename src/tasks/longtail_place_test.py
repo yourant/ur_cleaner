@@ -3,15 +3,22 @@
 # @Time: 2019-02-22 11:30
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
-class Worker(BaseService):
+
+class Worker(CommonService):
     """
     worker template
     """
 
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_data_from_ibay(self):
         # 获取ibay数据库数据
@@ -41,7 +48,6 @@ class Worker(BaseService):
         # 执行存储过程
         sql_proce = "EXEC ibay365_LongTail_onshelf"
         self.cur.execute(sql_proce)
-
 
     def trans(self):
         self.inster_data_to_ShopElf()

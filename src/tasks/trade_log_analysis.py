@@ -4,17 +4,27 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
-import pandas as pd
+from src.services.base_service import CommonService
 import re
 
 
-class LogAnalysis(BaseService):
+class LogAnalysis(CommonService):
     """
     analysis exception logs
     """
+
     def __init__(self):
         super().__init__()
+        self.base_name = 'mssql'
+        self.warehouse = 'mysql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def load_logs(self):
         sql = ("select pt.nid,ptlog.logs, 'p_trade' as tableName from p_trade  as pt with(nolock) "

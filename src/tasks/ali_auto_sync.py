@@ -6,19 +6,23 @@
 import json
 import requests
 import datetime
-from tenacity import retry, stop_after_attempt
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from src.services import oauth as aliOauth
-from multiprocessing.pool import ThreadPool as Pool
 
 
-class AliSync(BaseService):
+class AliSync(CommonService):
     """
     check purchased orders
     """
+
     def __init__(self):
         super().__init__()
-        # self.oauth = oauth.Ali('tb853697605')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     # @retry(stop=stop_after_attempt(3))
     def get_order_details(self, order_info):
@@ -130,12 +134,7 @@ class AliSync(BaseService):
         try:
             orders = self.get_order_from_py()
 
-            # pl = Pool(8)
-            # pl.map(self.check, orders)
-            # pl.close()
-            # pl.join()
             for order in orders:
-                # print(order)
                 self.check(order)
         except Exception as e:
             self.logger(e)

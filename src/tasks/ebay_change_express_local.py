@@ -3,17 +3,24 @@
 # @Time: 2020-07-21 13:14
 # Author: turpure
 
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 import math
 from src.tasks.ebay_change_express_config import special_post_codes
 import datetime
 
 
-class Updater(BaseService):
+class Updater(CommonService):
+
     def __init__(self):
         super().__init__()
         self.all_orders = dict()
         self.rate = 0.22
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
