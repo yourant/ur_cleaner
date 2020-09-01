@@ -72,11 +72,11 @@ class Worker(CommonService):
     def run(self):
         try:
             tasks = self.get_tasks()
-            # self.clear()
             for tk in tasks:
                 self.redo_tasks(tk)
         except Exception as why:
             self.logger.error(why)
+            raise Exception('fail to finish task!')
         finally:
             self.close()
 

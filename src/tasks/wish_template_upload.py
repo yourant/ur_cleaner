@@ -28,9 +28,9 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.today = datetime.datetime.today() - datetime.timedelta(hours=8)
         self.log_type = {1: "刊登商品", 2: "添加多属性"}
-        self.tokens = self.get_tokens()
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.tokens = self.get_tokens()
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -272,4 +272,4 @@ class Worker(CommonService):
 if __name__ == "__main__":
     worker = Worker()
     worker.work()
-    # print(worker.today)
+    # print(workder.today)
