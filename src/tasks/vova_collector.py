@@ -22,11 +22,15 @@ class Worker(CommonService):
     def __init__(self):
         super().__init__()
         self.base_name = 'mssql'
+        self.warehouse = 'mysql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse)
 
     def close(self):
         self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_tasks(self):
         """
@@ -43,7 +47,6 @@ class Worker(CommonService):
         ret = self.warehouse_cur.fetchall()
         for row in ret:
             yield row
-
 
     # 获取 图片字典 颜色字典  大小字典
     def get_style_info(self, soup, type=''):
