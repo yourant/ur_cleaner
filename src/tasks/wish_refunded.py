@@ -48,7 +48,7 @@ class WishRefund(CommonService):
         return tokens
 
     def get_wish_orders(self, token):
-        date = str(datetime.datetime.now() - datetime.timedelta(days=4))[:10]
+        date = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
         url = "https://china-merchant.wish.com/api/v2/order/multi-get"
         start = 0
         limit = 100
