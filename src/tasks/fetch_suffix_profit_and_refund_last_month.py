@@ -19,6 +19,7 @@ def get_last_month_first_day():
         month -= 1
     return datetime.date(year, month, 1)
 
+
 def get_last_month_end_day():
     td = datetime.date.today()
     year = td.year
@@ -28,14 +29,12 @@ def get_last_month_end_day():
 
 if __name__ == "__main__":
     last_month_first_day = str(get_last_month_first_day())[:10]
-    # last_month_end_day = str(get_last_month_end_day())[:10]
     today = str(datetime.datetime.today())[:10]
-    # last_month_first_day = '2020-01-01'
-    # last_month_end_day = '2020-01-31'
+
     # fetch suffix profit
     profit_worker = ProfitFetcher()
     profit_worker.work(last_month_first_day, today)
-    #
+
     # fetch suffix refund
     refund_worker = RefundFetcher()
     refund_worker.work(last_month_first_day, today)

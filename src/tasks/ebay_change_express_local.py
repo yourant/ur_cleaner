@@ -5,6 +5,7 @@
 
 
 import os
+import re
 from src.services.base_service import CommonService
 import math
 from src.tasks.ebay_change_express_config import special_post_codes
@@ -20,9 +21,30 @@ class Updater(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.logistics_ways = {
+            'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE': 524,
+            'Royal Mail - Tracked 48 Parcel': 283
+        }
 
     def close(self):
         self.base_dao.close_cur(self.cur)
+
+    def pre_handle(self, order_time):
+        """
+        计算物流方式的比率和改物流方式之前，先把偏远地区的 [Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE]
+        改为 [Royal Mail - Tracked 48 Parcel]
+        :return:
+        """
+        sql = 'exec ur_clear_ebay_adjust_express_to_change_order @orderTime=%s'
+        self.cur.execute(sql, (order_time,))
+        ret = self.cur.fetchall()
+        for row in ret:
+            for code in special_post_codes:
+                if (row['name'] == 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE' and
+                        re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code)):
+                    row['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                    self.change_express_transaction(row)
+                    break
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
@@ -66,7 +88,7 @@ class Updater(CommonService):
             to_change_orders = self.get_to_change_order(sf)
             for od in to_change_orders:
                 for code in special_post_codes:
-                    if str.upper(od['shipToZip']).startswith(code):
+                    if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
                         od['newName'] = 'Royal Mail - Tracked 48 Parcel'
                         od['suffixChangNumber'] = sf['number_to_change']
                         out.append(od)
@@ -78,31 +100,48 @@ class Updater(CommonService):
 
         return out
 
+    def test_get_order_new_express(self):
+        # 找到需要被更改的订单，并根据邮编匹配最佳物流
+        out = list()
+        all_suffix = [{"number_to_change": 40}]
+        to_change_orders = [{"shipToZip": "ph3    1JK"}]
+
+        for sf in all_suffix:
+            for od in to_change_orders:
+                for code in special_post_codes:
+                    if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
+                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                        od['suffixChangNumber'] = sf['number_to_change']
+                        out.append(od)
+                        break
+                else:
+                    od['suffixChangNumber'] = sf['number_to_change']
+                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                    out.append(od)
+        return out
+
     def set_order_new_express(self, order):
         # 设置订单新的物流方式,经过派单处理之后，在非E邮宝或者缺货状态中，申请跟踪号
         # logicsWayNID
-        logistics_ways = {
-            'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE': 524,
-            'Royal Mail - Tracked 48 Parcel': 283
-        }
 
-        sql = f'update p_trade set logicsWayNid = {logistics_ways[order["newName"]]} where nid = {order["nid"]}'
         try:
+            sql = f'update p_trade set logicsWayNid = {self.logistics_ways[order["newName"]]} where nid = {order["nid"]}'
             self.cur.execute(sql)
-            self.set_log(order)
-            self.calculate_express_fee(order)
-            self.con.commit()
             self.logger.info(f'success to update {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
         except Exception as why:
             self.logger.info(f'fail to update {order["nid"]} of {order["suffix"]} cause of {why}')
+            raise Exception(f'fail to set {order["nid"]} to {self.logistics_ways[order["newName"]]} ')
 
     def calculate_express_fee(self, order):
         # 重新计算物流费用
-        calculate_sql = f'exec P_Fr_CalcShippingCostByNid {order["nid"]}'
-        log_sql = f"exec S_WriteTradeLogs  '{order['nid']}', '运费计算', 'ur_cleaner'"
-        self.cur.execute(calculate_sql)
-        self.cur.execute(log_sql)
-        self.con.commit()
+        try:
+            calculate_sql = f'exec P_Fr_CalcShippingCostByNid {order["nid"]}'
+            log_sql = f"exec S_WriteTradeLogs  '{order['nid']}', '运费计算', 'ur_cleaner'"
+            self.cur.execute(calculate_sql)
+            self.cur.execute(log_sql)
+        except Exception as why:
+            self.logger.info(f'fail to update {order["nid"]} of {order["suffix"]} cause of {why}')
+            raise Exception(f'fail to calculate express fee of {order["nid"]}')
 
     def set_log(self, order):
         """
@@ -110,19 +149,43 @@ class Updater(CommonService):
         :param order:
         :return:
         """
-        sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
+            sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
             logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 更改物流方式为 ' + order['newName'])
             self.cur.execute(sql, (order['nid'], 'ur_cleaner', logs))
-            self.con.commit()
-            # self.logger.info(f'success to set log of {order["nid"]}')
         except Exception as why:
-            self.logger.error(f'fail to set log of {order["nid"]}')
+            self.logger.error(f'fail to set log of {order["nid"]} cause of {why}')
+            raise Exception(f'fail to set log of {order["nid"]}')
+
+    def change_express_transaction(self, order):
+        """"
+        更改物流的事务
+        """
+        try:
+
+            # 改物流信息
+            self.set_order_new_express(order)
+
+            # 计算运费
+            self.calculate_express_fee(order)
+
+            # 加日志
+            self.set_log(order)
+
+            # 提交
+            self.con.commit()
+        except Exception as why:
+            self.logger.error(f'fail to change express  {order["nid"]} cause of {why}')
 
     def trans(self, order_time):
+
+        # 先修改偏远地区物流
+        self.pre_handle(order_time)
+
+        # 再计算物流比率，修改物流方式
         orders = self.get_order_new_express(order_time)
         for od in orders:
-            self.set_order_new_express(od)
+            self.change_express_transaction(od)
 
     def work(self):
         try:
@@ -136,7 +199,7 @@ class Updater(CommonService):
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
         finally:
-            pass
+            self.close()
 
 
 # 执行程序

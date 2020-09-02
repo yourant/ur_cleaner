@@ -88,6 +88,6 @@ if __name__ == "__main__":
     today = str(datetime.datetime.today())[:10]
     month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
     worker = ProfitFetcher()
-    # month_first_day = '2020-02-01'
-    # today = '2020-02-29'
+    # month_first_day = '2020-07-01'
+    # today = '2020-07-31'
     worker.work(month_first_day, today)
