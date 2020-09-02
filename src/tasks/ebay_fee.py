@@ -163,7 +163,7 @@ class EbayFee(CommonService):
 
     @staticmethod
     def get_data(begin, end):
-        rows = col.find({'Date': {'$gte': begin, '$lte': end}})
+        rows = col.find({'Date': {'$gte': begin, '$lte': end}}).sort({"Date": 1})
         for row in rows:
             yield (row['accountName'], row['feeType'], row['value'], row['currency'],
                    row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
@@ -188,8 +188,21 @@ class EbayFee(CommonService):
         self.con.commit()
         self.logger.info(f'success to clean fee data from y_fee  time between {begin} and {end}')
 
+    def _get_batch_id(self):
+        sql = ("select max(batchId) batchId from y_fee"
+               " where notename in "
+               "(select DictionaryName from B_Dictionary nolock "
+               "where CategoryID=12 and FitCode ='eBay')"
+               )
+        try:
+            self.cur.execute(sql)
+            ret = self.cur.fetchone()
+            return ret['batchId']
+        except Exception as why:
+            self.logger.error('fail to get max batchId cause of {}'.format(why))
+
     def insert_to_sql(self):
-        begin = self.batch_id
+        begin = self._get_batch_id
         end = str(datetime.datetime.now())[:10]
         self.clean(begin, end)
         rows = self.get_data(begin, end)
