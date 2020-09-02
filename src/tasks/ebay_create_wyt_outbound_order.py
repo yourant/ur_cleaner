@@ -189,7 +189,7 @@ class CreateWytOutBoundOrder(CommonService):
             for order in rows:
                 data = self._parse_order_data(order)
                 if data and self.check_order_current_status(order):
-                    print(data)
+                    # print(data)
                     self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
