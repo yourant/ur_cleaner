@@ -63,18 +63,14 @@ class Shipper(CommonService):
         :param order_info:
         :return:
         """
+        flag = True
         try:
             trade_api = Trading(config_file=self.config)
             params = {
-                    # 'TransactionID': order_info['transactionId'],
-                    # 'OrderLineItemID': order_info['orderLineItemId'],
                     'OrderID': order_info['orderId'],
                     'Shipped': True,
                     'Shipment': {'ShipmentTrackingDetails':
                                       {
-                                          # 'ShipmentLineItem':
-                                          #     {'LineItem': {
-                                          #         'ItemID': order_info['itemId'], 'TransactionID': order_info['transactionId']}},
                                           'ShippingCarrierUsed': order_info['carrierName'],
                                           'ShipmentTrackingNumber': order_info['trackNo'],
                                        }
@@ -95,9 +91,12 @@ class Shipper(CommonService):
                     break
                 except Exception as why:
                     self.logger.info(f'retry {i + 1} times.fail to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]} cause of {why} ')
+                    flag = False
         except Exception as why:
             self.logger.error(f'fail to upload {order_info["tradeNid"]} with track number {order_info["trackNo"]}'
                               f' cause of {why} ')
+            flag = False
+        return flag
 
     def mark_order_status(self, order_info):
         """
@@ -108,10 +107,10 @@ class Shipper(CommonService):
         sql = 'update P_trade set shippingmethod=1 where nid=%s'
         try:
             self.cur.execute(sql, (order_info['tradeNid']))
-            self.con.commit()
             self.logger.info(f'success to set {order_info["tradeNid"]}  to shipping status ')
         except Exception as e:
             self.logger.info(f'fail to set {order_info["tradeNid"]}  to shipping status ')
+            raise Exception(f'fail to set {order_info["tradeNid"]}  to shipping status ')
 
     def set_log(self, order):
         """
@@ -123,21 +122,28 @@ class Shipper(CommonService):
         try:
             logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 标记发货成功 ')
             self.cur.execute(sql, (order['tradeNid'], 'ur_cleaner', logs))
-            self.con.commit()
-            # self.logger.info(f'success to set log of {order["nid"]}')
         except Exception as why:
             self.logger.error(f'fail to set log of {order["tradeNid"]}')
+            raise Exception(f'fail to set log of {order["tradeNid"]}')
 
     def ship(self, order_id=''):
         orders = self.get_orders(order_id)
         for od in orders:
-            self.upload_track_number(od)
-            self.mark_order_status(od)
-            self.set_log(od)
+            flag = self.upload_track_number(od)
+            if flag:
+                for i in range(2):
+                    try:
+                        self.mark_order_status(od)
+                        self.set_log(od)
+                        self.con.commit()
+                        break
+                    except Exception as why:
+                        self.logger.info(f'trying to commit remote transaction {i + 1} times cause of {why}')
+                        self.con.rollback()
 
     def run(self):
         try:
-            self.ship()
+            self.ship(order_id='22336766')
 
         except Exception as why:
             self.logger.error('fail to  finish task cause of {} '.format(why))
@@ -150,6 +156,5 @@ class Shipper(CommonService):
 if __name__ == "__main__":
     worker = Shipper()
     worker.run()
-    # worker.ship(21926028)
 
 

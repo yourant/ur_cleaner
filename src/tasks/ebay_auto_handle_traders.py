@@ -93,6 +93,7 @@ class Worker(CommonService):
             self.con.commit()
         except Exception as why:
             self.logger.error(f'fail to set log of {order["nid"]} cause of {why}')
+            self.con.rollback()
 
     def trans(self):
         self.merger_orders()
