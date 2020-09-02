@@ -21,7 +21,8 @@ class CreateWytOutBoundOrder(CommonService):
 
     def check_order_current_status(self, order):
         # 检查当前状态
-        sql = f'select nid from p_trade(nolock) where nid = {order["NID"]} and FilterFlag = 6 '
+        sql = (f"select nid,isnull(TrackNo,'') as TrackNo from p_trade(nolock) where nid = {order['NID']} "
+               f" and FilterFlag = 6 and isnull(TrackNo,'')='' ")
         self.cur.execute(sql)
         ret = self.cur.fetchone()
         if ret:
@@ -124,7 +125,7 @@ class CreateWytOutBoundOrder(CommonService):
                "LEFT JOIN B_LogisticWay(nolock) bw ON t.logicsWayNID=bw.NID "
                " where suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
                # "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
-               "-- WHERE t.NID=21684395 ")
+               " -- and t.NID=22351335 ")
 
         self.cur.execute(sql)
         rows = self.cur.fetchall()
@@ -188,6 +189,7 @@ class CreateWytOutBoundOrder(CommonService):
             for order in rows:
                 data = self._parse_order_data(order)
                 if data and self.check_order_current_status(order):
+                    print(data)
                     self.create_wyt_order(data)
         except Exception as e:
             self.logger.error(e)
