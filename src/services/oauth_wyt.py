@@ -30,7 +30,6 @@ class Wyt(object):
         signature = hashlib.md5(raw_string.encode("utf8")).hexdigest().upper()
         return signature
 
-
     def get_request_par(self, data, action, version = '1.0'):
         today = str(datetime.datetime.today())[:19]
         params = {

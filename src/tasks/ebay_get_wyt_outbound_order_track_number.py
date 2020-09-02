@@ -7,6 +7,7 @@ import requests
 import json
 import os
 
+
 class FetchEbayOrderPackageNumber(Shipper):
     def __init__(self):
         super().__init__()
@@ -39,41 +40,41 @@ class FetchEbayOrderPackageNumber(Shipper):
         }
         oauth = wytOauth.Wyt()
         params = oauth.get_request_par(data, action)
-        trackingNum = ''
+        tracking_number = ''
 
         res = requests.post(self.base_url, json=params)
         ret = json.loads(res.content)
         if ret['code'] == 0:
-            trackingNum = ret['data']['list'][0]['trackingNo']
-            # print(trackingNum)
-        return trackingNum
+            tracking_number = ret['data']['list'][0]['trackingNo']
+        return tracking_number
 
     def update_order(self, data):
         sql = 'update p_trade set TrackNo=%s where NID=%s'
         out_stock_sql = 'update P_TradeUn set TrackNo=%s where NID=%s'
         log_sql = 'insert into P_TradeLogs(TradeNID,Operator,Logs) values(%s,%s,%s)'
         try:
-            self.cur.execute(sql, (data['trackingNum'], data['order_id']))
+            self.cur.execute(sql, (data['tracking_number'], data['order_id']))
             self.cur.execute(
                 out_stock_sql,
-                (data['trackingNum'],
+                (data['tracking_number'],
                  data['order_id']))
             self.cur.execute(
                 log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
             self.logger.info(data['Logs'])
         except Exception as why:
+            self.con.rollback()
             self.logger.error(
                 f"failed to modify tracking number of order No. {data['order_id']} cause of {why} ")
 
     def get_data_by_id(self, order):
         try:
-            trackingNum = self.get_package_number(order)
-            if trackingNum:
+            tracking_number = self.get_package_number(order)
+            if tracking_number:
                 logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' >订单编号:' + str(order['NID']) +
-                        ' 获取跟踪号成功! 跟踪号:' + str(trackingNum))
+                        ' 获取跟踪号成功! 跟踪号:' + str(tracking_number))
                 update_params = {
-                    'trackingNum': trackingNum,
+                    'tracking_number': tracking_number,
                     'order_id': order['NID'],
                     'Logs': logs
                 }
@@ -95,8 +96,6 @@ class FetchEbayOrderPackageNumber(Shipper):
             rows = self.get_order_data()
             for rw in rows:
                 self.get_data_by_id(rw)
-            # with Pool(8) as pl:
-            #     pl.map(self.get_data_by_id, rows)
         except Exception as e:
             self.logger.error(e)
             name = os.path.basename(__file__).split(".")[0]
