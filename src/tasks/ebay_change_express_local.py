@@ -5,6 +5,7 @@
 
 
 import os
+import re
 from src.services.base_service import CommonService
 import math
 from src.tasks.ebay_change_express_config import special_post_codes
@@ -78,6 +79,26 @@ class Updater(CommonService):
 
         return out
 
+    def test_get_order_new_express(self):
+        # 找到需要被更改的订单，并根据邮编匹配最佳物流
+        out = list()
+        all_suffix = [{"number_to_change": 40}]
+        to_change_orders = [{"shipToZip": "ph3    1JK"}]
+
+        for sf in all_suffix:
+            for od in to_change_orders:
+                for code in special_post_codes:
+                    if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
+                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                        od['suffixChangNumber'] = sf['number_to_change']
+                        out.append(od)
+                        break
+                else:
+                    od['suffixChangNumber'] = sf['number_to_change']
+                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                    out.append(od)
+        return out
+
     def set_order_new_express(self, order):
         # 设置订单新的物流方式,经过派单处理之后，在非E邮宝或者缺货状态中，申请跟踪号
         # logicsWayNID
@@ -142,7 +163,8 @@ class Updater(CommonService):
 # 执行程序
 if __name__ == "__main__":
     worker = Updater()
-    worker.work()
+    worker.test_get_order_new_express()
+    # worker.work()
 
 
 

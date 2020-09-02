@@ -6,10 +6,10 @@
 
 import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 
 
-class Worker(BaseService):
+class Worker(CommonService):
     """
     ebay 自动派单
     """
@@ -17,6 +17,12 @@ class Worker(BaseService):
     def __init__(self):
         super().__init__()
         self.batch_number = self.get_batch_number()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     def get_orders(self):
         """
@@ -85,9 +91,8 @@ class Worker(BaseService):
             logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 派单成功 ')
             self.cur.execute(sql, (order['nid'], 'ur_cleaner', logs))
             self.con.commit()
-            # self.logger.info(f'success to set log of {order["nid"]}')
         except Exception as why:
-            self.logger.error(f'fail to set log of {order["nid"]}')
+            self.logger.error(f'fail to set log of {order["nid"]} cause of {why}')
 
     def trans(self):
         self.merger_orders()
