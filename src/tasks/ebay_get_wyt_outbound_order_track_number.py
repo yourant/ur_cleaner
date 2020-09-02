@@ -54,12 +54,8 @@ class FetchEbayOrderPackageNumber(Shipper):
         log_sql = 'insert into P_TradeLogs(TradeNID,Operator,Logs) values(%s,%s,%s)'
         try:
             self.cur.execute(sql, (data['tracking_number'], data['order_id']))
-            self.cur.execute(
-                out_stock_sql,
-                (data['tracking_number'],
-                 data['order_id']))
-            self.cur.execute(
-                log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
+            self.cur.execute(out_stock_sql, (data['tracking_number'], data['order_id']))
+            self.cur.execute(log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
             self.logger.info(data['Logs'])
         except Exception as why:

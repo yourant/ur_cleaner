@@ -107,13 +107,10 @@ class CreateWytOutBoundOrder(CommonService):
         out_stock_sql = 'UPDATE P_TradeUn SET TrackNo=%s WHERE NID=%s'
         log_sql = 'INSERT INTO P_TradeLogs(TradeNID,Operator,Logs) VALUES (%s,%s,%s)'
         try:
-            self.cur.execute(sql, (data['trackingNum'], data['orderNum'], data['order_id']))
-            self.cur.execute(
-                out_stock_sql,
-                (data['trackingNum'],
-                 data['order_id']))
-            self.cur.execute(
-                log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
+            if data['trackingNum']:
+                self.cur.execute(sql, (data['trackingNum'], data['orderNum'], data['order_id']))
+                self.cur.execute(out_stock_sql, (data['trackingNum'], data['order_id']))
+            self.cur.execute(log_sql, (data['order_id'], 'ur_cleaner', data['Logs']))
             self.con.commit()
         except Exception as why:
             self.logger.error(
