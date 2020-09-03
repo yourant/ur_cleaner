@@ -153,7 +153,7 @@ class EbayFee(BaseService):
     def run(self):
         try:
             today = str(datetime.datetime.today())
-            begin = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
+            begin = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
             end = str(today)[:10]
             self.clean(begin, end)
             data = self.get_ebay_item_from_py(begin, end)
