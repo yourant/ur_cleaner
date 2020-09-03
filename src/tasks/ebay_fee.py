@@ -163,7 +163,7 @@ class EbayFee(CommonService):
 
     @staticmethod
     def get_data(begin, end):
-        rows = col.find({'Date': {'$gte': begin, '$lte': end}}).sort({"Date": 1})
+        rows = col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
         for row in rows:
             yield (row['accountName'], row['feeType'], row['value'], row['currency'],
                    row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
@@ -202,7 +202,7 @@ class EbayFee(CommonService):
             self.logger.error('fail to get max batchId cause of {}'.format(why))
 
     def insert_to_sql(self):
-        begin = self._get_batch_id
+        begin = self._get_batch_id()
         end = str(datetime.datetime.now())[:10]
         self.clean(begin, end)
         rows = self.get_data(begin, end)
