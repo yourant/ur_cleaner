@@ -16,10 +16,10 @@ class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
-        self.batch_number = self.get_batch_number()
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.batch_number = self.get_batch_number()
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -35,7 +35,8 @@ class Worker(CommonService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
-            yield row
+            if row['nid'] == 22366842:
+                yield row
 
     def merger_orders(self):
         """
@@ -71,6 +72,7 @@ class Worker(CommonService):
             self.logger.info(f'success to handle {order["nid"]}')
         except Exception as why:
             self.logger.error(f'fail to handle {order["nid"]} cause of {why}')
+            raise Exception(f'fail to handle {order["nid"]} cause of {why}')
 
     def update_order_info(self, order):
         sql = 'update p_trade set BatchNum=%s where nid=%s'
@@ -79,6 +81,7 @@ class Worker(CommonService):
             self.logger.info(f'success to update info of {order["nid"]}')
         except Exception as why:
             self.logger.error(f'fail to update info of {order["nid"]} cause of {why}')
+            raise Exception(f'fail to update info of {order["nid"]} cause of {why}')
 
     def set_log(self, order):
         """
@@ -90,18 +93,22 @@ class Worker(CommonService):
         try:
             logs = ('ur_cleaner ' + str(datetime.datetime.today())[:19] + ' 派单成功 ')
             self.cur.execute(sql, (order['nid'], 'ur_cleaner', logs))
-            self.con.commit()
         except Exception as why:
             self.logger.error(f'fail to set log of {order["nid"]} cause of {why}')
-            self.con.rollback()
+            raise Exception(f'fail to set log of {order["nid"]} cause of {why}')
 
     def trans(self):
         self.merger_orders()
         orders = self.get_orders()
         for od in orders:
-            self.handle(od)
-            self.update_order_info(od)
-            self.set_log(od)
+            try:
+                self.handle(od)
+                self.update_order_info(od)
+                self.set_log(od)
+                self.con.commit()
+            except Exception as why:
+                self.logger.error(f'fail to finish handling trans {od["nid"]} cause of {why}')
+                self.con.rollback()
 
     def work(self):
         try:
