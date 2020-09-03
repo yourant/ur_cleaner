@@ -12,7 +12,7 @@ from configs.config import Config
 from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
 
-mongo = MongoClient('192.168.0.172', 27017)
+mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
 col = mongodb['ebay_fee']
 
