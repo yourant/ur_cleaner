@@ -35,7 +35,6 @@ class Worker(CommonService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
-            if row['nid'] == 22366842:
                 yield row
 
     def merger_orders(self):

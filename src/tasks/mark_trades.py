@@ -110,11 +110,11 @@ class Marker(CommonService):
             self.transport_exception_trades(trade)
 
     def mark_trades_trans(self):
-        update_memo_sql = "update p_tradeUn set memo = '%s', reasonCode = '%s' where nid = %s"
+        update_memo_sql = "update p_tradeUn set memo = %s, reasonCode = %s where nid = %s"
         trades_to_mark = self.prepare_to_mark()
         for mar in trades_to_mark.values():
             new_memo = mar['origin_memo'] + mar['mark_memo']
-            self.cur.execute(update_memo_sql % (new_memo, mar['reasonCode'], mar['tradeNid']))
+            self.cur.execute(update_memo_sql, (new_memo, mar['reasonCode'], mar['tradeNid']))
             self.con.commit()
             self.logger.info('marking %s', mar['tradeNid'])
 
