@@ -29,7 +29,7 @@ class OffShelf(CommonService):
 
         sql = ("EXEC B_VovaOffShelfProducts  '停产,停售,春节放假'," +
                "'爆款,旺款,Wish新款,浮动款,在售,侵权'," +
-               "停产,停售,春节放假'")
+               "'停产,停售,春节放假'")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         return ret
@@ -92,9 +92,10 @@ class OffShelf(CommonService):
             sema = asyncio.Semaphore(50)
             loop = asyncio.get_event_loop()
             tokens = self.get_vova_token()
-            tasks = [asyncio.ensure_future(self.update_products_storage(tk, sema)) for tk in tokens ]
-            loop.run_until_complete(asyncio.wait(tasks))
-            loop.close()
+            if tokens:
+                tasks = [asyncio.ensure_future(self.update_products_storage(tk, sema)) for tk in tokens]
+                loop.run_until_complete(asyncio.wait(tasks))
+                loop.close()
         except Exception as why:
             self.logger.error(f'failed to put vova-get-product-tasks because of {why}')
             name = os.path.basename(__file__).split(".")[0]
