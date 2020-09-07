@@ -6,11 +6,11 @@
 
 import asyncio
 import datetime
+import time
 
-import aiohttp
 from sync.tupianku_image_delete.image_server import BaseSpider
 from pymongo import MongoClient
-import random
+
 
 class Worker(BaseSpider):
 
@@ -36,14 +36,17 @@ class Worker(BaseSpider):
         for goods in goods_list:
             try:
                 self.col.insert_one(goods)
-                self.logger.info(f'success push task of {goods["goodsCode"]}')
+                # self.logger.info(f'success to push task of {goods["goodsCode"]}')
             except Exception as why:
-                self.logger.error(f'failed to push task of {goods["goodsCode"]} cause of {why}')
+                pass
+                # self.logger.error(f'failed to push task of {goods["goodsCode"]} cause of {why}')
+
+        self.logger.info(f'success to push task of goods code to delete')
 
     def pull_tasks(self):
         tupianku_name = self.tupianku_name
         try:
-            tasks = self.col.find({f'tupianku{tupianku_name}': 0}).limit(10000)
+            tasks = self.col.find({f'tupianku{tupianku_name}': 0}).limit(1000)
             return tasks
         except Exception as why:
             self.logger.error(f'failed to pull tasks of tupianku{tupianku_name} cause of {why}')
@@ -71,7 +74,8 @@ class Worker(BaseSpider):
         jobs = []
         await self.login()
         for row in tasks:
-            jobs.append(asyncio.ensure_future(self.delete_trans(row['goodsCode'], sema)))
+            if row['goodsCode']:
+                jobs.append(asyncio.ensure_future(self.delete_trans(row['goodsCode'], sema)))
         await asyncio.wait(jobs)
         await self.session.close()
 
@@ -88,15 +92,25 @@ class Worker(BaseSpider):
 
     async def mark_as_done(self, goodsCode):
         self.col.find_one_and_update({'_id': goodsCode},
-                                     {'$set': {f'tupianku{self.tupianku_name}': 1,f'tupianku{self.tupianku_name}UpdatedTime':datetime.datetime.now()}})
+                                     {'$set': {f'tupianku{self.tupianku_name}': 1, f'tupianku{self.tupianku_name}UpdatedTime':datetime.datetime.now()}})
         self.logger.info(f'mark {goodsCode}')
+
+    def work(self):
+        start = time.time()
+        # self.push_tasks()
+        try:
+            self.run()
+        except Exception as why:
+           self.logger.error(f'fail to finish task of  deleting images cause of {why}')
+        finally:
+            self.close()
+            self.mongo.close()
+
+        end = time.time()
+        date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+        print(date + f' it takes {end - start} seconds')
 
 
 if __name__ == '__main__':
-    import time
-    start = time.time()
     worker = Worker(1)
-    worker.run()
-    end = time.time()
-    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
-    print(date + f' it takes {end - start} seconds')
+    worker.work()
