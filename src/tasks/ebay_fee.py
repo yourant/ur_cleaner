@@ -197,7 +197,8 @@ class EbayFee(CommonService):
         try:
             self.cur.execute(sql)
             ret = self.cur.fetchone()
-            return ret['batchId']
+            batch_id = str(datetime.datetime.strptime(ret['batchId'], '%Y-%m-%d') - datetime.timedelta(days=1))[:10]
+            return batch_id
         except Exception as why:
             self.logger.error('fail to get max batchId cause of {}'.format(why))
 
