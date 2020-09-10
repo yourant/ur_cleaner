@@ -1,11 +1,12 @@
 from abc import abstractmethod
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 import asyncio
 import aiohttp
 import re
 
-class BaseSpider(BaseService):
+
+class BaseSpider(CommonService):
 
     def __init__(self,tupianku_name=1):
         super().__init__()
@@ -15,6 +16,12 @@ class BaseSpider(BaseService):
         # self.proxy_url = "http://127.0.0.1:1080"
         self.proxy_url = None
         self.session = aiohttp.ClientSession()
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
 
     async def login(self):
 
@@ -50,7 +57,6 @@ class BaseSpider(BaseService):
             # await self.login()
             self.logger.error(f'failed to find images of {goodsCode} cause of {type(why)}')
 
-
     async def delete_image(self, goods_code, image_ids=[],):
         base_url = 'https://www.tupianku.com/myfiles'
         form_data = {
@@ -70,9 +76,8 @@ class BaseSpider(BaseService):
             # await self.login()
             self.logger.error(f'failed to delete images of {goods_code} cause of {type(why)}')
 
-
     @staticmethod
     def get_image_ids(html):
-        image_ids = re.findall(r'mf_addfile\((\d+?),', html);
+        image_ids = re.findall(r'mf_addfile\((\d+?),', html)
         return image_ids
 
