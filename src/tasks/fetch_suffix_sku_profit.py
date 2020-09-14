@@ -57,7 +57,7 @@ class SuffixSkuProfitFetcher(CommonService):
         sql = 'delete from cache_suffixSkuProfitReport where orderDate BETWEEN %s and  %s'
         self.warehouse_cur.execute(sql, (begin, end))
         self.warehouse_con.commit()
-        self.logger.info('success to clear suffix sku profit')
+        self.logger.info(f'success to clear suffix sku profit between {begin} and {end}')
 
     ## 根据cache_goods 表更新开发员 2020-06-11 添加
     def update_developer(self):

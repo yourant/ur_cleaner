@@ -27,7 +27,7 @@ class Worker(CommonService):
     def get_products(self):
         products = self.from_col.find().limit(100)
         for pros in products:
-            pros['pdStatus'] = 0
+            pros['pb_status'] = 0
             yield pros
 
     def save_products(self, product):
