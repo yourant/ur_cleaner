@@ -275,4 +275,3 @@ class Worker(CommonService):
 if __name__ == "__main__":
     worker = Worker()
     worker.work()
-    # print(workder.today)
