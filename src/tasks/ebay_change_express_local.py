@@ -18,6 +18,7 @@ class Updater(CommonService):
         super().__init__()
         self.all_orders = dict()
         self.rate = 0.22
+        self.profit_money = 50
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
@@ -31,7 +32,8 @@ class Updater(CommonService):
 
     def pre_handle(self, order_time):
         """
-        计算物流方式的比率和改物流方式之前，先把偏远地区的 [Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE]
+        1. 把利润大于50RMB的订单的物流直接改为[Hermes - Standard 48 Claim(2-3 working days Service)-UKLE]
+        1.计算物流方式的比率和改物流方式之前，先把偏远地区的 [Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE]
         改为 [Royal Mail - Tracked 48 Parcel]
         :return:
         """
@@ -40,11 +42,17 @@ class Updater(CommonService):
         ret = self.cur.fetchall()
         for row in ret:
             for code in special_post_codes:
+                # 根据邮编改物流
                 if (row['name'] == 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE' and
                         re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code)):
                     row['newName'] = 'Royal Mail - Tracked 48 Parcel'
-                    self.change_express_transaction(row)
                     break
+
+                # 根据利润改物流
+                else:
+                    if row['ProfitMoney'] > self.profit_money:
+                        row['newName'] = 'Hermes - Standard 48 Claim(2-3 working days Service)-UKLE'
+            self.change_express_transaction(row)
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
