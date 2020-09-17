@@ -22,10 +22,34 @@ class Updater(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.logistics_ways = {
-            'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE': 524,
-            'Royal Mail - Tracked 48 Parcel': 283
-        }
+        self.tracked_logistics_ways = self.get_tracked_ways()
+        self.all_logistics_ways = self.get_all_logistics_ways()
+
+    def get_tracked_ways(self):
+        """
+        获取ebay海外仓的挂号物流名称
+        :return:
+        """
+        sql = 'select name from ur_clear_ebay_adjust_express_tracked_ways(nolock)'
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        out = list()
+        for row in ret:
+            out.append(row['name'])
+        return out
+
+    def get_all_logistics_ways(self):
+        """
+        获取所有的物流名称和物流ID
+        :return:
+        """
+        sql = 'select name,nid from B_LogisticWay(nolock)'
+        self.cur.execute(sql)
+        out = dict()
+        ret = self.cur.fetchall()
+        for row in ret:
+            out[row['name']] = row['nid']
+        return out
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -52,7 +76,10 @@ class Updater(CommonService):
                 else:
                     if row['ProfitMoney'] > self.profit_money:
                         row['newName'] = 'Hermes - Standard 48 Claim(2-3 working days Service)-UKLE'
-            self.change_express_transaction(row)
+
+                # 改过物流的订单才执行
+            if row.get('newName'):
+                self.change_express_transaction(row)
 
     def get_low_rate_suffix(self, order_time):
         # 获取不达标的账号
@@ -65,7 +92,7 @@ class Updater(CommonService):
                 yield row
 
     def get_all_orders(self, order_time):
-        # 获取所有可以被更改的订单
+        # 获取所有可以被更改的订单,不包含本身已经是挂号的订单
         sql = 'exec ur_clear_ebay_adjust_express_to_change_order @orderTime=%s'
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
@@ -95,17 +122,9 @@ class Updater(CommonService):
         for sf in all_suffix:
             to_change_orders = self.get_to_change_order(sf)
             for od in to_change_orders:
-                for code in special_post_codes:
-                    if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
-                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
-                        od['suffixChangNumber'] = sf['number_to_change']
-                        out.append(od)
-                        break
-                else:
-                    od['suffixChangNumber'] = sf['number_to_change']
-                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
-                    out.append(od)
-
+                od['suffixChangNumber'] = sf['number_to_change']
+                od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                out.append(od)
         return out
 
     def test_get_order_new_express(self):
@@ -133,12 +152,12 @@ class Updater(CommonService):
         # logicsWayNID
 
         try:
-            sql = f'update p_trade set logicsWayNid = {self.logistics_ways[order["newName"]]} where nid = {order["nid"]}'
+            sql = f'update p_trade set logicsWayNid = {self.all_logistics_ways[order["newName"]]} where nid = {order["nid"]}'
             self.cur.execute(sql)
             self.logger.info(f'success to update {order["nid"]} of {order["suffix"]} set express to {order["newName"]}')
         except Exception as why:
             self.logger.info(f'fail to update {order["nid"]} of {order["suffix"]} cause of {why}')
-            raise Exception(f'fail to set {order["nid"]} to {self.logistics_ways[order["newName"]]} ')
+            raise Exception(f'fail to set {order["nid"]} to {self.all_logistics_ways[order["newName"]]} ')
 
     def calculate_express_fee(self, order):
         # 重新计算物流费用
