@@ -76,8 +76,9 @@ class FetchEbayOrderPackageNumber(Shipper):
                 }
                 # 修改跟踪号，添加操作日志
                 self.update_order(update_params)
+
                 # 标记平台发货
-                self.ship(order['NID'])
+                # self.ship(order['NID'])
             else:
                 self.logger.info(
                     'tracking no of order {} is empty!'.format(
