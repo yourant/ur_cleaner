@@ -61,7 +61,8 @@ class Updater(CommonService):
         改为 [Royal Mail - Tracked 48 Parcel]
         :return:
         """
-        sql = 'exec ur_clear_ebay_adjust_express_to_change_order @orderTime=%s'
+        sql = 'exec ur_clear_ebay_adjust_express_to_change_order_pre @orderTime=%s'
+        # sql = 'select m.nid, m.suffix,  m.ProfitMoney, l.name,m.orderTime ,m.shipToZip from p_trade(nolock) m LEFT JOIN  B_LogisticWay (nolock) l ON l.nid = m.logicsWayNID  where m.nid =22727231'
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
@@ -93,7 +94,7 @@ class Updater(CommonService):
 
     def get_all_orders(self, order_time):
         # 获取所有可以被更改的订单,不包含本身已经是挂号的订单
-        sql = 'exec ur_clear_ebay_adjust_express_to_change_order @orderTime=%s'
+        sql = 'exec ur_clear_ebay_adjust_express_to_change_order_not_tracked @orderTime=%s'
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         out = dict()
@@ -122,8 +123,15 @@ class Updater(CommonService):
         for sf in all_suffix:
             to_change_orders = self.get_to_change_order(sf)
             for od in to_change_orders:
-                od['suffixChangNumber'] = sf['number_to_change']
-                od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                for code in special_post_codes:
+                    if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
+                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                        od['suffixChangNumber'] = sf['number_to_change']
+                        out.append(od)
+                        break
+                else:
+                    od['suffixChangNumber'] = sf['number_to_change']
+                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
                 out.append(od)
         return out
 
