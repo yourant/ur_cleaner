@@ -21,8 +21,9 @@ class Worker(BaseSpider):
         self.col = self.mongodb['delete_tupianku_tasks']
 
     def _get_goods(self):
-        sql = ("SELECT DISTINCT b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
-            " WHERE GoodsSKUStatus='停售' AND GoodsID NOT IN (SELECT DISTINCT GoodsID FROM [dbo].[B_GoodsSKU] WHERE GoodsSKUStatus<>'停售')")
+        sql = ("SELECT DISTINCT top 300 b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
+               " WHERE GoodsSKUStatus='停售' AND isnull(b.goodsCode,'')<>''" +
+               " AND GoodsID NOT IN (SELECT DISTINCT GoodsID FROM [dbo].[B_GoodsSKU] WHERE GoodsSKUStatus<>'停售')")
         self.cur.execute(sql)
         goods_list = self.cur.fetchall()
         for row in goods_list:
@@ -35,7 +36,8 @@ class Worker(BaseSpider):
         goods_list = self._get_goods()
         for goods in goods_list:
             try:
-                self.col.insert_one(goods)
+                # self.col.insert_one(goods)
+                self.col.update_one({'_id': goods['_id']}, {"$set": goods}, upsert=True)
                 # self.logger.info(f'success to push task of {goods["goodsCode"]}')
             except Exception as why:
                 pass
@@ -54,9 +56,9 @@ class Worker(BaseSpider):
     async def delete_trans(self, goods_code, sema):
         async with sema:
             try:
-                #搜索图片，并获取图片id
+                # 搜索图片，并获取图片id
                 image_ids = await self.search_image(goods_code + '-')
-                #删除图片
+                # 删除图片
                 if type(image_ids) is list:
                     if image_ids:
                         ret = await self.delete_image(goods_code, image_ids)
@@ -92,16 +94,17 @@ class Worker(BaseSpider):
 
     async def mark_as_done(self, goodsCode):
         self.col.find_one_and_update({'_id': goodsCode},
-                                     {'$set': {f'tupianku{self.tupianku_name}': 1, f'tupianku{self.tupianku_name}UpdatedTime':datetime.datetime.now()}})
+                                     {'$set': {f'tupianku{self.tupianku_name}': 1,
+                                               f'tupianku{self.tupianku_name}UpdatedTime': datetime.datetime.now()}})
         self.logger.info(f'mark {goodsCode}')
 
     def work(self):
         start = time.time()
-        # self.push_tasks()
         try:
+            # self.push_tasks()
             self.run()
         except Exception as why:
-           self.logger.error(f'fail to finish task of  deleting images cause of {why}')
+            self.logger.error(f'fail to finish task of  deleting images cause of {why}')
         finally:
             self.close()
             self.mongo.close()
