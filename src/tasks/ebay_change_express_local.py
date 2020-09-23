@@ -24,6 +24,8 @@ class Updater(CommonService):
         self.con = self.base_dao.get_connection(self.base_name)
         self.tracked_logistics_ways = self.get_tracked_ways()
         self.all_logistics_ways = self.get_all_logistics_ways()
+        self.express_mapping = self.get_stores_express_mapping()
+
 
     def get_tracked_ways(self):
         """
@@ -51,6 +53,20 @@ class Updater(CommonService):
             out[row['name']] = row['nid']
         return out
 
+    def get_stores_express_mapping(self):
+
+        """
+        获取不同仓库之间物流的映射关系
+        :return:
+        """
+        sql = 'select UKLE, UKMA from ur_clear_ebay_adjust_express_store_express_mapping'
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        out = dict()
+        for row in ret:
+            out[row['UKLE']] = row['UKMA']
+        return out
+
     def close(self):
         self.base_dao.close_cur(self.cur)
 
@@ -62,13 +78,17 @@ class Updater(CommonService):
         :return:
         """
         sql = 'exec ur_clear_ebay_adjust_express_to_change_order_pre @orderTime=%s'
+
+        all_store_specail_express = ['Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE',
+                                     self.express_mapping['Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE']]
         # sql = 'select m.nid, m.suffix,  m.ProfitMoney, l.name,m.orderTime ,m.shipToZip from p_trade(nolock) m LEFT JOIN  B_LogisticWay (nolock) l ON l.nid = m.logicsWayNID  where m.nid =22727231'
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
             for code in special_post_codes:
                 # 根据邮编改物流
-                if (row['name'] == 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE' and
+
+                if (row['name'] in all_store_specail_express and
                         re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code)):
                     row['newName'] = 'Royal Mail - Tracked 48 Parcel'
                     break
@@ -192,11 +212,31 @@ class Updater(CommonService):
             self.logger.error(f'fail to set log of {order["nid"]} cause of {why}')
             raise Exception(f'fail to set log of {order["nid"]}')
 
+    def replace_express(self, order):
+        """
+        根据仓库选择物流
+        :param order:
+        :return:
+        """
+
+        # 万邑通UK仓
+        if order['storeId'] == 26:
+            pass
+
+        # 万邑通MA仓
+        if order['storeId'] == 54:
+            order['newName'] = self.express_mapping[order['newName']]
+        return order
+
     def change_express_transaction(self, order):
         """"
         更改物流的事务
         """
         try:
+
+            # 根据仓库，选择对应的物流
+
+            order = self.replace_express(order)
 
             # 改物流信息
             self.set_order_new_express(order)
