@@ -79,9 +79,8 @@ class Updater(CommonService):
         """
         sql = 'exec ur_clear_ebay_adjust_express_to_change_order_pre @orderTime=%s'
 
-        all_store_specail_express = ['Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE',
-                                     self.express_mapping['Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE']]
-        # sql = 'select m.nid, m.suffix,  m.ProfitMoney, l.name,m.orderTime ,m.shipToZip from p_trade(nolock) m LEFT JOIN  B_LogisticWay (nolock) l ON l.nid = m.logicsWayNID  where m.nid =22727231'
+        all_store_specail_express = ['UKLE-Hermes - UK Standard 48',
+                                     self.express_mapping['UKLE-Hermes - UK Standard 48']]
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
@@ -90,13 +89,13 @@ class Updater(CommonService):
 
                 if (row['name'] in all_store_specail_express and
                         re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code)):
-                    row['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                    row['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
                     break
 
                 # 根据利润改物流
                 else:
                     if row['ProfitMoney'] > self.profit_money:
-                        row['newName'] = 'Hermes - Standard 48 Claim(2-3 working days Service)-UKLE'
+                        row['newName'] = 'UKLE-Hermes - Standard 48 Claim'
 
                 # 改过物流的订单才执行
             if row.get('newName'):
@@ -151,7 +150,7 @@ class Updater(CommonService):
                         break
                 else:
                     od['suffixChangNumber'] = sf['number_to_change']
-                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                    od['newName'] = 'UKLE-Hermes - UK Standard 48'
                 out.append(od)
         return out
 
@@ -171,7 +170,7 @@ class Updater(CommonService):
                         break
                 else:
                     od['suffixChangNumber'] = sf['number_to_change']
-                    od['newName'] = 'Hermes - UK Standard 48 (Economy 2-3 working days Service)-UKLE'
+                    od['newName'] = 'UKLE-Hermes - UK Standard 48'
                     out.append(od)
         return out
 
