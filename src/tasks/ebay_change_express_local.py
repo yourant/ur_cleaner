@@ -144,7 +144,7 @@ class Updater(CommonService):
             for od in to_change_orders:
                 for code in special_post_codes:
                     if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
-                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                        od['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
                         od['suffixChangNumber'] = sf['number_to_change']
                         out.append(od)
                         break
@@ -164,7 +164,7 @@ class Updater(CommonService):
             for od in to_change_orders:
                 for code in special_post_codes:
                     if re.sub(r'\s', '', str.upper(od['shipToZip'])).startswith(code):
-                        od['newName'] = 'Royal Mail - Tracked 48 Parcel'
+                        od['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
                         od['suffixChangNumber'] = sf['number_to_change']
                         out.append(od)
                         break
