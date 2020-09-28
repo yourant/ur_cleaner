@@ -79,23 +79,33 @@ class Updater(CommonService):
         """
         sql = 'exec ur_clear_ebay_adjust_express_to_change_order_pre @orderTime=%s'
 
-        all_store_specail_express = ['UKLE-Hermes - UK Standard 48',
-                                     self.express_mapping['UKLE-Hermes - UK Standard 48']]
+        all_store_specail_express = [
+            'UKLE-Hermes - UK Standard 48',
+            self.express_mapping['UKLE-Hermes - UK Standard 48'],
+        ]
         self.cur.execute(sql, (order_time,))
         ret = self.cur.fetchall()
         for row in ret:
-            for code in special_post_codes:
-                # 根据邮编改物流
 
-                if (row['name'] in all_store_specail_express and
-                        re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code)):
-                    row['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
+            for code in special_post_codes:
+                # 偏远地区
+                if re.sub(r'\s', '', str.upper(row['shipToZip'])).startswith(code):
+                    row['remote'] = 1
                     break
 
-                # 根据利润改物流
-                else:
-                    if row['ProfitMoney'] > self.profit_money:
-                        row['newName'] = 'UKLE-Hermes - Standard 48 Claim'
+            if row.get('remote'):
+                # 利润大于50
+                if row['ProfitMoney'] > self.profit_money:
+                        row['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
+
+                # 特殊的物流
+                if row['name'] in all_store_specail_express:
+                    row['newName'] = 'UKLE-Royal Mail - Tracked 48 Parcel'
+
+            else:
+                # 利润大于50
+                if row['ProfitMoney'] > self.profit_money:
+                    row['newName'] = 'UKLE-Hermes - Standard 48 Claim'
 
                 # 改过物流的订单才执行
             if row.get('newName'):
@@ -256,10 +266,10 @@ class Updater(CommonService):
         # 先修改偏远地区物流
         self.pre_handle(order_time)
 
-        # 再计算物流比率，修改物流方式
-        orders = self.get_order_new_express(order_time)
-        for od in orders:
-            self.change_express_transaction(od)
+        # # 再计算物流比率，修改物流方式
+        # orders = self.get_order_new_express(order_time)
+        # for od in orders:
+        #     self.change_express_transaction(od)
 
     def work(self):
         try:
