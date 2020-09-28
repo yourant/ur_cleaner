@@ -266,10 +266,10 @@ class Updater(CommonService):
         # 先修改偏远地区物流
         self.pre_handle(order_time)
 
-        # # 再计算物流比率，修改物流方式
-        # orders = self.get_order_new_express(order_time)
-        # for od in orders:
-        #     self.change_express_transaction(od)
+        # 再计算物流比率，修改物流方式
+        orders = self.get_order_new_express(order_time)
+        for od in orders:
+            self.change_express_transaction(od)
 
     def work(self):
         try:
