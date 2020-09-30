@@ -26,7 +26,7 @@ class Worker(CommonService):
     def run(self):
         begin_time = time.time()
         try:
-            sql = "EXEC Y_R_KC_StockingWaringAll '',0,0,'','0','','','',900000,1,'','0','','',''"
+            sql = "EXEC Y_R_KC_StockingWaringAll '',0,0,'','0','','','',1000000,1,'','0','','',''"
             self.cur.execute(sql)
             self.con.commit()
         except Exception as why:

@@ -23,7 +23,7 @@ class Download(BaseService):
 
     # 获取产品多属性 数据
     def get_var_data(self):
-        sql = 'select  * from proCenter.oa_smtImportToIbayLog where status1=1 and status2=0'
+        sql = "select  * from proCenter.oa_smtImportToIbayLog where status1=1 and status2=0"
         self.warehouse_cur.execute(sql)
         self.warehouse_con.commit()
         ret = self.warehouse_cur.fetchall()
@@ -85,18 +85,31 @@ class Download(BaseService):
         sql = "select name,value from aliexpress_specifics where categoryid=%s and isskuattribute=1 order by customizedpic desc"
         self.ibay_cur.execute(sql, (data['category1'],))
         rows = self.ibay_cur.fetchall()
-        ret = dict()
-        ret['skuimage'] = rows[0][0]
-        ret['varition1'] = rows[0][0] + ':' + data['color']
-        ret['varition2'] = ''
-        for row in rows:
-            # print(row)
-            if ('size' in row[0] or 'Size' in row[0]) and data['size']:
-                ret['varition2'] = row[0] + ':' + data['size']
-        return ret
+        if len(rows) > 0:
+            ret = dict()
+            try:
+                ret['skuimage'] = rows[0][0]
+            except:
+                ret['skuimage'] = ''
+            try:
+                ret['varition1'] = rows[0][0] + ':' + data['color']
+            except:
+                ret['varition1'] = ''
+            ret['varition2'] = ''
+            for row in rows:
+                # print(row)
+                if ('size' in row[0] or 'Size' in row[0]) and data['size']:
+                    ret['varition2'] = row[0] + ':' + data['size']
+            return ret
+        else:
+            return {
+                'skuimage':'',
+                'varition1':'',
+                'varition2':''
+            }
 
     async def run(self):
-        try:
+        # try:
             # 获取单属性数据
             data = self.get_var_data()  # 获取数据
             if data:
@@ -104,10 +117,10 @@ class Download(BaseService):
                 self.logger.error('Success to download goods var templates')
             else:
                 self.logger.info('No goods var template need to download')
-        except Exception as why:
-            self.logger.error('Failed to download goods var templates cause of {}'.format(why))
-        finally:
-            self.close()
+        # except Exception as why:
+        #     self.logger.error('Failed to download goods var templates cause of {}'.format(why))
+        # finally:
+        #     self.close()
 
 
 if __name__ == '__main__':
