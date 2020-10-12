@@ -8,7 +8,7 @@ import datetime
 from src.services.base_service import CommonService
 
 
-class RefundFetcher(CommonService):
+class WishRefundFetcher(CommonService):
     """
     fetch refund detail and put it into dw
     """
@@ -80,6 +80,6 @@ if __name__ == '__main__':
     yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
     today = str(datetime.datetime.today())[:10]
     month_first_day = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
-    # month_first_day = '2020-05-01'
-    worker = RefundFetcher()
+    # month_first_day = '2020-09-01'
+    worker = WishRefundFetcher()
     worker.work(month_first_day, today)
