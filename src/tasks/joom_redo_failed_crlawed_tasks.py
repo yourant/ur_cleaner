@@ -67,6 +67,8 @@ class Worker(CommonService):
             ret = requests.post(url,data=data, headers=headers)
             if ret.status_code == 200:
                 self.logger.info(f'success to add task {task_id}')
+            else:
+                self.logger.error(f'failed to add task {task_id} cause of {ret}')
         except Exception as why:
             self.logger.error(f'failed to add task {task_id} cause of {why}')
 

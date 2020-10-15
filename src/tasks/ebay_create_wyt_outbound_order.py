@@ -123,7 +123,7 @@ class CreateWytOutBoundOrder(CommonService):
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
                "LEFT JOIN B_LogisticWay(nolock) bw ON t.logicsWayNID=bw.NID "
-               " where suffix in (select suffix from ur_clear_ebay_adjust_express_accounts)"
+               " where suffix in (select suffix from ur_clear_ebay_adjust_express_accounts  where isAutoSubmit=1 )"
                # "WHERE suffix IN ('eBay-C99-tianru98','eBay-C100-lnt995','eBay-C142-polo1_13','eBay-C25-sunnyday0329','eBay-C127-qiju_58','eBay-C136-baoch-6338') "
                " -- and t.NID=22351335 ")
 
@@ -139,7 +139,7 @@ class CreateWytOutBoundOrder(CommonService):
                "(SELECT * FROM [dbo].[p_trade](nolock) WHERE FilterFlag = 6 AND expressNid = 5 AND isnull(trackno,'') = ''  and datediff(month,orderTime,getDate()) <= 1"
                " UNION SELECT * FROM [dbo].[P_TradeUn](nolock) WHERE FilterFlag = 1 AND expressNid = 5 AND isnull(trackno,'') = '' and datediff(month,orderTime,getDate()) <= 1 ) t "
                "LEFT JOIN B_LogisticWay(nolock) bw ON t.logicsWayNID=bw.NID "
-               " where t.nid = %s and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts) "
+               " where t.nid = %s and suffix in (select suffix from ur_clear_ebay_adjust_express_accounts  where isAutoSubmit=1) "
                                    )
 
         self.cur.execute(current_order_info_sql, order['NID'])

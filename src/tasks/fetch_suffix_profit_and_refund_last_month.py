@@ -6,6 +6,7 @@
 import datetime
 from src.tasks.fetch_suffix_profit import ProfitFetcher
 from src.tasks.fetch_suffix_refund import RefundFetcher
+from src.tasks.fetch_suffix_refund_wish import WishRefundFetcher
 
 
 def get_last_month_first_day():
@@ -37,4 +38,8 @@ if __name__ == "__main__":
 
     # fetch suffix refund
     refund_worker = RefundFetcher()
+    refund_worker.work(last_month_first_day, today)
+
+    # fetch wish suffix refund
+    refund_worker = WishRefundFetcher()
     refund_worker.work(last_month_first_day, today)
