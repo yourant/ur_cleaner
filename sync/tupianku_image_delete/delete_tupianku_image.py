@@ -57,7 +57,7 @@ class Worker(BaseSpider):
         async with sema:
             try:
                 # 搜索图片，并获取图片id
-                image_ids = await self.search_image(goods_code + '-')
+                image_ids = await self.search_image(goods_code)
                 # 删除图片
                 if type(image_ids) is list:
                     if image_ids:
