@@ -34,9 +34,8 @@ class BaseSpider(CommonService):
             'username': self.tupianku_info['username'],
             'password': self.tupianku_info['password']
         }
-        await self.session.post(base_url, data=form_data,proxy=self.proxy_url)
+        await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
         self.logger.info(f'success to login tupianku{self.tupianku_name}')
-
 
     async def search_image(self, goodsCode):
         base_url = 'https://www.tupianku.com/myfiles'
