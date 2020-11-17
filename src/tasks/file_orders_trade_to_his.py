@@ -34,16 +34,16 @@ class FileOrdersToHis(CommonService):
 
     def get_order_ids(self, begin, end):
         sql = "SELECT nid FROM P_Trade (nolock) WHERE FilterFlag = 100 AND CONVERT(VARCHAR(10),CLOSINGDATE,121) BETWEEN  %s AND %s"
-        self.cur.execute(sql,(begin, end))
+        self.cur.execute(sql, (begin, end))
         ret = self.cur.fetchall()
         for row in ret:
             yield row
-
 
     def run(self):
         now = datetime.datetime.now()
         begin = '2019-01-01'
         end = datetime.datetime(now.year, now.month - 2, 1) - datetime.timedelta(1)
+        print(end)
         # end = '2020-03-31'
         try:
             ids = self.get_order_ids(begin, end)
