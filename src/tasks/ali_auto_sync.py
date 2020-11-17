@@ -97,8 +97,7 @@ class AliSync(CommonService):
 
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=61))[:10]
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
@@ -106,14 +105,15 @@ class AliSync(CommonService):
                 "LEFT JOIN CG_StockOrderM(nolock)  as cm  on cd.stockordernid = cm.nid  "
                 "LEFT JOIN S_AlibabaCGInfo(nolock) as info  on Cm.AliasName1688 = info.AliasName  "
                 "LEFT JOIN B_GoodsSKU(nolock) as g  on cd.goodsskuid = g.nid  "
-                "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购未入库
-                 "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' "
-                 "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库
-                 "AND ABS(OrderMoney - alibabamoney) > 0.1 "
+                "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购已审核未入库
+                 "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' " # 是1688订单
+                 "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库 # 仓库限制
+                 # "AND ABS(OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
+                 "AND ABS(expressFee + OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
                  # " AND ABS(taxPrice-costPrice) > 0.1"
                  # "and cm.deptId != 46 "
                  # "where 1=1 "
-                # "and BillNumber = 'CGD-2020-07-15-0799' "
+                # "and BillNumber = 'CGD-2020-10-10-1832' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
                 )
