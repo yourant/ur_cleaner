@@ -4,6 +4,7 @@
 # Author: turpure
 
 from src.services.base_service import CommonService
+from ebaysdk.trading import Connection as Trading
 import datetime
 from pymongo import MongoClient
 from configs.config import Config
@@ -17,6 +18,7 @@ class AliSync(CommonService):
 
     def __init__(self):
         super().__init__()
+        self.config = Config().get_config('ebay.yaml')
         self.mongo = MongoClient('192.168.0.150', 27017)
         self.mongodb = self.mongo['operation']
         self.col = self.mongodb['ebay_site']
@@ -27,18 +29,24 @@ class AliSync(CommonService):
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-
-
-    def get_ebay_shipping(self):
-        # sql = 'SELECT servicesName,type,site,ibayShipping FROM proCenter.oa_shippingService '
-        sql = 'SELECT name,nameEn as name_en,code,currencyCode as currency_code FROM proCenter.oa_siteCountry '
-        self.cur.execute(sql)
-        ret = self.cur.fetchall()
-        print(ret)
-        for row in ret:
-            print(row)
-            self.col.insert_one(row)
-            # yield row
+    def get_ebay_description(self):
+        try:
+            api = Trading(config_file=self.config)
+            trade_response = api.execute(
+                'GetDescriptionTemplates',
+                # {
+                #     'SKU': row['Item']['SKU'],
+                #     # 'SKU': '7C2796@#01',
+                #     'requesterCredentials': row['requesterCredentials'],
+                # }
+            )
+            ret = trade_response.dict()
+            print(ret)
+            if ret['Ack'] == 'Success':
+                return ret['data']['Item']['ItemID']
+                # return ret['data']['Item']['ItemID']
+        except Exception as e:
+            self.logger.error(f"error cause of {e}")
 
     def run(self):
         try:
@@ -50,7 +58,7 @@ class AliSync(CommonService):
             #         # print(row)
             #         col2.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
             #     self.logger.info(f'success to sync data in {begin}')
-            res = self.get_ebay_shipping()
+            res = self.get_ebay_description()
             print(res)
         except Exception as e:
             self.logger(e)

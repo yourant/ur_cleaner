@@ -97,7 +97,7 @@ class AliSync(CommonService):
 
     def get_order_from_py(self):
         today = str(datetime.datetime.today())[:10]
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=30))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=20))[:10]
         # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
