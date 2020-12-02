@@ -104,19 +104,22 @@ class Worker(CommonService):
             response = requests.get(task_id)
             soup = BeautifulSoup(response.content, features='html.parser')
             cateList = soup.select('.breadcrumb > ul > li > a')
-            cateName = cateList[-1].getText()
-            self.insert_vova_cate(cateName, task_id)
+            # print(cateList)
+            if cateList:
+                cateName = cateList[-1].getText()
+                self.insert_vova_cate(cateName, task_id)
             image = self.get_style_info(soup, 'img')
             colors = self.get_style_info(soup, 'color')
             sizes = self.get_style_info(soup, 'size')
             # 处理 sku 的 extra_images
             extra_images = self.get_extra_images(image['img'])
+            # print(extra_images)
             try:
                 description = soup.select('.prod-info > dl > dd')[0].getText()
             except BaseException:
                 description = ''
             # 获取 SKU 信息
-            product_id = task_id.split('-')[-1]
+            product_id = task_id.split('-')[-1].split('?')[0]
             url = "https://www.vova.com/ajax.php?act=get_goods_sku_style&virtual_goods_id=" + \
                   product_id[1:]
             skuRes = requests.get(url)
@@ -166,6 +169,10 @@ class Worker(CommonService):
                     skuRows.append({**item, **extra_images})
                     i = i + 1
                 self.insert(skuRows, row['id'])
+            else:
+                update_sql = "update proCenter.oa_dataMine set progress=%s where id=%s"
+                self.warehouse_cur.execute(update_sql, (u'采集失败', row['id']))
+                self.warehouse_con.commit()
                 # print(skuRows)
         except Exception as why:
             self.logger.error(f'fail to get sku info cause of {why}')

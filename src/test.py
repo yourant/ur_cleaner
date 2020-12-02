@@ -21,30 +21,33 @@ class AliSync(CommonService):
         self.config = Config().get_config('ebay.yaml')
         self.mongo = MongoClient('192.168.0.150', 27017)
         self.mongodb = self.mongo['operation']
-        self.col = self.mongodb['ebay_site']
-        self.base_name = 'mysql'
-        self.cur = self.base_dao.get_cur(self.base_name)
-        self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.mongodb['ebay_description_template']
+        self.col1 = self.mongodb['ebay_description_group']
+        # self.base_name = 'mysql'
+        # self.cur = self.base_dao.get_cur(self.base_name)
+        # self.con = self.base_dao.get_connection(self.base_name)
 
-    def close(self):
-        self.base_dao.close_cur(self.cur)
+    # def close(self):
+    #     self.base_dao.close_cur(self.cur)
 
     def get_ebay_description(self):
         try:
             api = Trading(config_file=self.config)
             trade_response = api.execute(
                 'GetDescriptionTemplates',
-                # {
+                {
+                    'CategoryID': 155350
                 #     'SKU': row['Item']['SKU'],
                 #     # 'SKU': '7C2796@#01',
                 #     'requesterCredentials': row['requesterCredentials'],
-                # }
+                }
             )
             ret = trade_response.dict()
             print(ret)
             if ret['Ack'] == 'Success':
-                return ret['data']['Item']['ItemID']
-                # return ret['data']['Item']['ItemID']
+                return ret
+            else:
+                return []
         except Exception as e:
             self.logger.error(f"error cause of {e}")
 
@@ -60,10 +63,14 @@ class AliSync(CommonService):
             #     self.logger.info(f'success to sync data in {begin}')
             res = self.get_ebay_description()
             print(res)
+            # for item in res['DescriptionTemplate']:
+            #     self.col.insert_one(item)
+            # for item in res['ThemeGroup']:
+            #     self.col1.insert_one(item)
         except Exception as e:
             self.logger(e)
-        finally:
-            self.close()
+        # finally:
+        #     self.close()
 
 
 if __name__ == '__main__':
