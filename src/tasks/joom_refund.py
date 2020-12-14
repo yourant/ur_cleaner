@@ -42,7 +42,7 @@ class Worker(CommonService):
         url = 'https://api-merchant.joom.com/api/v2/order/multi-get'
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
 
-        date = str(datetime.datetime.today() - datetime.timedelta(days=2))[:10]
+        date = str(datetime.datetime.today() - datetime.timedelta(days=3))[:10]
         # yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
         # date = str(datetime.datetime.strptime(yesterday[:8] + '01', '%Y-%m-%d'))[:10]
         limit = 300
@@ -90,7 +90,8 @@ class Worker(CommonService):
         self.logger.info('success to clear joom_refund')
 
     def put(self, row):
-        col.save(row)
+        # col.save(row)
+        col.insert_one(row)
 
     def pull(self):
         rows = col.find()
