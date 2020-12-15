@@ -31,7 +31,7 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
-        sql = 'select AccessToken, aliasName from S_JoomSyncInfo'
+        sql = 'select TOP 1 AccessToken, aliasName from S_JoomSyncInfo'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -152,7 +152,13 @@ class Worker(CommonService):
 
 
 if __name__ == "__main__":
+    import time
+    start = time.time()
     worker = Worker()
     worker.work()
+    end = time.time()
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
+
 
 
