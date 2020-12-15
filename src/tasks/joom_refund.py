@@ -31,7 +31,7 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
-        sql = 'select TOP 1 AccessToken, aliasName from S_JoomSyncInfo'
+        sql = 'select AccessToken, aliasName from S_JoomSyncInfo'
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
