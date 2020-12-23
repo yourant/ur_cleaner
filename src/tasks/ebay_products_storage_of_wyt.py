@@ -91,7 +91,7 @@ class FetchEbayProductsStorage(CommonService):
         try:
             self.clean()
             self.getData()
-        except Exception  as e:
+        except Exception as e:
             self.logger.error(e)
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
