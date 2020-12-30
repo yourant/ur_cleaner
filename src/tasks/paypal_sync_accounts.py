@@ -5,6 +5,7 @@
 
 import os
 from src.services.base_service import CommonService
+from pymssql import IntegrityError
 
 
 class Worker(CommonService):
@@ -38,6 +39,13 @@ class Worker(CommonService):
         try:
             self.cur.execute(sql, (ele['email'], 0, 1, '使用中', ''))
             self.logger.info(f'success to put {ele["email"]}')
+
+        except IntegrityError:
+            sql = (
+                "update y_PayPalStatus set isPyUsed = 1,updatedTime= getdate()  where accountName=%s"
+            )
+            self.cur.execute(sql, (ele["email"]))
+            self.logger.info(f'success to update  {ele["email"]}')
 
         except Exception as why:
             self.logger.error(f'fail to put {ele["email"]} cause of {why}')
