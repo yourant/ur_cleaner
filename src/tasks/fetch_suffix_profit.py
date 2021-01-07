@@ -51,13 +51,13 @@ class ProfitFetcher(CommonService):
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s)',
-               # 'ON DUPLICATE KEY UPDATE saleMoney=values(saleMoney),plat=values(plat),'
-               # 'saleMoneyZn=values(saleMoneyZn),ebayFeeEbay=values(ebayFeeEbay),'
-               # 'ebayFeeZnEbay=values(ebayFeeZnEbay),ppFee=values(ppFee),'
-               # 'ppFeeZn=values(ppFeeZn),costMoney=values(costMoney),'
-               # 'expressFare=values(expressFare),inPackageMoney=values(inPackageMoney),'
-               # 'refund=values(refund),dieFeeZn=values(dieFeeZn),insertionFee=values(insertionFee),'
-               # 'saleOpeFeeZn=values(saleOpeFeeZn),grossProfit=values(grossProfit)'
+               'ON DUPLICATE KEY UPDATE saleMoney=values(saleMoney),plat=values(plat),'
+               'saleMoneyZn=values(saleMoneyZn),ebayFeeEbay=values(ebayFeeEbay),'
+               'ebayFeeZnEbay=values(ebayFeeZnEbay),ppFee=values(ppFee),'
+               'ppFeeZn=values(ppFeeZn),costMoney=values(costMoney),'
+               'expressFare=values(expressFare),inPackageMoney=values(inPackageMoney),'
+               'refund=values(refund),dieFeeZn=values(dieFeeZn),insertionFee=values(insertionFee),'
+               'saleOpeFeeZn=values(saleOpeFeeZn),grossProfit=values(grossProfit)'
                ]
         self.warehouse_cur.executemany(''.join(sql), rows)
         self.warehouse_con.commit()
