@@ -27,6 +27,12 @@ class Worker(CommonService, metaclass=ABCMeta):
         for db in self.databases:
             self.base_dao.close_cur(self.db_pool[db]['cur'])
 
+    def get_con(self, db):
+        return self.db_pool[db]['con']
+
+    def get_cur(self, db):
+        return self.db_pool[db]['cur']
+
     @abstractmethod
     def run(self):
         pass
