@@ -26,9 +26,9 @@ class Worker(CommonService):
 
         # 计算
         procedure = ("B_wish_ModifyOnlineNumberOnTheIbay365 "
-                     "'停产,清仓,线上清仓,线下清仓,线上清仓50P,线上清仓100P', " # 改0
+                     "'线下清仓', " # 改0
                      "'爆款,旺款,浮动款,Wish新款,在售'," # 改固定数量
-                     "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P'" # 改实际库存
+                     "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P,春节放假,停售'" # 改实际库存
                      )
         self.cur.execute(procedure)
         self.con.commit()

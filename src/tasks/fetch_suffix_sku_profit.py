@@ -59,7 +59,7 @@ class SuffixSkuProfitFetcher(CommonService):
         self.warehouse_con.commit()
         self.logger.info(f'success to clear suffix sku profit between {begin} and {end}')
 
-    ## 根据cache_goods 表更新开发员 2020-06-11 添加
+    # 根据cache_goods 表更新开发员 2020-06-11 添加
     def update_developer(self):
         sql = "UPDATE cache_suffixSkuProfitReport ss,cache_goods g SET ss.salerName=g.developer " \
               "WHERE g.goodsCode=ss.goodsCode AND ss.salerName <> g.developer"
@@ -67,15 +67,14 @@ class SuffixSkuProfitFetcher(CommonService):
         self.warehouse_con.commit()
         self.logger.info('success to update developer')
 
-
     def work(self):
         try:
             yesterday = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
             today = str(datetime.datetime.today())[:10]
             last_month = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%Y-%m")
             last_month_first_day = str(last_month + '-01')
-            # last_month_first_day = '2020-06-01'
-            # today = '2020-06-30'
+            # last_month_first_day = '2020-12-01'
+            # today = '2021-01-06'
             self.clear(last_month_first_day, today)
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, last_month_first_day, today)

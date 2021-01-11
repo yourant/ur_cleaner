@@ -31,7 +31,7 @@ class Worker(CommonService):
         # 计算
         procedure = ("EXEC B_ModifyOnlineNumberOfSkuOnTheIbay365"
                      #"'清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P',"     #改0
-                     "'停产,停售',"     #改0
+                     "'线下清仓',"     #改0
                      "'爆款,旺款,Wish新款,浮动款,在售',"                           #固定数量
                      "'清仓,停产,停售,线上清仓,线上清仓50P,线上清仓100P,春节放假'"      #真实数量
 
