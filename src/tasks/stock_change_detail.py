@@ -369,11 +369,12 @@ class StockWorker(Worker):
     def run(self):
         data_types = [DataType.purchased, DataType.purchasing, DataType.check, DataType.sold, DataType.other]
         for dt in data_types:
+            self.data_trans(dt, 'in')
             self.data_trans(dt, 'out')
 
 
 if __name__ == '__main__':
-    worker = StockWorker(databases=['mssql', 'erp'], begin_date='2020-12-01', end_date='2020-12-15')
+    worker = StockWorker(databases=['mssql', 'erp'], begin_date='2020-12-15', end_date='2020-12-30')
     worker.work()
 
 

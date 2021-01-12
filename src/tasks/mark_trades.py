@@ -102,7 +102,7 @@ class Marker(CommonService):
                         " as deltaday from p_tradeun with(nolock) " \
                         "where (reasoncode like '%不采购%' or reasoncode like '%春节%') " \
                         "and PROTECTIONELIGIBILITYTYPE='缺货订单' " \
-                        "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=7"
+                        "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=50"
 
         self.cur.execute(exception_sql)
         exception_trades = self.cur.fetchall()
