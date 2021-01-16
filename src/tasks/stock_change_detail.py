@@ -24,6 +24,7 @@ class DataType(object):
 class StockWorker(Worker):
     """
     获取每个SKU的库存变动记录
+    参考： P_KC_StockTotalSummary_rjf
     """
 
     # 出现在配置文件的数据库名称
