@@ -283,7 +283,11 @@ class StockWorker(Worker):
 
     def _get_check_change_out(self):
         """
-        盘点出库明细：审核时间为准
+        盘点出库明细
+        条件
+        1. 审核
+        2. 审核时间
+        3. 盘出
         :return:
         """
         sql = (
@@ -306,7 +310,11 @@ class StockWorker(Worker):
     def _get_other_change_out(self):
 
         """
-        其他出库明细：审核时间为准
+        其他出库明细：
+        条件：
+        1. 审核
+        2. 审核时间
+        3. 单据类型
         :return:
         """
 
@@ -321,15 +329,19 @@ class StockWorker(Worker):
             "INNER JOIN b_goods(nolock) AS bg ON bg.nid = bgs.goodsid "
             "INNER JOIN b_goodsCats(nolock) as bgc on bgc.categoryCode = bg.categoryCode "
             "INNER JOIN B_Store(nolock) as bs on bs.nid = m.storeId "
-            "WHERE m.CheckFlag = 1 "
+            "WHERE  m.CheckFlag = 1"
             "AND CONVERT (VARCHAR (10), M.AudieDate, 121 ) BETWEEN '{}'  AND '{}' "
-            " and ISNULL(m.BillType,0) in (2,3) ")
+            " and ISNULL(m.BillType,0) =2 ")
 
         return sql.format(self.begin_date, self.end_date)
 
     def _get_sold_out(self):
         """
         销售出库
+        条件：
+        1. 审核
+        2. 审核时间
+        3. 单据类型
         :return:
         """
         sql = (
