@@ -12,6 +12,10 @@ from src.services.base_service import CommonService
 class Marker(CommonService):
     """
     mark trades out of stock
+    业务逻辑：
+    1.春节放假和停产，是所有平台都不采
+    2.停售和清仓类的状态,是所有平台都采
+
     """
 
     def __init__(self):
