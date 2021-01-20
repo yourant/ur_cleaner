@@ -58,7 +58,6 @@ class AliSync(CommonService):
 
         check_sql = "P_CG_UpdateStockOutOfByStockOrder %s"
         update_sql = ("update cg_stockorderM  set alibabaorderid=%s," 
-                     # "expressFee=%s-%s, alibabamoney=%s " 
                      "expressFee=%s, alibabamoney=%s, ordermoney=%s" 
                      "where billNumber = %s")
 
@@ -77,26 +76,25 @@ class AliSync(CommonService):
             ret = self.cur.fetchone()
             if ret:
                 qty = ret['total_amt']
-                total_money = ret['total_money']
                 total_cost_money = ret['total_cost_money']
                 bill_number = ret['billnumber']
                 check_qty = check_info['qty']
                 order_money = check_info['sumPayment']
                 expressFee = check_info['expressFee']
                 if qty == check_qty:
+                    log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
                     self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
-                    # self.cur.execute(update_price, (order_money, total_money, qty) * 2 + (order_money, total_cost_money, qty) * 1 + (bill_number,))
                     self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
                     self.cur.execute(check_sql, (bill_number,))
-                    log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
                     self.cur.execute(log_sql, ('采购订单', ret['NID'], 'ur_cleaner', log))
                     self.con.commit()
                     self.logger.info('checking %s' % bill_number)
         except Exception as e:
+            self.con.rollback()
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=20))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=15))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
                 "from CG_StockOrderD(nolock)  as cd   "
@@ -107,7 +105,7 @@ class AliSync(CommonService):
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' " # 是1688订单
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库 # 仓库限制
                  "AND ABS(expressFee + OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
-                # "and BillNumber = 'CGD-2021-01-05-4116' "
+                # "where BillNumber = 'CGD-2021-01-18-3935' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
                 )
