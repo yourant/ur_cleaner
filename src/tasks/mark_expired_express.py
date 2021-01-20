@@ -117,8 +117,16 @@ class Checker(CommonService):
         :return:
         """
         try:
-            sql = "update p_trade set memo = isnull(memo,'')  + ';跟踪号超时' where nid = %s "
-            self.cur.execute(sql, (nid,))
+            search_sql = 'select memo from p_trade(nolock) where nid = %s'
+            self.cur.execute(search_sql, (nid,))
+            ret = self.cur.fetchone()
+            if ret:
+                memo = ret['memo']
+                memo = memo.replace(';跟踪号超时', '') + ';跟踪号超时'
+            else:
+                memo = ';跟踪号超时'
+            sql = "update p_trade set memo =   %s where nid = %s "
+            self.cur.execute(sql, (memo, nid))
             self.con.commit()
         except Exception as why:
             self.logger.error(f'fail to  mark-express of p_trade {nid} cause of {why} ')
