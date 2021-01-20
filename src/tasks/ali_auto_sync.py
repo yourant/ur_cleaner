@@ -96,9 +96,7 @@ class AliSync(CommonService):
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        today = str(datetime.datetime.today())[:10]
         someDays = str(datetime.datetime.today() - datetime.timedelta(days=20))[:10]
-        # threeDays = str(datetime.datetime.strptime(today[:8] + '01', '%Y-%m-%d'))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
                 "from CG_StockOrderD(nolock)  as cd   "
@@ -108,12 +106,8 @@ class AliSync(CommonService):
                 "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购已审核未入库
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' " # 是1688订单
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库 # 仓库限制
-                 # "AND ABS(OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
                  "AND ABS(expressFee + OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
-                 # " AND ABS(taxPrice-costPrice) > 0.1"
-                 # "and cm.deptId != 46 "
-                 # "where 1=1 "
-                # "and BillNumber = 'CGD-2020-10-10-1832' "
+                # "and BillNumber = 'CGD-2021-01-05-4116' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
                 )
