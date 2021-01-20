@@ -104,7 +104,7 @@ class AliSync(CommonService):
                 "where  CheckFlag=1 And inflag=0 ANd Archive=0 " # 采购已审核未入库
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' " # 是1688订单
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库 # 仓库限制
-                 "AND ABS(expressFee + OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
+                 "AND ABS(OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
                 # "where BillNumber = 'CGD-2021-01-18-3935' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
