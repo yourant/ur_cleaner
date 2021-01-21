@@ -8,6 +8,7 @@ import os
 import json
 import requests
 import datetime
+import time
 from src.services.base_service import CommonService
 from src.services import oauth as aliOauth
 
@@ -123,6 +124,7 @@ class AliSync(CommonService):
             self.logger.error(e)
 
     def work(self):
+        begin = time.time()
         try:
             orders = self.get_order_from_py()
 
@@ -134,6 +136,7 @@ class AliSync(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
+            self.logger.info(f'it takes {time.time() - begin}')
 
 
 if __name__ == "__main__":
