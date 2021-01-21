@@ -1,7 +1,7 @@
 #! usr/bin/env/python3
 # coding:utf-8
-# @Time: 2018-10-20 16:10
-# Author: turpure
+# @Time: 2021-01-20 16:10
+# Author: henry
 
 import json
 import hashlib
