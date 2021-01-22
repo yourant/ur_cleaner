@@ -252,7 +252,7 @@ class FetchEbayLists(CommonService):
         try:
             tokens = self.get_ebay_token()
             self.clean()
-            pl = Pool(1)
+            pl = Pool(50)
             pl.map(self.getData, tokens)
             pl.close()
             pl.join()
