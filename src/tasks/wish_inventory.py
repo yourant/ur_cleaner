@@ -25,13 +25,13 @@ class Worker(CommonService):
     def get_wish_token(self):
 
         # 计算
-        procedure = ("B_wish_ModifyOnlineNumberOnTheIbay365 "
-                     "'线下清仓', " # 改0
-                     "'爆款,旺款,浮动款,Wish新款,在售'," # 改固定数量
-                     "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P,春节放假,停售'" # 改实际库存
-                     )
-        self.cur.execute(procedure)
-        self.con.commit()
+        # procedure = ("B_wish_ModifyOnlineNumberOnTheIbay365 "
+        #              "'线下清仓', " # 改0
+        #              "'爆款,旺款,浮动款,Wish新款,在售'," # 改固定数量
+        #              "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P,春节放假,停售'" # 改实际库存
+        #              )
+        # self.cur.execute(procedure)
+        # self.con.commit()
 
         # 查询
         sql = "select  token, sku, quantity,itemid,suffix from ibay365_wish_quantity"
@@ -55,8 +55,9 @@ class Worker(CommonService):
             try:
                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
+                print(ret)
                 if ret["code"] == 0:
-                    # self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
             except Exception as why:
                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
