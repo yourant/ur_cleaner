@@ -95,7 +95,7 @@ class AliSync(CommonService):
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=15))[:10]
+        someDays = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
                 "from CG_StockOrderD(nolock)  as cd   "
