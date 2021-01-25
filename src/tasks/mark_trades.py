@@ -106,7 +106,7 @@ class Marker(CommonService):
                         " as deltaday from p_tradeun with(nolock) " \
                         "where (reasoncode like '%不采购%' or reasoncode like '%春节%') " \
                         "and PROTECTIONELIGIBILITYTYPE='缺货订单' " \
-                        "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=50"
+                        "and DATEDIFF(day, dateadd(hour,8,ordertime), GETDATE())>=7"
 
         self.cur.execute(exception_sql)
         exception_trades = self.cur.fetchall()
@@ -124,7 +124,7 @@ class Marker(CommonService):
 
     def run(self):
         try:
-            self.handle_exception_trades_trans() #春节期间不转移
+            # self.handle_exception_trades_trans() #春节期间不转移
             self.mark_trades_trans()
         except Exception as e:
             self.logger.error(e)
