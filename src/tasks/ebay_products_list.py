@@ -45,7 +45,6 @@ class FetchEbayLists(CommonService):
                     }
                 )
                 trade_res = trade_response.dict()
-                # print(trade_res)
                 try:
                     dataNum = int(
                         trade_res['PaginationResult']['TotalNumberOfEntries'])
@@ -56,10 +55,10 @@ class FetchEbayLists(CommonService):
                     item = trade_res['ItemArray']['Item']
                     if isinstance(item, list):
                         for row in item:
-                            self._parse_vars(trade_api, row, suffix)
+                            self._parse_vars(trade_api, row, suffix, token['token'])
                             # print(row)
                     else:
-                        self._parse_vars(trade_api, item, suffix)
+                        self._parse_vars(trade_api, item, suffix, token['token'])
                 else:
                     break
                 i += 1
@@ -68,9 +67,10 @@ class FetchEbayLists(CommonService):
                 'Suffix {} connect to failed cause of {}'.format(
                     suffix, e))
 
-    def _parse_vars(self, api, row, suffix):
+    def _parse_vars(self, api, row, suffix, token):
         try:
-            response = api.execute('GetItem', {'ItemID': row['ItemID']})
+            # response = api.execute('GetItem', {'ItemID': row['ItemID']})
+            response = api.execute('GetItem', {'ItemID': row['ItemID'], 'requesterCredentials': {'eBayAuthToken': token}})
             result = response.dict()
             if result['Ack'] == 'Success':
                 try:
@@ -195,6 +195,7 @@ class FetchEbayLists(CommonService):
                'FROM [dbo].[S_PalSyncInfo] WHERE SyncEbayEnable=1 '
                'and notename in (select dictionaryName from B_Dictionary '
                "where  CategoryID=12 and FitCode ='eBay' and used = 0) "
+               # "and NoteName = '02-2008' "
                # "and NoteName in ('eBay-C86-syho_63','eBay-C91-heir918','eBay-C92-ha199597','eBay-C79-jlh-79',
                # 'eBay-C99-tianru98','eBay-C95-shi_7040','eBay-C96-sysy_3270','eBay-E23-sarodyconsulting134',
                # 'eBay-E37-howa589680','eBay-E38-cameron878_2','eBay-E39-berr_9671','eBay-33-moonstair8','eBay-34-starstair9')"

@@ -56,7 +56,7 @@ class Worker(CommonService):
                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
                 if ret["code"] == 0:
-                    # self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
             except Exception as why:
                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
