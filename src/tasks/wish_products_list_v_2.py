@@ -54,6 +54,7 @@ class Sync(CommonService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
+            row['hopeUseNum'] = str(int(row['hopeUseNum']))
             stock.insert_one(row)
 
     def get_data(self, row):
@@ -62,85 +63,9 @@ class Sync(CommonService):
         suffix = row['aliasname']
         products = self.get_products(suffix)
 
+        print(len(list(products)))
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        url = 'https://merchant.wish.com/api/v2/product/multi-get'
-        # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
-        limit = 250
-        start = 0
-        try:
-            while True:
-                param = {
-                    "limit": limit,
-                    'start': start,
-                    'access_token': token,
-                    # 'show_rejected':'true',
-                    # 'since': since
-                }
-                ret = dict()
-                for i in range(2):
-                    try:
-                        response = requests.get(url, params=param)
-                        ret = response.json()
-                        # print(ret)
-                        break
-                    except Exception as why:
-                        self.logger.error(f' fail to get of products of {suffix} in {start}  '
-                                          f'page cause of {why} {i} times '
-                                          f'param {param} ')
-                if ret and ret['code'] == 0 and ret['data']:
-                    pro_list = ret['data']
-                    for item in pro_list:
-                        ele = item['Product']
-                        ele['_id'] = ele['id']
-                        ele['suffix'] = suffix
-                        try:
-                            table.insert_one(ele)
-                        except Exception as why:
-                            self.logger.error(f" fail to insert {ele['id']} cause of {why}")
-                        # self.logger.info(f'putting {ele["_id"]}')
-                    if 'next' in ret['paging']:
-                        arr = ret['paging']['next'].split("&")[1]
-                        start = re.findall("\d+", arr)[0]
-                    else:
-                        break
-                else:
-                    break
-        except Exception as e:
-            self.logger.error(e)
 
     @staticmethod
     def pull():
@@ -153,7 +78,9 @@ class Sync(CommonService):
 
     @staticmethod
     def get_products(suffix):
-        rows = table.find({'suffix': suffix, "removed_by_merchant": "False", "review_status": "approved"})
+        rows = table.find({'suffix': suffix, "removed_by_merchant": "False", "review_status": "approved"
+                           , 'parent_sku': {'$regex': '7N0828'}
+                           })
         for rw in rows:
             for row in rw['variants']:
                 new_sku = row['Variant']['sku'].split("@")[0]
@@ -204,13 +131,14 @@ class Sync(CommonService):
             stock.delete_many({})
 
             self.sync_sku_stock()
+            print(123)
 
-            tokens = self.get_wish_token()
-            pl = Pool(50)
-            pl.map(self.get_data, tokens)
-            pl.close()
-            pl.join()
-            self.save_trans()
+            # tokens = self.get_wish_token()
+            # pl = Pool(50)
+            # pl.map(self.get_data, tokens)
+            # pl.close()
+            # pl.join()
+            # self.save_trans()
 
         except Exception as why:
             self.logger.error(why)

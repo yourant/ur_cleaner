@@ -23,6 +23,7 @@ class Worker(BaseSpider):
 
     def __init__(self):
         super().__init__()
+        self.token = None
 
     async def login(self):
         base_url = 'https://passport.aliexpress.com/newlogin/login.do?fromSite=13&appName=aeseller'
@@ -30,12 +31,33 @@ class Worker(BaseSpider):
             'loginId': 'bronzeq@163.com',
             'password2': 'nty@8j2af5n'
         }
-        await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+        res = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
+        print(await res.text())
         self.logger.info(f'success')
+
+    async def get_balance(self, sema):
+        async with sema:
+            try:
+                url = 'https://global.alipay.com/merchant/bizportal/balance/new/account-list?_route=US'
+                url = 'https://global.alipay.com/merchant/merchantservice/api/merchantservice/v2/bizfund/queryBizFundAssets.json?ctoken=B81U5UkFeTujvvJp&_route=US'
+
+                try:
+                    response = await self.session.get(url)
+                    ret = await response.json()
+                    print(ret)
+
+
+                except Exception as why:
+                    # await self.login()
+                    self.logger.error(f'failed to find images of {123} cause of {type(why)}')
+            except Exception as why:
+                await self.login()
+                self.logger.error(f'error while delete image of goodsCode "{123}" cause of {why}')
 
     async def start(self, sema):
 
         await self.login()
+        await self.get_balance(sema)
         print(123)
         await self.session.close()
 
