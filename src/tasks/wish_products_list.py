@@ -38,7 +38,7 @@ class Sync(CommonService):
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
-               " and  AliasName = 'WISE138-shelleily' "
+               # " and  AliasName = 'WISE138-shelleily' "
                " and  AliasName not in "
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') ")
         self.cur.execute(sql)
