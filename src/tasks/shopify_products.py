@@ -66,18 +66,46 @@ class Worker(CommonService):
                     except Exception as why:
                         self.logger.error(f' fail to get of products of {suffix} '
                                           f'page cause of {why} {i} times ')
+                # print(ret)
                 try:
                     pro_list = ret['products']
-                except:
+                except :
                     pro_list = []
                     break
                 # 保存数据
                 for item in pro_list:
+                    # int 转换成 string
                     item['_id'] = str(item['id'])
                     item['id'] = str(item['id'])
                     item['suffix'] = suffix
+                    try:
+                        item['image']['product_id'] = str(item['image']['product_id'])
+                    except:
+                        pass
+                    try:
+                        item['image']['variant_ids'] = [str(i) for i in item['image']['variant_ids']]
+                    except:
+                        pass
+                    try:
+                        item['image']['id'] = str(item['image']['id'])
+                    except:
+                        pass
+                    for ele in item['variants']:
+                        ele['id'] = str(ele['id'])
+                        ele['product_id'] = str(ele['product_id'])
+                        ele['image_id'] = str(ele['image_id'])
+                        ele['inventory_item_id'] = str(ele['inventory_item_id'])
+                    for ele in item['options']:
+                        ele['id'] = str(ele['id'])
+                        ele['product_id'] = str(ele['product_id'])
+                    for ele in item['images']:
+                        ele['id'] = str(ele['id'])
+                        ele['product_id'] = str(ele['product_id'])
+                        ele['variant_ids'] = [str(i) for i in ele['variant_ids']]
+
                     # print(item)
                     self.put(item)
+
                 # 判断是否有下一页
                 link_list = headers['Link'].split(',')
                 link = ''
@@ -102,7 +130,7 @@ class Worker(CommonService):
         try:
             tokens = self.get_shopify_password()
             self.clean()
-            pl = Pool(16)
+            pl = Pool(2)
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()

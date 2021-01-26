@@ -17,8 +17,8 @@ from pymongo import MongoClient
 
 mongo = MongoClient('192.168.0.150', 27017)
 
-operation = mongo['wish']
-table = operation['wish_productlist']
+table = mongo['operation']['wish_products']
+stock = mongo['wish']['wish_sku_stock']
 
 
 class Sync(CommonService):
@@ -38,7 +38,7 @@ class Sync(CommonService):
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
-               # " and  AliasName = 'WISE138-shelleily' "
+               " and  AliasName = 'WISE126-southkin' "
                " and  AliasName not in "
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') ")
         self.cur.execute(sql)
@@ -46,56 +46,26 @@ class Sync(CommonService):
         for row in ret:
             yield row
 
+    def sync_sku_stock(self):
+        sql = ("SELECT gs.sku,shopsku,GoodsSKUStatus AS status,isnull(sk.hopeUseNum,0) as hopeUseNum "
+               "FROM B_GoodsSKU(nolock) gs INNER JOIN B_Goods(nolock) as g on g.nid = gs.goodsid "
+               "LEFT JOIN Y_R_tStockingWaring(nolock) as sk on sk.sku = gs.sku AND storeName='义乌仓' "
+               "LEFT JOIN (SELECT DISTINCT shopsku,sku FROM B_GoodsSKULinkShop(nolock) ) s ON s.sku=gs.sku")
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        for row in ret:
+            row['hopeUseNum'] = str(int(row['hopeUseNum']))
+            stock.insert_one(row)
+
     def get_data(self, row):
         # print(row)
         token = row['AccessToken']
         suffix = row['aliasname']
-        url = 'https://merchant.wish.com/api/v2/product/multi-get'
-        # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
-        date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=5))[:10]
-        limit = 250
-        start = 0
-        try:
-            while True:
-                param = {
-                    "limit": limit,
-                    'start': start,
-                    'access_token': token,
-                    # 'show_rejected':'true',
-                    # 'since': since
-                }
-                ret = dict()
-                for i in range(2):
-                    try:
-                        response = requests.get(url, params=param)
-                        ret = response.json()
-                        # print(ret)
-                        break
-                    except Exception as why:
-                        self.logger.error(f' fail to get of products of {suffix} in {start}  '
-                                          f'page cause of {why} {i} times '
-                                          f'param {param} ')
-                if ret and ret['code'] == 0 and ret['data']:
-                    pro_list = ret['data']
-                    for item in pro_list:
-                        ele = item['Product']
-                        ele['_id'] = ele['id']
-                        ele['suffix'] = suffix
-                        try:
-                            table.insert_one(ele)
-                        except Exception as why:
-                            self.logger.error(f" fail to insert {ele['id']} cause of {why}")
-                        # self.logger.info(f'putting {ele["_id"]}')
-                    if 'next' in ret['paging']:
-                        arr = ret['paging']['next'].split("&")[1]
-                        start = re.findall("\d+", arr)[0]
-                    else:
-                        break
-                else:
-                    break
-        except Exception as e:
-            self.logger.error(e)
+        products = self.get_products(suffix)
+
+        print(len(list(products)))
+
+
 
     @staticmethod
     def pull():
@@ -107,25 +77,25 @@ class Sync(CommonService):
                    row['storage'], row['listingType'], row['country'], row['paypal'], row['site'], row['updateTime'])
 
     @staticmethod
-    def get_products():
-        rows = table.find({"removed_by_merchant": "False", "review_status": "approved"})
+    def get_products(suffix):
+        rows = table.find({'suffix': suffix, "removed_by_merchant": "False", "review_status": "approved"
+                           , 'parent_sku': {'$regex': '7N0828'}
+                           })
         for rw in rows:
             for row in rw['variants']:
                 new_sku = row['Variant']['sku'].split("@")[0]
                 ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
                        'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': rw['suffix'],
-                       'selleruserid': '', 'storage': row['Variant']['inventory'], 'updateTime': str(datetime.datetime.today())[:19],
+                       'selleruserid': '', 'storage': row['Variant']['inventory'],
+                       'updateTime': str(datetime.datetime.today())[:19],
                        'enabled': row['Variant']['enabled'], 'removed_by_merchant': rw['removed_by_merchant']}
                 ele['_id'] = ele['itemid']
                 yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
                        ele['storage'], ele['updateTime'])
 
-    def clear_db(self):
-        table.delete_many({})
-        sql = 'truncate table ibay365_wish_lists'
-        self.cur.execute(sql)
-        self.con.commit()
-        self.logger.info('success to clear wish lists')
+    @staticmethod
+    def clear_db():
+        stock.delete_many({})
 
     def push_db(self, rows):
         try:
@@ -139,7 +109,8 @@ class Sync(CommonService):
                 try:
                     self.cur.execute(sql)
                     self.con.commit()
-                    self.logger.info(f"success to save data of wish products from {i * step} to  {min((i + 1) * step, number)}")
+                    self.logger.info(
+                        f"success to save data of wish products from {i * step} to  {min((i + 1) * step, number)}")
                 except Exception as why:
                     self.logger.error(f"fail to save data of wish products cause of {why} ")
         except Exception as why:
@@ -156,13 +127,18 @@ class Sync(CommonService):
     def work(self):
         begin = time.time()
         try:
-            self.clear_db()
-            tokens = self.get_wish_token()
-            pl = Pool(50)
-            pl.map(self.get_data, tokens)
-            pl.close()
-            pl.join()
-            self.save_trans()
+            # self.clear_db()
+            stock.delete_many({})
+
+            self.sync_sku_stock()
+            print(123)
+
+            # tokens = self.get_wish_token()
+            # pl = Pool(50)
+            # pl.map(self.get_data, tokens)
+            # pl.close()
+            # pl.join()
+            # self.save_trans()
 
         except Exception as why:
             self.logger.error(why)
@@ -177,5 +153,3 @@ class Sync(CommonService):
 if __name__ == "__main__":
     worker = Sync()
     worker.work()
-
-
