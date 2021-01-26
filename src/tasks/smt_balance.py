@@ -8,6 +8,7 @@ import os
 import re
 import datetime
 from src.services.base_service import CommonService
+from sync.tupianku_image_delete.image_server import BaseSpider
 import requests
 import asyncio
 import aiohttp
@@ -15,7 +16,7 @@ import aiohttp
 from pymongo import MongoClient
 
 
-class Worker(CommonService):
+class Worker(BaseSpider):
     """
     worker template
     """
@@ -24,20 +25,19 @@ class Worker(CommonService):
         super().__init__()
 
     async def login(self):
-        proxy_url = None
-        session = aiohttp.ClientSession()
         base_url = 'https://passport.aliexpress.com/newlogin/login.do?fromSite=13&appName=aeseller'
         form_data = {
-            'loginId':'bronzeq@163.com',
-            'password2':'nty@8j2af5n'
+            'loginId': 'bronzeq@163.com',
+            'password2': 'nty@8j2af5n'
         }
-        await session.post(base_url, data=form_data, proxy=proxy_url)
+        await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
         self.logger.info(f'success')
 
     async def start(self, sema):
-        session = aiohttp.ClientSession()
+
         await self.login()
-        await session.close()
+        print(123)
+        await self.session.close()
 
     def run(self):
         loop = asyncio.get_event_loop()
@@ -45,9 +45,10 @@ class Worker(CommonService):
         try:
             loop.run_until_complete(self.start(sema))
         except Exception as why:
-            self.logger.error(f'fail 4')
+            self.logger.error(why)
         finally:
-            self.logger.error(f'fail 3')
+            # self.logger.error(f'fail 3')
+            self.close()
 
     def work(self):
         # try:
