@@ -130,7 +130,7 @@ class Worker(CommonService):
         try:
             tokens = self.get_shopify_password()
             self.clean()
-            pl = Pool(2)
+            pl = Pool(16)
             pl.map(self.get_products, tokens)
             pl.close()
             pl.join()

@@ -31,6 +31,9 @@ class Sync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.status = ['线下清仓']   #改0
+        self.status1 = ['爆款', '旺款', '浮动款', 'Wish新款', '在售']  # 改固定数量
+        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售'] # 改实际库存'
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -44,9 +47,11 @@ class Sync(CommonService):
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
+            print(row)
             yield row
 
     def sync_sku_stock(self):
+        stock.delete_many({})
         sql = ("SELECT gs.sku,shopsku,GoodsSKUStatus AS status,isnull(sk.hopeUseNum,0) as hopeUseNum "
                "FROM B_GoodsSKU(nolock) gs INNER JOIN B_Goods(nolock) as g on g.nid = gs.goodsid "
                "LEFT JOIN Y_R_tStockingWaring(nolock) as sk on sk.sku = gs.sku AND storeName='义乌仓' "
@@ -62,10 +67,46 @@ class Sync(CommonService):
         token = row['AccessToken']
         suffix = row['aliasname']
         products = self.get_products(suffix)
+        # print(len(list(products)))
+        for product in products:
+            # print(product)
+            sku_info = stock.find({'sku': {'$regex': product['sku']}})
+            for sku in sku_info:
+                storage = int(product['storage'])
+                hope_use_num = int(sku['hopeUseNum'])
+                print(sku)
+                check = self.check(storage, hope_use_num, sku['status'])
+                # 判断sku数量是否需要修改
+                # if not check:
+                #     break
 
-        print(len(list(products)))
 
 
+                print(check)
+            break
+
+    def check(self, storage, hope_use_num, status):
+        if storage <= 0:
+            if not status:
+                return False
+            if status not in self.status and status not in self.status1 and status not in self.status2:
+                return False
+            if status in self.status2 and (storage == 0 and hope_use_num == 0 or storage < hope_use_num):
+                return False
+            if status in self.status1 and storage == 0:
+                return False
+            return True
+        else:
+            if status in self.status1:
+                if storage >= 100:
+                    return False
+                else:
+                    return True
+            if status in self.status2 and storage != hope_use_num:
+                return True
+            if status in self.status and storage > 0:
+                return True
+            return False
 
     @staticmethod
     def pull():
@@ -78,8 +119,9 @@ class Sync(CommonService):
 
     @staticmethod
     def get_products(suffix):
-        rows = table.find({'suffix': suffix, "removed_by_merchant": "False", "review_status": "approved"
-                           , 'parent_sku': {'$regex': '7N0828'}
+        rows = table.find({'suffix': suffix, "removed_by_merchant": "False"
+                              # , "review_status": "approved"
+                              , 'parent_sku': {'$regex': '7N0828'}
                            })
         for rw in rows:
             for row in rw['variants']:
@@ -90,12 +132,9 @@ class Sync(CommonService):
                        'updateTime': str(datetime.datetime.today())[:19],
                        'enabled': row['Variant']['enabled'], 'removed_by_merchant': rw['removed_by_merchant']}
                 ele['_id'] = ele['itemid']
-                yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
-                       ele['storage'], ele['updateTime'])
-
-    @staticmethod
-    def clear_db():
-        stock.delete_many({})
+                # yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
+                #        ele['storage'], ele['updateTime'])
+                yield {'sku': ele['newsku'], 'itemid': ele['itemid'], 'storage': ele['storage'], 'suffix': ele['suffix']}
 
     def push_db(self, rows):
         try:
@@ -127,17 +166,13 @@ class Sync(CommonService):
     def work(self):
         begin = time.time()
         try:
-            # self.clear_db()
-            stock.delete_many({})
+            # self.sync_sku_stock()
 
-            self.sync_sku_stock()
-            print(123)
-
-            # tokens = self.get_wish_token()
-            # pl = Pool(50)
-            # pl.map(self.get_data, tokens)
-            # pl.close()
-            # pl.join()
+            tokens = self.get_wish_token()
+            pl = Pool(50)
+            pl.map(self.get_data, tokens)
+            pl.close()
+            pl.join()
             # self.save_trans()
 
         except Exception as why:

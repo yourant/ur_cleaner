@@ -22,25 +22,33 @@ class Worker(CommonService):
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-    def get_wish_token(self):
-
+    def calculate_quantity(self):
         # 计算
         procedure = ("B_wish_ModifyOnlineNumberOnTheIbay365 "
-                     "'线下清仓', " # 改0
-                     "'爆款,旺款,浮动款,Wish新款,在售'," # 改固定数量
-                     "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P,春节放假,停售'" # 改实际库存
+                     "'线下清仓', "  # 改0
+                     "'爆款,旺款,浮动款,Wish新款,在售',"  # 改固定数量
+                     "'停产,清仓,线上清仓,线上清仓50P,线上清仓100P,春节放假,停售'"  # 改实际库存
                      )
         self.cur.execute(procedure)
         self.con.commit()
 
+    def get_wish_token_count(self):
         # 查询
-        sql = "select  token, sku, quantity,itemid,suffix from ibay365_wish_quantity"
+        sql = "select count(*) as num from ibay365_wish_quantity where ISNULL(flag,0)=0 "
+        self.cur.execute(sql)
+        ret = self.cur.fetchone()
+        return ret['num']
+
+    def get_wish_token(self):
+        # 查询
+        sql = "select top 100 nid,token,sku,quantity,itemid,suffix,storage from ibay365_wish_quantity where ISNULL(flag,0)=0 "
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
             yield row
 
     def update_inventory(self, row):
+        print(row)
         token = row['token']
         sku = row['sku']
         inventory = row['quantity']
@@ -55,19 +63,25 @@ class Worker(CommonService):
             try:
                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
+                print(ret)
                 if ret["code"] == 0:
                     self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
             except Exception as why:
                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
 
+    def update_flag(self, nid):
+        sql = "update ibay365_wish_quantity set flag = 1 where nid=%"
+        self.cur.execute(sql, nid)
+        self.con.commit()
+
     def work(self):
         try:
-            # self.get_wish_token()
+            self.calculate_quantity()
+
             tokens = self.get_wish_token()
             pl = Pool(16)
             pl.map(self.update_inventory, tokens)
-
         except Exception as why:
             self.logger.error('fail to update wish inventory cause of {} '.format(why))
             name = os.path.basename(__file__).split(".")[0]
