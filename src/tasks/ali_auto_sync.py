@@ -77,25 +77,58 @@ class AliSync(CommonService):
             ret = self.cur.fetchone()
             if ret:
                 qty = ret['total_amt']
+                stock_nid = ret['NID']
                 total_cost_money = ret['total_cost_money']
                 bill_number = ret['billnumber']
                 check_qty = check_info['qty']
                 order_money = check_info['sumPayment']
-                expressFee = check_info['expressFee']
+                express_fee = check_info['expressFee']
                 if qty == check_qty:
                     log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
-                    self.cur.execute(update_sql, (order_id, expressFee, order_money, order_money, bill_number))
+                    self.cur.execute(update_sql, (order_id, express_fee, order_money, order_money, bill_number))
                     self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
                     self.cur.execute(check_sql, (bill_number,))
                     self.cur.execute(log_sql, ('采购订单', ret['NID'], 'ur_cleaner', log))
                     self.con.commit()
                     self.logger.info('checking %s' % bill_number)
+
+                # 不论数量一致不，都把实付款-订单总额的差额分摊下去
+                else:
+
+                    # 记录日志
+                    log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
+
+                    # 差额= 总的成本金额-1688实付款
+                    select_delta_sql = ('select alibabaMoney  from cg_stockOrderM(nolock) '
+                                        'where nid = %s')
+                    self.cur.execute(select_delta_sql, (stock_nid,))
+                    delta_money = 0
+                    row = self.cur.fetchone()
+                    if row:
+                        delta_money = total_cost_money - row['alibabaMoney']
+                    single_delta_money = delta_money / qty
+
+
+                    # 更新含税价格
+                    set_tax__price_sql = ('update cgd set  cgd.beforeavgprice= gs.costprice,cgd.price = gs.costprice, '
+                                          'taxPrice = gs.costprice - %s,money = amount * gs.costprice, '
+                                          'allMoney = amount * (gs.costprice - %s) from cg_stockOrderD as cgd '
+                                          'Left JOIN B_goodsSku(nolock) as gs on cgd.goodsskuid = gs.nid '
+                                          'where cgd.stockOrderNid = %s')
+                    self.cur.execute(set_tax__price_sql, (single_delta_money, single_delta_money, stock_nid,))
+
+                    # 审核订单
+                    self.cur.execute(check_sql, (bill_number,))
+                    self.cur.execute(log_sql, ('采购订单', stock_nid, 'ur_cleaner', log))
+                    self.con.commit()
+                    self.logger.info('checking %s' % bill_number)
+
         except Exception as e:
             self.con.rollback()
             self.logger.error('%s while checking %s' % (e, order_id))
 
     def get_order_from_py(self):
-        someDays = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
+        some_days = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
         query = ("select DISTINCT billNumber,alibabaOrderid as orderId,case when loginId like 'caigoueasy%' then "
                 " 'caigoueasy' else loginId end  as account ,MakeDate "
                 "from CG_StockOrderD(nolock)  as cd   "
@@ -106,11 +139,11 @@ class AliSync(CommonService):
                  "AND MakeDate > %s  AND isnull(loginId,'') LIKE 'caigoueasy%' " # 是1688订单
                  "AND StoreID IN (2,7,36) "  # 金皖399  义乌仓 七部仓库 # 仓库限制
                  "AND ABS(OrderMoney - alibabamoney) > 0.1 " # 有差额的才同步
-                # "where BillNumber = 'CGD-2021-01-18-3935' "
+                # "where BillNumber = 'CGD-2021-01-13-0284' "
                 # "and alibabaOrderid = '1069212930532682293' "
                 " order by MakeDate "
                 )
-        self.cur.execute(query, (someDays))
+        self.cur.execute(query, (some_days,))
         ret = self.cur.fetchall()
         for row in ret:
             yield row
