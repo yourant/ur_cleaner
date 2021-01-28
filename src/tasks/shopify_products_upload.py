@@ -203,7 +203,7 @@ class Worker(CommonService):
                             img_data = {'image': {'id': img['id'], 'variant_ids': variant_ids}}
                             img_res = requests.put(img_url, data=json.dumps(img_data), headers={'Content-Type': 'application/json'})
                             img_ret = img_res.json()
-                            if 'images' not in img_ret:
+                            if 'image' not in img_ret:
                                 err.append({'img_id': img['id'], 'variant_ids': variant_ids, 'msg': 'relation failed'})
                     params['product_id'] = product_id
                     if err:
