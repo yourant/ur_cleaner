@@ -71,6 +71,7 @@ class Sync(CommonService):
         for product in products:
             # print(product)
             sku_info = stock.find({'sku': {'$regex': product['sku']}})
+            print(len(sku_info))
             for sku in sku_info:
                 storage = int(product['storage'])
                 hope_use_num = int(sku['hopeUseNum'])
@@ -166,7 +167,7 @@ class Sync(CommonService):
     def work(self):
         begin = time.time()
         try:
-            # self.sync_sku_stock()
+            self.sync_sku_stock()
 
             tokens = self.get_wish_token()
             pl = Pool(50)

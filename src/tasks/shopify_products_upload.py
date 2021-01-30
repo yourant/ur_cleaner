@@ -144,9 +144,14 @@ class Worker(CommonService):
         url_body = suffix + '.myshopify.com/admin/api/2019-07/'
         url = url_head + url_body + endpoint
         try:
+        # if True:
             product = self.get_oa_product_info(sku)
             params = {'product_id': '', 'content': "", 'id': task_id}
-            if not product['title']:
+            if not product:
+                params['content'] = f"The product {sku} is not exist!",
+                self.update_log(params)
+                self.logger.error('failed to upload cause of product {} is not exist'.format(sku))
+            elif not product['title']:
                 params['content'] = f"The product {sku} title is empty!",
                 self.update_log(params)
                 self.logger.error('failed to upload cause of product {} title is empty'.format(sku))
@@ -169,8 +174,13 @@ class Worker(CommonService):
                 # print(item)
                 data = json.dumps({'product': item}, ensure_ascii=False)
                 # print(data)
-                response = requests.post(url, data=data, headers={'Content-Type': 'application/json'})
-                ret = response.json()
+                try:
+                    response = requests.post(url, data=data, headers={'Content-Type': 'application/json'})
+                    ret = response.json()
+                except Exception as why:
+                    params['content'] = "Failed cause of an unknown mistake, it's probably a coding problem!"
+                    ret = {}
+                    self.logger.error(why)
                 #  上传SKU图片
                 if 'product' in ret:
                     err = list()
@@ -213,7 +223,8 @@ class Worker(CommonService):
                     self.update_log(params)
                     # self.logger.error('success to upload cause of {}'.format(params['content']))
                 else:
-                    params['content'] = json.dumps(ret)
+                    params['content'] = json.dumps(ret) if ret else params['content']
+                    print(params['content'])
                     self.update_log(params)
                     self.logger.error('failed to upload cause of {}'.format(params['content']))
 
