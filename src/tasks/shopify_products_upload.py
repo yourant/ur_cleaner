@@ -224,7 +224,6 @@ class Worker(CommonService):
                     # self.logger.error('success to upload cause of {}'.format(params['content']))
                 else:
                     params['content'] = json.dumps(ret) if ret else params['content']
-                    print(params['content'])
                     self.update_log(params)
                     self.logger.error('failed to upload cause of {}'.format(params['content']))
 

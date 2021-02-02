@@ -48,7 +48,7 @@ class Worker(CommonService):
             yield row
 
     def update_inventory(self, row):
-        print(row)
+        # print(row)
         token = row['token']
         sku = row['sku']
         inventory = row['quantity']
@@ -61,9 +61,10 @@ class Worker(CommonService):
 
         for i in range(2):
             try:
-                response = requests.get(base_url, params=param, headers=headers, timeout=20)
+                # response = requests.get(base_url, params=param, headers=headers, timeout=20)
+                response = requests.get(base_url, params=param, headers=headers)
                 ret = response.json()
-                print(ret)
+                # print(ret)
                 if ret["code"] == 0:
                     self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
                     break
