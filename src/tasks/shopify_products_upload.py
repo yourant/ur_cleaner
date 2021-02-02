@@ -40,7 +40,9 @@ class Worker(CommonService):
         return ret
 
     def get_shopify_tasks(self):
-        sql = "SELECT id,suffix,sku FROM proCenter.oa_shopifyImportToBackstageLog where IFNULL(product_id,'')='' limit 1"
+        sql = "SELECT id,suffix,sku FROM proCenter.oa_shopifyImportToBackstageLog where IFNULL(product_id,'')='' "
+        # sql = ("SELECT * FROM proCenter.oa_shopifyImportToBackstageLog where IFNULL(product_id, '') = '' " +
+        #        " OR IFNULL(imgStatus, '') <> 'success' OR IFNULL(collectionStatus, '') = 'success' " )
         self.warehouse_cur.execute(sql)
         ret = self.warehouse_cur.fetchall()
         for row in ret:
@@ -54,11 +56,12 @@ class Worker(CommonService):
 
     def update_log(self, params):
         try:
-            sql = "update proCenter.oa_shopifyImportToBackstageLog set product_id=%s,content=%s,updateDate=%s where id=%s"
+            sql = "update proCenter.oa_shopifyImportToBackstageLog set product_id=%s,productStatus=%s, " \
+                  " productContent=%s,updateDate=%s where id=%s"
             update_time = str(datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
-            params = (params['product_id'], params['content'], update_time, params['id'])
+            log_params = (params['product_id'], params['productStatus'], params['productContent'], update_time, params['id'])
 
-            self.warehouse_cur.execute(sql, params)
+            self.warehouse_cur.execute(sql, log_params)
             self.warehouse_con.commit()
         except Exception as why:
             self.logger.error('fail to save log info cause of {} '.format(why))
@@ -143,16 +146,16 @@ class Worker(CommonService):
         url_head = 'https://' + api_key + ':' + password + '@'
         url_body = suffix + '.myshopify.com/admin/api/2019-07/'
         url = url_head + url_body + endpoint
-        try:
         # if True:
+        try:
             product = self.get_oa_product_info(sku)
-            params = {'product_id': '', 'content': "", 'id': task_id}
+            params = {'product_id': '', 'productStatus': '', 'productContent': "", 'id': task_id}
             if not product:
-                params['content'] = f"The product {sku} is not exist!",
+                params['productContent'] = f"The product {sku} is not exist!",
                 self.update_log(params)
                 self.logger.error('failed to upload cause of product {} is not exist'.format(sku))
             elif not product['title']:
-                params['content'] = f"The product {sku} title is empty!",
+                params['productContent'] = f"The product {sku} title is empty!",
                 self.update_log(params)
                 self.logger.error('failed to upload cause of product {} title is empty'.format(sku))
             else:
@@ -161,7 +164,7 @@ class Worker(CommonService):
                 item['title'] = product['title']
                 item['body_html'] = product['description'].replace("\n", '<br>')
                 # item['vendor'] = ''
-                # item['product_type'] = ''
+                item['product_type'] = product['productType']
                 product_sku = list(self.get_oa_product_sku_info(product))
                 sku_info = self._parse_vars(product, product_sku)
                 item['variants'] = sku_info['variation']
@@ -177,55 +180,13 @@ class Worker(CommonService):
                 try:
                     response = requests.post(url, data=data, headers={'Content-Type': 'application/json'})
                     ret = response.json()
+                    params['product_id'] = str(ret['product']['id'])
+                    params['productStatus'] = 'success'
+                    params['productContent'] = ''
                 except Exception as why:
-                    params['content'] = "Failed cause of an unknown mistake, it's probably a coding problem!"
-                    ret = {}
+                    params['productContent'] = "Failed cause of an unknown mistake, it is probably a coding problem."
                     self.logger.error(why)
-                #  上传SKU图片
-                if 'product' in ret:
-                    err = list()
-                    product_id = str(ret['product']['id'])
-                    # product_id = '6394698498199'
-                    # 从平台获取产品信息
-                    # shopify_url = url_head + url_body + 'products/' + product_id + '.json'
-                    # shopify_res = requests.get(shopify_url)
-                    # ret = shopify_res .json()
-                    for img in ret['product']['images']:
-                        new_sku_arr = list()
-                        variant_ids = list()
-                        try:
-                            img_suffix = img['src'].split('_')[1].split('.jpg')[0]
-                        except:
-                            img_suffix = ''
-                        # 获取图片对应的产品SKU
-                        for s in product_sku:
-                            sku_img_suffix = s['linkUrl'].split('_')[1]
-                            if img_suffix == sku_img_suffix:
-                                new_sku_arr.append(s['sku'])
-                        # 获取图片对应的SKU ID
-                        for sk in new_sku_arr:
-                            for var in ret['product']['variants']:
-                                if sk == var['sku']:
-                                    variant_ids.append(var['id'])
-                        # 更新图片对应的SKU ID
-                        if len(variant_ids) > 0:
-                            img_url = url_head + url_body + 'products/' + str(product_id) + '/images/' + str(img['id']) + '.json'
-                            img_data = {'image': {'id': img['id'], 'variant_ids': variant_ids}}
-                            img_res = requests.put(img_url, data=json.dumps(img_data), headers={'Content-Type': 'application/json'})
-                            img_ret = img_res.json()
-                            if 'image' not in img_ret:
-                                err.append({'img_id': img['id'], 'variant_ids': variant_ids, 'msg': 'relation failed'})
-                    params['product_id'] = product_id
-                    if err:
-                        params['content'] = json.dumps(err)
-                    else:
-                        params['content'] = 'success'
-                    self.update_log(params)
-                    # self.logger.error('success to upload cause of {}'.format(params['content']))
-                else:
-                    params['content'] = json.dumps(ret) if ret else params['content']
-                    self.update_log(params)
-                    self.logger.error('failed to upload cause of {}'.format(params['content']))
+                self.update_log(params)
 
         except Exception as e:
             self.logger.error(e)
