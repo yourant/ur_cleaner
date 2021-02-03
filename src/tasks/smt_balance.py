@@ -29,7 +29,7 @@ class Worker(BaseSpider):
         base_url = 'https://passport.aliexpress.com/newlogin/login.do?fromSite=13&appName=aeseller'
         form_data = {
             'loginId': 'bronzeq@163.com',
-            'password2': 'nty@8j2af5n'
+            'password2': 'ba9f68bdee1681dd906ea8927942c46168b2e8416bfb49a4fdfef3463f8040d12dd372e6c778eff44a8ed20a5e54650b7b61eaae18f80ec93e41fe9a19aea5b733c0bf5f1e75f528c4f8f43a4c5d4b82e617cf8faac90e7499028482638b2594227fe18c67ab0d41208b60242384c5605d95c1c221e779160fbb102713e89c73'
         }
         res = await self.session.post(base_url, data=form_data, proxy=self.proxy_url)
         print(await res.text())

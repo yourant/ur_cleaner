@@ -31,6 +31,9 @@ class Sync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.status = ['线下清仓']   # 改0
+        self.status1 = ['爆款', '旺款', '浮动款', 'Wish新款', '在售']  # 改固定数量
+        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']    # 改实际库存'
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -47,6 +50,7 @@ class Sync(CommonService):
             yield row
 
     def sync_sku_stock(self):
+        stock.delete_many({})
         sql = ("SELECT gs.sku,shopsku,GoodsSKUStatus AS status,isnull(sk.hopeUseNum,0) as hopeUseNum "
                "FROM B_GoodsSKU(nolock) gs INNER JOIN B_Goods(nolock) as g on g.nid = gs.goodsid "
                "LEFT JOIN Y_R_tStockingWaring(nolock) as sk on sk.sku = gs.sku AND storeName='义乌仓' "
@@ -62,25 +66,84 @@ class Sync(CommonService):
         token = row['AccessToken']
         suffix = row['aliasname']
         products = self.get_products(suffix)
+        for product in products:
+            # print(product)
+            sku_info = stock.aggregate([{'$match': {'sku': {'$regex': product['newsku']}}}, {'$limit': 1}])
+            if not sku_info:
+                sku_info = stock.aggregate([{'$match': {'shopsku': {'$regex': product['newsku']}}}, {'$limit': 1}])
+            for sku in sku_info:
+                # print(sku)
+                storage = int(product['storage'])
+                hope_use_num = int(sku['hopeUseNum'])
+                check = self.check(storage, hope_use_num, sku['status'])
+                # 判断sku数量是否需要修改
+                if check:
+                    inventory = self.get_quantity(storage, hope_use_num, sku['status'])
+                    # if inventory == 90000 and storage < 100 or inventory < 90000 and storage != inventory:
+                    if inventory == 90000 and storage < 100 or inventory == 0 and storage != 0:
+                        headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
+                        base_url = 'https://merchant.wish.com/api/v2/variant/update-inventory'
+                        param = {
+                            "sku": product['sku'],
+                            "inventory": inventory
+                        }
+                        for i in range(2):
+                            try:
+                                response = requests.get(base_url, params=param, headers=headers, timeout=20)
+                                ret = response.json()
+                                if ret["code"] == 0:
+                                    # self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
+                                    break
+                            except Exception as why:
+                                self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
 
-        print(len(list(products)))
+    def get_quantity(self, storage, hope_use_num, status):
+        if storage <= 0:
+            if status in self.status1:
+                return 90000
+            if status in self.status2:
+                return hope_use_num if hope_use_num > 0 else 0
+            if status in self.status:
+                return 0
+            return 0
+        else:
+            if status in self.status1:
+                return 90000
+            if status in self.status2:
+                return hope_use_num if hope_use_num > 0 else 0
+            if status in self.status:
+                return 0
+            return storage
 
-
-
-    @staticmethod
-    def pull():
-        # rows = col.find({'sku':{'$regex':"8C1085"}})
-        # rows = table.find()
-        rows = table.find({"removed_by_merchant": "False", "review_status": "approved"})
-        for row in rows:
-            yield (row['code'], row['sku'], row['newSku'], row['itemid'], row['suffix'], row['selleruserid'],
-                   row['storage'], row['listingType'], row['country'], row['paypal'], row['site'], row['updateTime'])
+    def check(self, storage, hope_use_num, status):
+        if storage <= 0:
+            if not status:
+                return False
+            if status not in self.status and status not in self.status1 and status not in self.status2:
+                return False
+            if status in self.status2 and (storage == 0 and hope_use_num == 0 or storage < hope_use_num):
+                return False
+            if status in self.status1 and storage == 0:
+                return False
+            return True
+        else:
+            if status in self.status1:
+                if storage >= 100:
+                    return False
+                else:
+                    return True
+            if status in self.status2 and storage != hope_use_num:
+                return True
+            if status in self.status and storage > 0:
+                return True
+            return False
 
     @staticmethod
     def get_products(suffix):
-        rows = table.find({'suffix': suffix, "removed_by_merchant": "False", "review_status": "approved"
-                           , 'parent_sku': {'$regex': '7N0828'}
-                           })
+        rows = table.find({'suffix': suffix, "removed_by_merchant": "False"
+                              # , "review_status": "approved"
+                              # , 'parent_sku': {'$regex': '7N0828'}
+                           }, no_cursor_timeout=True)
         for rw in rows:
             for row in rw['variants']:
                 new_sku = row['Variant']['sku'].split("@")[0]
@@ -90,55 +153,21 @@ class Sync(CommonService):
                        'updateTime': str(datetime.datetime.today())[:19],
                        'enabled': row['Variant']['enabled'], 'removed_by_merchant': rw['removed_by_merchant']}
                 ele['_id'] = ele['itemid']
-                yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
-                       ele['storage'], ele['updateTime'])
-
-    @staticmethod
-    def clear_db():
-        stock.delete_many({})
-
-    def push_db(self, rows):
-        try:
-            rows = list(rows)
-            number = len(rows)
-            step = 100
-            end = math.ceil(number / step)
-            for i in range(0, end):
-                value = ','.join(map(str, rows[i * step: min((i + 1) * step, number)]))
-                sql = f'insert into ibay365_wish_lists(code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) values {value}'
-                try:
-                    self.cur.execute(sql)
-                    self.con.commit()
-                    self.logger.info(
-                        f"success to save data of wish products from {i * step} to  {min((i + 1) * step, number)}")
-                except Exception as why:
-                    self.logger.error(f"fail to save data of wish products cause of {why} ")
-        except Exception as why:
-            self.logger.error(f"fail to save wish products cause of {why} ")
-
-    def save_trans(self):
-        # rows = self.get_products()
-        # self.push_db(rows)
-        # rows = self.pull()
-        rows = self.get_products()
-        self.push_db(rows)
-        mongo.close()
+                # yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
+                #        ele['storage'], ele['updateTime'])
+                yield {'sku': ele['sku'], 'newsku': ele['newsku'], 'itemid': ele['itemid'],
+                       'storage': ele['storage'], 'suffix': ele['suffix']}
 
     def work(self):
         begin = time.time()
         try:
-            # self.clear_db()
-            stock.delete_many({})
-
             self.sync_sku_stock()
-            print(123)
 
-            # tokens = self.get_wish_token()
-            # pl = Pool(50)
-            # pl.map(self.get_data, tokens)
-            # pl.close()
-            # pl.join()
-            # self.save_trans()
+            tokens = self.get_wish_token()
+            pl = Pool(16)
+            pl.map(self.get_data, tokens)
+            pl.close()
+            pl.join()
 
         except Exception as why:
             self.logger.error(why)
