@@ -20,8 +20,8 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def work(self):
-        out_of_stock_sql = "update pt  set pt.reasoncode='没有问题，可以发' FROM P_tradeun(nolock) as pt  LEFT JOIN T_express (nolock) e ON e.nid = pt.expressnid  where addressowner='joom' and e.name in ('Joom-线上','云途物流')   and FilterFlag = 1 and profitmoney <= -10"
-        four_px_sql = "update pt  set pt.reasoncode='没有问题，可以发'  FROM P_trade(nolock) as pt  LEFT JOIN B_LogisticWay (nolock) l ON l.nid = pt.logicsWayNID   LEFT JOIN T_express (nolock) e ON e.nid = pt.expressnid  WHERE addressowner='joom' and e.name in ('Joom-线上','云途物流') and  pt.FilterFlag = 6 AND l.EUB = 3 and profitmoney <= -10"
+        out_of_stock_sql = "update pt  set pt.reasoncode='没有问题，可以发' FROM P_tradeun as pt  LEFT JOIN T_express (nolock) e ON e.nid = pt.expressnid  where addressowner='joom' and e.name in ('Joom-线上','云途物流')   and FilterFlag = 1 and profitmoney <= -10"
+        four_px_sql = "update pt  set pt.reasoncode='没有问题，可以发'  FROM P_trade as pt  LEFT JOIN B_LogisticWay (nolock) l ON l.nid = pt.logicsWayNID   LEFT JOIN T_express (nolock) e ON e.nid = pt.expressnid  WHERE addressowner='joom' and e.name in ('Joom-线上','云途物流') and  pt.FilterFlag = 6 AND l.EUB = 3 and profitmoney <= -10"
         try:
             self.cur.execute(out_of_stock_sql)
             self.cur.execute(four_px_sql)
