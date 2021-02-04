@@ -90,7 +90,7 @@ class Worker(CommonService):
     def work(self):
         try:
             tokens = self.get_ebay_token()
-            pl = Pool(16)
+            pl = Pool(50)
             pl.map(self.update_inventory, tokens)
 
             # self.update_inventory(123)

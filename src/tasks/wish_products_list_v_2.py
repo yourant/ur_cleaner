@@ -33,9 +33,9 @@ class Sync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.status = ['线下清仓']   # 改0
+        self.status = ['线下清仓']  # 改0
         self.status1 = ['爆款', '旺款', '浮动款', 'Wish新款', '在售']  # 改固定数量
-        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']    # 改实际库存'
+        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']  # 改实际库存'
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -99,8 +99,9 @@ class Sync(CommonService):
                                 ret = response.json()
                                 if ret["code"] == 0:
                                     # 更新标记字段
-                                    table.update_one({'_id': product['itemid']}, {"$set": {'is_modify_num': 1}}, upsert=True)
-                                    # self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
+                                    table.update_one({'_id': product['itemid']}, {"$set": {'is_modify_num': 1}},
+                                                     False, True)
+                                    self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
                                     break
                             except Exception as why:
                                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
@@ -150,8 +151,9 @@ class Sync(CommonService):
     @staticmethod
     def get_products(suffix):
         rows = table.find({'suffix': suffix, "removed_by_merchant": "False"
-                              # , "review_status": "approved"
-                              # , 'parent_sku': {'$regex': '7N0828'}
+                              , "is_modify": None
+                           # , "review_status": "approved"
+                           # , 'parent_sku': {'$regex': '7N0828'}
                            }, no_cursor_timeout=True)
         for rw in rows:
             for row in rw['variants']:
@@ -167,20 +169,20 @@ class Sync(CommonService):
                 yield {'sku': ele['sku'], 'newsku': ele['newsku'], 'itemid': ele['itemid'],
                        'storage': ele['storage'], 'suffix': ele['suffix']}
 
-    async def work(self):
+    def work(self):
         try:
             # quantity.delete_many({})
             # self.sync_sku_stock()
 
             tokens = self.get_wish_token()
 
-            for token in tokens:
-                self.get_data(token)
+            # for token in tokens:
+            #     self.get_data(token)
 
-            # pl = Pool(16)
-            # pl.map(self.get_data, tokens)
-            # pl.close()
-            # pl.join()
+            pl = Pool(50)
+            pl.map(self.get_data, tokens)
+            pl.close()
+            pl.join()
 
         except Exception as why:
             self.logger.error(why)
@@ -192,14 +194,12 @@ class Sync(CommonService):
 
 
 if __name__ == "__main__":
-    # worker = Sync()
-    # worker.work()
     start = time.time()
     worker = Sync()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(worker.work())
+    worker.work()
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(worker.work())
+
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')
-
-
