@@ -101,7 +101,7 @@ class Sync(CommonService):
                                     # 更新标记字段
                                     table.update_one({'_id': product['itemid']}, {"$set": {'is_modify_num': 1}},
                                                      False, True)
-                                    self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
+                                    # self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
                                     break
                             except Exception as why:
                                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
