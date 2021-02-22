@@ -6,6 +6,7 @@
 from dao.base_dao import BaseDao
 from src.services import log, db
 import pymysql
+from pymongo import MongoClient, ReadPreference
 from configs.config import Config
 config = Config()
 
@@ -18,6 +19,28 @@ class CommonService(object):
 
     def __init__(self):
         self.logger = self.base_dao.logger
+        self.mongo = self.connect_mongo()
+
+    @staticmethod
+    def connect_mongo():
+        mongo_config = config.get_config('mongo')
+        client = MongoClient(mongo_config['url'].split(','))
+        db_auth = client.admin
+        db_auth.authenticate(mongo_config['username'], mongo_config['password'])
+        return client
+
+    def get_mongo_collection(self, database, collection):
+        client = self.mongo
+        db = client.get_database(database, read_preference=ReadPreference.SECONDARY_PREFERRED)
+        collection = db.get_collection(collection)
+        return collection
+
+    def close_mongo(self):
+        self.mongo.close()
+
+    def close(self):
+        super(CommonService, self).close()
+        self.close_mongo()
 
 
 class BaseService(object):

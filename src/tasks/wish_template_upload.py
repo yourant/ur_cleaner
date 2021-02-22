@@ -10,13 +10,8 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 from bson import ObjectId
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-col_temp = mongodb['wish_template']
-col_task = mongodb['wish_task']
-col_log = mongodb['wish_log']
+from pymongo import MongoClient, ReadPreference
+# 创建mongodb连接
 
 
 class Worker(CommonService):
@@ -35,6 +30,14 @@ class Worker(CommonService):
 
     def close(self):
         self.base_dao.close_cur(self.cur)
+
+    def test_mongo(self):
+        col_task = self.get_mongo_collection('operation', 'wish_task')
+        # col_temp = self.mongo('operation', 'wish_template')
+        # col_log = self.mongo('operation', 'wish_log')
+        ret = col_task.find()
+        for row in ret:
+            print(row)
 
     @staticmethod
     def get_wish_tasks():
@@ -243,11 +246,14 @@ class Worker(CommonService):
 
     def work(self):
         try:
-            tasks = self.get_wish_tasks()
-            pl = Pool(8)
-            pl.map(self.upload_template, tasks)
-            pl.close()
-            pl.join()
+            # tasks = self.get_wish_tasks()
+            # pl = Pool(8)
+            # pl.map(self.upload_template, tasks)
+            # pl.close()
+            # pl.join()
+            self.test_mongo()
+
+
             # self.sync_data()
         except Exception as why:
             self.logger.error('fail to upload wish template cause of {} '.format(why))
@@ -255,7 +261,6 @@ class Worker(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
     def sync_data(self):
         """
