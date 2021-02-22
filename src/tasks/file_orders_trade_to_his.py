@@ -42,7 +42,13 @@ class FileOrdersToHis(CommonService):
     def run(self):
         now = datetime.datetime.now()
         begin = '2019-01-01'
-        end = datetime.datetime(now.year, now.month - 2, 1) - datetime.timedelta(1)
+        if now.month - 2 <= 0:
+            year = now.year - 1
+            month = now.month + 10
+        else:
+            year = now.year
+            month = now.month - 2
+        end = datetime.datetime(year, month, 1) - datetime.timedelta(1)
         print(end)
         # end = '2020-03-31'
         try:
@@ -55,7 +61,7 @@ class FileOrdersToHis(CommonService):
             # len = sum(1 for _ in ids)
             for id in ids:
                 item.append(str(id['nid']))
-                if i != 0 and i%step == 0 :
+                if i != 0 and i % step == 0:
                     id_dict.append(str(','.join(item)))
                     item = []
                 i = i + 1

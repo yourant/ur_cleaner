@@ -7,6 +7,7 @@
 import os
 import re
 import math
+import asyncio
 import time
 import datetime
 from src.services.base_service import CommonService
@@ -19,6 +20,7 @@ mongo = MongoClient('192.168.0.150', 27017)
 
 table = mongo['operation']['wish_products']
 stock = mongo['wish']['wish_sku_stock']
+quantity = mongo['wish']['wish_sku_quantity']
 
 
 class Sync(CommonService):
@@ -31,9 +33,9 @@ class Sync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.status = ['线下清仓']   # 改0
+        self.status = ['线下清仓']  # 改0
         self.status1 = ['爆款', '旺款', '浮动款', 'Wish新款', '在售']  # 改固定数量
-        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']    # 改实际库存'
+        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']  # 改实际库存'
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -41,7 +43,7 @@ class Sync(CommonService):
     def get_wish_token(self):
         sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
                "aliasname is not null"
-               " and  AliasName = 'WISE126-southkin' "
+               # " and  AliasName = 'WISE126-southkin' "
                " and  AliasName not in "
                "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') ")
         self.cur.execute(sql)
@@ -68,12 +70,13 @@ class Sync(CommonService):
         products = self.get_products(suffix)
         for product in products:
             # print(product)
+            storage = int(product['storage'])
             sku_info = stock.aggregate([{'$match': {'sku': {'$regex': product['newsku']}}}, {'$limit': 1}])
             if not sku_info:
                 sku_info = stock.aggregate([{'$match': {'shopsku': {'$regex': product['newsku']}}}, {'$limit': 1}])
             for sku in sku_info:
                 # print(sku)
-                storage = int(product['storage'])
+
                 hope_use_num = int(sku['hopeUseNum'])
                 check = self.check(storage, hope_use_num, sku['status'])
                 # 判断sku数量是否需要修改
@@ -81,6 +84,9 @@ class Sync(CommonService):
                     inventory = self.get_quantity(storage, hope_use_num, sku['status'])
                     # if inventory == 90000 and storage < 100 or inventory < 90000 and storage != inventory:
                     if inventory == 90000 and storage < 100 or inventory == 0 and storage != 0:
+                        params = {'itemid': product['itemid'], 'sku': product['sku'], 'inventory': inventory,
+                                  'storage': product['storage'], 'token': token, 'suffix': suffix, 'flag': '0', }
+                        # print
                         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
                         base_url = 'https://merchant.wish.com/api/v2/variant/update-inventory'
                         param = {
@@ -92,10 +98,14 @@ class Sync(CommonService):
                                 response = requests.get(base_url, params=param, headers=headers, timeout=20)
                                 ret = response.json()
                                 if ret["code"] == 0:
+                                    # 更新标记字段
+                                    table.update_one({'_id': product['itemid']}, {"$set": {'is_modify_num': 1}},
+                                                     False, True)
                                     # self.logger.info(f'success {row["aliasname"]} to update {product["itemid"]}')
                                     break
                             except Exception as why:
                                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
+                        # quantity.insert_one(params)
 
     def get_quantity(self, storage, hope_use_num, status):
         if storage <= 0:
@@ -141,8 +151,9 @@ class Sync(CommonService):
     @staticmethod
     def get_products(suffix):
         rows = table.find({'suffix': suffix, "removed_by_merchant": "False"
-                              # , "review_status": "approved"
-                              # , 'parent_sku': {'$regex': '7N0828'}
+                              , "is_modify": None
+                           # , "review_status": "approved"
+                           # , 'parent_sku': {'$regex': '7N0828'}
                            }, no_cursor_timeout=True)
         for rw in rows:
             for row in rw['variants']:
@@ -159,12 +170,16 @@ class Sync(CommonService):
                        'storage': ele['storage'], 'suffix': ele['suffix']}
 
     def work(self):
-        begin = time.time()
         try:
-            self.sync_sku_stock()
+            # quantity.delete_many({})
+            # self.sync_sku_stock()
 
             tokens = self.get_wish_token()
-            pl = Pool(16)
+
+            # for token in tokens:
+            #     self.get_data(token)
+
+            pl = Pool(50)
             pl.map(self.get_data, tokens)
             pl.close()
             pl.join()
@@ -176,9 +191,15 @@ class Sync(CommonService):
         finally:
             self.close()
             mongo.close()
-        print('程序耗时{:.2f}'.format(time.time() - begin))  # 计算程序总耗时
 
 
 if __name__ == "__main__":
+    start = time.time()
     worker = Sync()
     worker.work()
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(worker.work())
+
+    end = time.time()
+    date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
+    print(date + f' it takes {end - start} seconds')
