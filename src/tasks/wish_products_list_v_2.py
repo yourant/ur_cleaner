@@ -152,7 +152,7 @@ class Sync(CommonService):
     def get_products(suffix):
         rows = table.find({'suffix': suffix, "removed_by_merchant": "False"
                               , "is_modify": None
-                           # , "review_status": "approved"
+                              , "review_status": "approved"
                            # , 'parent_sku': {'$regex': '7N0828'}
                            }, no_cursor_timeout=True)
         for rw in rows:
@@ -171,8 +171,7 @@ class Sync(CommonService):
 
     def work(self):
         try:
-            # quantity.delete_many({})
-            # self.sync_sku_stock()
+            self.sync_sku_stock()
 
             tokens = self.get_wish_token()
 
