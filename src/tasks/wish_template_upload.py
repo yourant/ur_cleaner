@@ -21,7 +21,7 @@ class Worker(CommonService):
         super().__init__()
         self.base_name = 'mssql'
         self.today = datetime.datetime.today() - datetime.timedelta(hours=8)
-        self.log_type = {1: "刊登商品", 2: "添加多属性"}
+        self.log_type = {'product': "刊登商品", 'variants': "添加多属性"}
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
         self.tokens = self.get_tokens()
@@ -56,69 +56,84 @@ class Worker(CommonService):
                 template['access_token'] = self.tokens[template['selleruserid']]
             except Exception:
                 raise ValueError(f'{template["selleruserid"]} is unused')
-
-            template['localized_currency_code'] = template['local_currency']
-            template['localized_price'] = template['local_price']
-            template['localized_shipping'] = template['local_shippingfee']
-            del template['_id']
-            del template['creator']
-            del template['created']
-            del template['updated']
-            del template['local_currency']
-            del template['local_price']
-            del template['local_shippingfee']
+            template = self.parse_template(template)
             template = self.get_local_info(template)
             return template
         except Exception as e:
             self.logger.error(e)
-            return {}
+            raise ValueError(e)
+
+    @staticmethod
+    def parse_template(template):
+        """
+        整理template的结构
+        :param template:
+        :return:
+        """
+        template['localized_currency_code'] = template['local_currency']
+        template['localized_price'] = template['local_price']
+        template['localized_shipping'] = template['local_shippingfee']
+        del template['_id']
+        del template['creator']
+        del template['created']
+        del template['updated']
+        del template['local_currency']
+        del template['local_price']
+        del template['local_shippingfee']
+        return template
 
     @staticmethod
     def get_local_info(template):
+        """
+        根据货币符号处理local信息
+        :param template:
+        :return:
+        """
         currency_code = template['localized_currency_code']
         if currency_code == 'USD':
             template['localized_price'] = template['price']
             template['localized_shipping'] = template['shipping']
 
-            variants = template['variants']
-            for row in variants:
+            for row in template['variants']:
                 row['localized_currency_code'] = currency_code
                 row['localized_price'] = row['price']
-                row['localized_shipping'] = row['shipping']
+                del row['shipping']
+
+        # 删除多余字段
+        else:
+            for row in template['variants']:
+                del row['shipping']
         return template
 
     def pre_check(self, template):
         try:
             tags = template['tags']
             if not tags:
-                return False
-
+                raise ValueError(f'tags of {template["sku"]}  is invalid')
             tags = str.split(tags, ',')
             variations = template['variants']
             # 检查 tags个数
             if len(tags) > 10:
-                return False
+                raise ValueError(f'tags of {template["sku"]} is greater than 10')
 
             # 单属性不用验证
             if str.split(template['sku'], '@#')[0][-2::] == '01' and not variations:
-                return True
+                return
             for vn in variations:
 
                 # 颜色是否包含中文
                 if self.is_contain_chinese(vn['color']):
-                    return False
+                    raise ValueError(f'color of {template["sku"]} is Chinese ')
 
                 # 尺寸是否包含中文
                 if self.is_contain_chinese(vn['size']):
-                    return False
+                    raise ValueError(f'size of {template["sku"]} is Chinese ')
 
                 # 颜色和尺寸同时为空
                 if (not vn['color']) and (not vn['size']):
-                    return False
-
-            return True
-        except:
-            return False
+                    raise ValueError(f'both color and size of {template["sku"]} is empty')
+        except Exception as why:
+            raise ValueError(f'{template["sku"]} is invalid cause of {why}')
 
     @staticmethod
     def is_contain_chinese(check_str):
@@ -150,113 +165,159 @@ class Worker(CommonService):
     def upload_template(self, row):
 
         try:
-            params = {}
-            task_id = row['_id']
-            params['task_id'] = str(task_id)
-            params['template_id'] = str(row['template_id'])
-            params['selleruserid'] = row['selleruserid']
-            params['sku'] = ''
-            params['type'] = self.log_type[1]
-
-            task_params = {'id': task_id, 'status': 'success'}
 
             # 获取模板和token信息
             template = self.get_wish_template(row['template_id'])
 
-            # 检验模板是否有问题
-            flag = self.pre_check(template)
-            if not flag:
-                # 标记为刊登失败
-                task_params['item_id'] = ''
-                task_params['status'] = 'failed'
-                self.update_task_status(task_params)
-                message = f"template of {row['template_id']} is invalid"
-                params['info'] = message
-                self.add_log(params)
-                self.logger.error(message)
-                return
-            if template:
-                parent_sku = template['sku']
-                params['sku'] = parent_sku
-                # 判断是否有该产品
-                check = self.check_wish_template(template)
-                if not check:
-                    try:
-                        url = 'https://merchant.wish.com/api/v2/product/add'
-                        response = requests.post(url, data=template)
-                        ret = response.json()
-                        if ret['code'] == 0:
-                            task_params['item_id'] = ret['data']['Product']['id']
-                            self.upload_variation(template['variants'], template['access_token'], parent_sku, params)
-                            self.update_task_status(task_params)
-                            self.update_template_status(row['template_id'], ret['data']['Product']['id'])
-                        else:
-                            # 如果是美金账号
+            # 检验模板是否有问题,如果有错抛出异常
+            self.pre_check(template)
 
-                            task_params['item_id'] = ''
-                            task_params['status'] = 'failed'
-                            self.update_task_status(task_params)
-                            params['info'] = ret['message']
-                            self.add_log(params)
-                            self.logger.error(f"failed to upload product {parent_sku} cause of {ret['message']}")
-                    except Exception as why:
-                        task_params['item_id'] = ''
-                        task_params['status'] = 'failed'
-                        self.update_task_status(task_params)
-                        self.logger.error(f"fail to upload of product {parent_sku}  cause of {why}")
-                else:
-                    task_params['item_id'] = check
-                    self.update_task_status(task_params)
-                    self.update_template_status(row['template_id'], check)
-                    params['info'] = f'products {parent_sku} already exists'
-                    self.add_log(params)
-                    self.logger.error(f"fail cause of products {parent_sku} already exists")
-            else:
-                task_params['item_id'] = ''
-                task_params['status'] = 'failed'
-                self.update_task_status(task_params)
-                params['info'] = f"can not find template {row['template_id']} Maybe the account is not available"
-                self.add_log(params)
-                self.logger.error(f"fail cause of can not find template {row['template_id']}")
-        except Exception as e:
-            self.logger.error(f"upload {str(row['template_id'])} error cause of {e}")
+            # 上传模板
+            result = self.do_upload_template(row, template)
 
-    def upload_variation(self, rows, token, parent_sku, params):
-        params['type'] = self.log_type[2]
+            # 修改状态， 记录日志
+            self.add_log(result['task_log'])
+            self.update_task_status(result['task_status'])
+            self.update_template_status(result['template_status'])
+
+            # 打印日志
+            self.logger.info(f'success to upload template of {template["sku"]}')
+
+        except Exception as why:
+            task_id = row['_id']
+            task_log = {
+                'task_id': str(task_id), 'template_id': str(row['template_id']), 'selleruserid': row['selleruserid'],
+                'sku': row['sku'], 'type': self.log_type['product'], 'info': ''
+            }
+            task_status = {'id': task_id, 'item_id': '', 'status': ''}
+            # 记录错误日志
+            self.logger.error(f"upload {str(row['template_id'])} error cause of {why}")
+
+            task_log['info'] = f'failed to upload template because of {why}'
+            self.add_log(task_log)
+
+            task_status['status'] = 'failed'
+            self.update_task_status(task_status)
+
+    def do_upload_template(self, task, template):
+        existed = self.check_wish_template(template)
+        task_id = task['_id']
+        task_log = {
+            'task_id': str(task_id), 'template_id': str(task['template_id']), 'selleruserid': task['selleruserid'],
+            'sku': task['sku'], 'type': self.log_type['product'], 'info':''
+        }
+        template_status = {'template_id': task['template_id'], 'item_id': '', 'status': '待刊登'}
+        task_status = {'id': task_id, 'item_id': '', 'status': ''}
+        result = {'task_log': task_log, 'task_status': task_status, 'template_status': template_status}
+        url = 'https://merchant.wish.com/api/v2/product/add'
         try:
-            url = "https://merchant.wish.com/api/v2/variant/add"
+            if not existed:
+                res = requests.post(url, data=template)
+                ret = res.json()
+                if ret['code'] == 0:
+
+                    # 添加多属性
+                    self.upload_variation(template['variants'], template['access_token'], template['sku'], task_log)
+
+                    # 模板状态
+                    template_status['item_id'] = ret['data']['Product']['id']
+                    template_status['status'] = '刊登成功'
+
+                    # 任务状态
+                    task_status['item_id'] = ret['data']['Product']['id']
+                    task_status['status'] = 'success'
+
+                    #日志记录
+                    task_log['info'] = 'success'
+
+                else:
+                    # 把错误原因写到日志
+
+                    # 任务状态
+                    task_status['status'] = 'failed'
+
+                    # 日志记录
+                    task_log['info'] = ret['message']
+                    self.logger.error(f"failed to upload product {template['sku']} cause of {ret['message']}")
+            else:
+                # 产品已存在，尝试添加多属性
+                self.upload_variation(template['variants'], template['access_token'], template['sku'], task_log)
+
+                # 模板状态
+                template_status['item_id'] = existed
+                template_status['status'] = '刊登成功'
+
+                # 任务状态
+                task_status['item_id'] = existed
+                task_status['status'] = 'success'
+
+                # 日志记录
+                task_log['info'] = 'success'
+
+        except Exception as why:
+            # 任务状态
+            task_status['status'] = 'failed'
+
+            # 日志记录
+            task_log['info'] = f"failed to upload product {template['sku']} cause of {why}"
+
+            self.logger.error(f"failed to upload product {template['sku']} cause of {why}")
+
+        return result
+
+    def upload_variation(self, rows, token, parent_sku, task_log):
+        task_log['type'] = self.log_type['variants']
+        add_url = "https://merchant.wish.com/api/v2/variant/add"
+        update_url = "https://merchant.wish.com/api/v2/variant/update"
+        try:
             for row in rows:
                 row['access_token'] = token
                 row['parent_sku'] = parent_sku
-                del row['shipping']
-                response = requests.post(url, data=row)
+                response = requests.post(add_url, data=row)
                 ret = response.json()
                 if ret['code'] != 0:
-                    params['info'] = ret['message']
-                    params['sku'] = row['sku']
+                    if 'exists' in ret['message']:
+                        data = {'sku': row['sku'], 'main_image': row['main_image'], 'access_token': row['access_token']}
+                        res = requests.post(update_url, data=data)
+
+                    task_log['info'] = ret['message']
+                    task_log['sku'] = row['sku']
                     try:
-                        del params['_id']
+                        del task_log['_id']
                     except:
                         pass
-                    self.add_log(params)
-                    self.logger.error(f"fail to upload of products variant {row['sku']} cause of {ret['message']}")
+                    self.add_log(task_log)
+                    self.logger.error(f"failed to upload of products variant {row['sku']} cause of {ret['message']}")
         except Exception as why:
-            params['info'] = why
-            self.add_log(params)
+            task_log['info'] = why
+            self.add_log(task_log)
             self.logger.error(f"fail to upload of products variants {parent_sku}  cause of {why}")
 
     def update_task_status(self, row):
-        self.col_task.update_one({'_id': row['id']}, {"$set": {'item_id': row['item_id'], 'status': row['status'],
-                                                          'updated': self.today}}, upsert=True)
+        self.col_task.update_one({
+            '_id': row['id']
+        }, {
+            "$set": {'item_id': row['item_id'], 'status': row['status'], 'updated': self.today}
+        }, upsert=True)
 
-    def update_template_status(self, template_id, item_id):
-        self.col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功',
-                                                                      'is_online': 1, 'updated': self.today}}, upsert=True)
+    def update_template_status(self, template_status):
+        self.col_temp.update_one({
+            '_id': ObjectId(template_status['template_id'])},
+            {
+                "$set": {'item_id': template_status['item_id'],
+                         'status': template_status['status'], 'is_online': 1, 'updated': self.today
+                         }
+            },
+            upsert=True)
 
     # 添加日志
     def add_log(self, params):
         params['created'] = self.today
-        self.col_log.insert_one(params)
+        try:
+            self.col_log.insert_one(params)
+
+        except Exception as why:
+            pass
 
     def work(self):
         try:
@@ -265,7 +326,6 @@ class Worker(CommonService):
             pl.map(self.upload_template, tasks)
             pl.close()
             pl.join()
-
 
             # self.sync_data()
         except Exception as why:
