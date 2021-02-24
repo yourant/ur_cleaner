@@ -5,19 +5,34 @@
 
 import os
 import datetime
-from src.services.base_service import BaseService
+from src.services.base_service import CommonService
 from configs.config import Config
 import phpserialize
 
+from pymongo import MongoClient
 
-class EbayFee(BaseService):
+mongo = MongoClient('192.168.0.150', 27017)
+table = mongo['operation']['ebay_products']
+
+
+class EbayFee(CommonService):
     """
     fetch ebay fee using api
     """
 
     def __init__(self):
         super().__init__()
-        self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+
+        self.warehouse_name = 'mysql'
+        self.warehouse_cur = self.base_dao.get_cur(self.warehouse_name)
+        self.warehouse_con = self.base_dao.get_connection(self.warehouse_name)
+
+    def close(self):
+        self.base_dao.close_cur(self.cur)
+        self.base_dao.close_cur(self.warehouse_cur)
 
     def get_ebay_ad_fee_from_py(self, item_id, begin, end):
         sql = ("SELECT notename AS suffix,currency_code AS ad_code,b.ExchangeRate AS ad_code_rate,fee_time,description,"
@@ -100,6 +115,26 @@ class EbayFee(BaseService):
         for row in ret:
             yield row
 
+    def get_ebay_shipping_fee_from_mongo(self, item_id):
+        out = {'sku': '', 'shipping_fee': 0, 'shipping_name': ''}
+        try:
+            ret = table.find_one({'itemID': item_id})
+            if ret:
+                out['sku'] = ret['parentSku'].split('@#')[0]
+                item = ret['shippingDetails']['shippingServiceOptions']
+                for k in item:
+                    if k['shippingServicePriority'] == '1':
+                        try:
+                            out['shipping_fee'] = k['shippingServiceCost']['value']
+                        except BaseException:
+                            out['shipping_fee'] = 0
+                        out['shipping_name'] = k['ShippingService']
+                        break
+            return out
+        except Exception as e:
+            self.logger.error(f"Failed to get shipping fee of item {item_id} cause of {e}")
+            return out
+
     def get_ebay_shipping_fee_from_ibay(self, item_id):
         sql = ("SELECT sku,shippingdetails,ei.itemid FROM ebay_item ei "
                "LEFT JOIN ebay_item_detail eid ON ei.itemid=eid.itemid "
@@ -108,6 +143,7 @@ class EbayFee(BaseService):
         try:
             self.ibay_cur.execute(sql, (str(item_id),))
             ret = self.ibay_cur.fetchone()
+            print(ret)
             if ret:
                 sku = ret[0].split('@#')[0]
                 out['sku'] = sku
@@ -130,6 +166,9 @@ class EbayFee(BaseService):
                     out['shipping_name'] = ''
                 return out
         except Exception as e:
+            out['sku'] = ''
+            out['shipping_fee'] = 0
+            out['shipping_name'] = ''
             self.logger.error(f"Failed to get shipping fee of item {item_id} cause of {e}")
             return out
 
@@ -160,16 +199,16 @@ class EbayFee(BaseService):
             for item in data:
                 res = []
                 rows = self.get_ebay_ad_fee_from_py(item['itemId'], begin, end)
-                ship_info = self.get_ebay_shipping_fee_from_ibay(item['itemId'])
-                if ship_info:
-                    for row in rows:
-                        ad_fee_list = (row['suffix'], ship_info['sku'], row['ad_code'], row['ad_code_rate'],
-                                       row['ad_fee'], row['ad_rate'], row['fee_time'], row['description'],
-                                       row['itemId'], row['transaction_code'], row['transaction_code_rate'],
-                                       row['trans_code_to_ad_code_rate'], row['transaction_price'],
-                                       ship_info['shipping_fee'], ship_info['shipping_name'],
-                                       today)
-                        res.append(ad_fee_list)
+                # ship_info = self.get_ebay_shipping_fee_from_ibay(item['itemId'])
+                ship_info = self.get_ebay_shipping_fee_from_mongo(item['itemId'])
+                for row in rows:
+                    ad_fee_list = (row['suffix'], ship_info['sku'], row['ad_code'], row['ad_code_rate'],
+                                   row['ad_fee'], row['ad_rate'], row['fee_time'], row['description'],
+                                   row['itemId'], row['transaction_code'], row['transaction_code_rate'],
+                                   row['trans_code_to_ad_code_rate'], row['transaction_price'],
+                                   ship_info['shipping_fee'], ship_info['shipping_name'], today)
+                    res.append(ad_fee_list)
+                    # print(res)
                     self.save_data(res)
 
         except Exception as e:
