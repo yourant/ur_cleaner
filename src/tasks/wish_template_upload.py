@@ -184,29 +184,41 @@ class Worker(CommonService):
             self.logger.info(f'success to upload template of {template["sku"]}')
 
         except Exception as why:
+            # 记录错误日志
+
+            # 1.任务日志
             task_id = row['_id']
             task_log = {
                 'task_id': str(task_id), 'template_id': str(row['template_id']), 'selleruserid': row['selleruserid'],
                 'sku': row['sku'], 'type': self.log_type['product'], 'info': ''
             }
             task_status = {'id': task_id, 'item_id': '', 'status': ''}
-            # 记录错误日志
             self.logger.error(f"upload {str(row['template_id'])} error cause of {why}")
-
             task_log['info'] = f'failed to upload template because of {why}'
             self.add_log(task_log)
 
+            # 2.任务状态
             task_status['status'] = 'failed'
             self.update_task_status(task_status)
 
+            # 3.模板状态
+            template_status = {'template_id': row['template_id'], 'item_id': '', 'status': '刊登失败', 'is_online': 0}
+            self.update_template_status(template_status)
+
     def do_upload_template(self, task, template):
         existed = self.check_wish_template(template)
+
+        # 1.任务日志
         task_id = task['_id']
         task_log = {
             'task_id': str(task_id), 'template_id': str(task['template_id']), 'selleruserid': task['selleruserid'],
             'sku': task['sku'], 'type': self.log_type['product'], 'info':''
         }
+
+        # 2. 模板状态
         template_status = {'template_id': task['template_id'], 'item_id': '', 'status': '待刊登', 'is_online': 0}
+
+        # 3. 任务状态
         task_status = {'id': task_id, 'item_id': '', 'status': ''}
         result = {'task_log': task_log, 'task_status': task_status, 'template_status': template_status}
         url = 'https://merchant.wish.com/api/v2/product/add'
@@ -234,6 +246,10 @@ class Worker(CommonService):
                 else:
                     # 把错误原因写到日志
 
+                    # 模板状态
+                    template_status['status'] = '刊登失败'
+                    template_status['is_online'] = 0
+
                     # 任务状态
                     task_status['status'] = 'failed'
 
@@ -257,6 +273,11 @@ class Worker(CommonService):
                 task_log['info'] = 'success'
 
         except Exception as why:
+
+            # 模板状态
+            template_status['status'] = '刊登失败'
+            template_status['is_online'] = 0
+
             # 任务状态
             task_status['status'] = 'failed'
 
@@ -278,9 +299,11 @@ class Worker(CommonService):
                 response = requests.post(add_url, data=row)
                 ret = response.json()
                 if ret['code'] != 0:
-                    if 'exists' in ret['message']:
-                        data = {'sku': row['sku'], 'main_image': row['main_image'], 'access_token': row['access_token']}
-                        res = requests.post(update_url, data=data)
+
+                    # do not update
+                    # if 'exists' in ret['message']:
+                    #  data = {'sku': row['sku'], 'main_image': row['main_image'], 'access_token': row['access_token']}
+                    #     res = requests.post(update_url, data=data)
 
                     task_log['info'] = ret['message']
                     task_log['sku'] = row['sku']
