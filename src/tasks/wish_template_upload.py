@@ -206,7 +206,7 @@ class Worker(CommonService):
             'task_id': str(task_id), 'template_id': str(task['template_id']), 'selleruserid': task['selleruserid'],
             'sku': task['sku'], 'type': self.log_type['product'], 'info':''
         }
-        template_status = {'template_id': task['template_id'], 'item_id': '', 'status': '待刊登'}
+        template_status = {'template_id': task['template_id'], 'item_id': '', 'status': '待刊登', 'is_online': 0}
         task_status = {'id': task_id, 'item_id': '', 'status': ''}
         result = {'task_log': task_log, 'task_status': task_status, 'template_status': template_status}
         url = 'https://merchant.wish.com/api/v2/product/add'
@@ -222,6 +222,7 @@ class Worker(CommonService):
                     # 模板状态
                     template_status['item_id'] = ret['data']['Product']['id']
                     template_status['status'] = '刊登成功'
+                    template_status['is_online'] = 1
 
                     # 任务状态
                     task_status['item_id'] = ret['data']['Product']['id']
@@ -246,6 +247,7 @@ class Worker(CommonService):
                 # 模板状态
                 template_status['item_id'] = existed
                 template_status['status'] = '刊登成功'
+                template_status['is_online'] = 1
 
                 # 任务状态
                 task_status['item_id'] = existed
@@ -305,7 +307,7 @@ class Worker(CommonService):
             '_id': ObjectId(template_status['template_id'])},
             {
                 "$set": {'item_id': template_status['item_id'],
-                         'status': template_status['status'], 'is_online': 1, 'updated': self.today
+                         'status': template_status['status'], 'is_online': template_status['is_online'], 'updated': self.today
                          }
             },
             upsert=True)
