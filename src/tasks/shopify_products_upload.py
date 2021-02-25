@@ -40,7 +40,9 @@ class Worker(CommonService):
         return ret
 
     def get_shopify_tasks(self):
-        sql = "SELECT id,suffix,sku FROM proCenter.oa_shopifyImportToBackstageLog where IFNULL(product_id,'')='' "
+        sql = "SELECT l.id,l.suffix,sku,flag  FROM proCenter.oa_shopifyImportToBackstageLog as l " \
+              "LEFT JOIN proCenter.oa_shopify s ON s.account=l.suffix " \
+              "where IFNULL(product_id,'')='' "
         # sql = ("SELECT * FROM proCenter.oa_shopifyImportToBackstageLog where IFNULL(product_id, '') = '' " +
         #        " OR IFNULL(imgStatus, '') <> 'success' OR IFNULL(collectionStatus, '') = 'success' " )
         self.warehouse_cur.execute(sql)
@@ -59,7 +61,8 @@ class Worker(CommonService):
             sql = "update proCenter.oa_shopifyImportToBackstageLog set product_id=%s,productStatus=%s, " \
                   " productContent=%s,updateDate=%s where id=%s"
             update_time = str(datetime.datetime.now().strftime('%Y-%m-%d %H-%M-%S'))
-            log_params = (params['product_id'], params['productStatus'], params['productContent'], update_time, params['id'])
+            log_params = (
+            params['product_id'], params['productStatus'], params['productContent'], update_time, params['id'])
 
             self.warehouse_cur.execute(sql, log_params)
             self.warehouse_con.commit()
@@ -74,7 +77,7 @@ class Worker(CommonService):
             yield row
 
     @staticmethod
-    def _parse_vars(product, rows):
+    def _parse_vars(product, rows, flag):
         out = {'variation': list(), 'options': list(), 'images': list(), 'tags': ''}
 
         # sql = 'select  * from proCenter.oa_shopifyGoodsSku where infoId = %s'
@@ -120,24 +123,47 @@ class Worker(CommonService):
         # 处理图片
         out['images'] = [{'src': product['mainImage']}] + images
         # 处理 标签
-        out['tags'] = ','.join(value1) + ','.join(value2)
+        if flag:
+            out['tags'] = ('Color_' if value1 else '') + ',Color_'.join(value1) + \
+                      ('Size_' if value2 else '') + ',Size_'.join(value2)
+        else:
+            out['tags'] = ','.join(value1) + ','.join(value2)
+
         if product['style']:
-            out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['style']
+            if flag:
+                style = ('Style_' if product['style'] else '') + product['style'].replace(',', ',Style_')
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + style
+            else:
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['style']
         if product['length']:
-            out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['length']
+            if flag:
+                length = ('Length_' if product['length'] else '') + product['length'].replace(',', ',Length_')
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + length
+            else:
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['length']
         if product['sleeveLength']:
-            out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['sleeveLength']
+            if flag:
+                sleeve = ('SleeveLength_' if product['sleeveLength'] else '') + \
+                         product['sleeveLength'].replace(',', ',SleeveLength_')
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + sleeve
+            else:
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['sleeveLength']
         if product['neckline']:
-            out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['neckline']
+            if flag:
+                neckline = ('Neckline_' if product['neckline'] else '') + product['neckline'].replace(',', ',Neckline_')
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + neckline
+            else:
+                out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['neckline']
         if product['other']:
             out['tags'] = out['tags'] + (',' if out['tags'] else '') + product['other']
-
+        # print(out['tags'])
         return out
 
     def upload_products(self, row):
         task_id = row['id']
         sku = row['sku']
         suffix = row['suffix']
+        flag = row['flag']
 
         token = self.get_shopify_password(suffix)
         api_key = token['api_key']
@@ -166,7 +192,7 @@ class Worker(CommonService):
                 # item['vendor'] = ''
                 item['product_type'] = product['productType']
                 product_sku = list(self.get_oa_product_sku_info(product))
-                sku_info = self._parse_vars(product, product_sku)
+                sku_info = self._parse_vars(product, product_sku, flag)
                 item['variants'] = sku_info['variation']
                 item['images'] = sku_info['images']
                 item['tags'] = sku_info['tags'].split(',')
@@ -212,5 +238,3 @@ if __name__ == "__main__":
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
     print(date + f' it takes {end - start} seconds')
-
-
