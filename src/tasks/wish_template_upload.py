@@ -278,9 +278,11 @@ class Worker(CommonService):
                 response = requests.post(add_url, data=row)
                 ret = response.json()
                 if ret['code'] != 0:
-                    if 'exists' in ret['message']:
-                        data = {'sku': row['sku'], 'main_image': row['main_image'], 'access_token': row['access_token']}
-                        res = requests.post(update_url, data=data)
+
+                    # do not update
+                    # if 'exists' in ret['message']:
+                    #  data = {'sku': row['sku'], 'main_image': row['main_image'], 'access_token': row['access_token']}
+                    #     res = requests.post(update_url, data=data)
 
                     task_log['info'] = ret['message']
                     task_log['sku'] = row['sku']
