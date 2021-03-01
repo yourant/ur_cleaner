@@ -93,16 +93,18 @@ class Worker(CommonService):
         if currency_code == 'USD':
             template['localized_price'] = template['price']
             template['localized_shipping'] = template['shipping']
+            # 如果多属性不空，删除多余字段
+            if template['variants']:
+                for row in template['variants']:
+                    row['localized_currency_code'] = currency_code
+                    row['localized_price'] = row['price']
+                    del row['shipping']
 
-            for row in template['variants']:
-                row['localized_currency_code'] = currency_code
-                row['localized_price'] = row['price']
-                del row['shipping']
-
-        # 删除多余字段
+        # 如果多属性不空，删除多余字段
         else:
-            for row in template['variants']:
-                del row['shipping']
+            if template['variants']:
+                for row in template['variants']:
+                    del row['shipping']
         return template
 
     def pre_check(self, template):
@@ -289,6 +291,10 @@ class Worker(CommonService):
         return result
 
     def upload_variation(self, rows, token, parent_sku, task_log):
+
+        # 多属性信息为空，直接返回
+        if not rows:
+            return
         task_log['type'] = self.log_type['variants']
         add_url = "https://merchant.wish.com/api/v2/variant/add"
         update_url = "https://merchant.wish.com/api/v2/variant/update"
