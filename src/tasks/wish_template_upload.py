@@ -353,7 +353,7 @@ class Worker(CommonService):
     def work(self):
         try:
             tasks = self.get_wish_tasks()
-            pl = Pool(8)
+            pl = Pool(16)
             pl.map(self.upload_template, tasks)
             pl.close()
             pl.join()
