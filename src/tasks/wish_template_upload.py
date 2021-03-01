@@ -6,6 +6,7 @@
 
 import os
 import datetime
+import logging
 from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
@@ -28,6 +29,7 @@ class Worker(CommonService):
         self.col_task = self.get_mongo_collection('operation', 'wish_task')
         self.col_temp = self.get_mongo_collection('operation', 'wish_template')
         self.col_log = self.get_mongo_collection('operation', 'wish_log')
+        self.logger.setLevel(logging.ERROR)
 
     def close(self):
         self.base_dao.close_cur(self.cur)
