@@ -125,7 +125,7 @@ class Worker(CommonService):
         # 处理 标签
         if flag:
             out['tags'] = ('Color_' if value1 else '') + ',Color_'.join(value1) + \
-                      ('Size_' if value2 else '') + ',Size_'.join(value2)
+                      (',Size_' if value2 else '') + ',Size_'.join(value2)
         else:
             out['tags'] = ','.join(value1) + ','.join(value2)
 
