@@ -138,7 +138,6 @@ class WishRefund(CommonService):
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
         finally:
-            mongo.close()
             self.close()
 
 

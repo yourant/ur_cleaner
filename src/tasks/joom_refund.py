@@ -144,7 +144,6 @@ class Worker(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
 
 if __name__ == "__main__":
