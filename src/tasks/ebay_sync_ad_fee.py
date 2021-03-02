@@ -108,7 +108,7 @@ class EbayFee(CommonService):
                "WHERE CategoryID=12 AND FitCode ='eBay')"
                "AND fee_time BETWEEN %s AND %s "
                "AND description IN ('廣告費','Ad fee')"
-               # "AND itemId = '174099539097'"
+               # "AND itemId = '363197260457' AND fee_time='2021-02-21 21:41:10'"
                )
         self.cur.execute(sql, (begin, end))
         ret = self.cur.fetchall()
@@ -194,6 +194,7 @@ class EbayFee(CommonService):
             today = str(datetime.datetime.today())
             begin = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
             end = str(today)[:10]
+            # print(begin, end)
             self.clean(begin, end)
             data = self.get_ebay_item_from_py(begin, end)
             for item in data:
@@ -202,6 +203,7 @@ class EbayFee(CommonService):
                 # ship_info = self.get_ebay_shipping_fee_from_ibay(item['itemId'])
                 ship_info = self.get_ebay_shipping_fee_from_mongo(item['itemId'])
                 for row in rows:
+
                     ad_fee_list = (row['suffix'], ship_info['sku'], row['ad_code'], row['ad_code_rate'],
                                    row['ad_fee'], row['ad_rate'], row['fee_time'], row['description'],
                                    row['itemId'], row['transaction_code'], row['transaction_code_rate'],
@@ -209,7 +211,7 @@ class EbayFee(CommonService):
                                    ship_info['shipping_fee'], ship_info['shipping_name'], today)
                     res.append(ad_fee_list)
                     # print(res)
-                    self.save_data(res)
+                self.save_data(res)
 
         except Exception as e:
             self.logger.error(e)
