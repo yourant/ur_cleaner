@@ -192,7 +192,7 @@ class EbayFee(CommonService):
     def run(self):
         try:
             today = str(datetime.datetime.today())
-            begin = str(datetime.datetime.today() - datetime.timedelta(days=))[:10]
+            begin = str(datetime.datetime.today() - datetime.timedelta(days=7))[:10]
             end = str(today)[:10]
             # print(begin, end)
             self.clean(begin, end)
