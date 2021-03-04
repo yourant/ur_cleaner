@@ -8,13 +8,6 @@ import os
 import datetime
 from src.services.base_service import CommonService
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-# col = mongodb['wish_products']
-col = mongodb['wish_tokens']
-
 
 class Worker(CommonService):
     """
@@ -26,8 +19,10 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'wish_tokens')
 
     def close(self):
+        super().close()
         self.base_dao.close_cur(self.cur)
 
     def get_wish_token(self):
@@ -44,7 +39,7 @@ class Worker(CommonService):
     def put(self, rows):
         for rw in rows:
             rw['updated'] = datetime.datetime.now()
-            col.update_one({'suffix': rw['suffix']}, {"$set": rw}, upsert=True)
+            self.col.update_one({'suffix': rw['suffix']}, {"$set": rw}, upsert=True)
 
     def work(self):
         try:

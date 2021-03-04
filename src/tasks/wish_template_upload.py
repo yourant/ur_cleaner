@@ -32,6 +32,7 @@ class Worker(CommonService):
         self.logger.setLevel(logging.ERROR)
 
     def close(self):
+        super(Worker, self).close()
         self.base_dao.close_cur(self.cur)
 
     def get_wish_tasks(self):

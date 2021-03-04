@@ -39,7 +39,6 @@ class CommonService(object):
         self.mongo.close()
 
     def close(self):
-        super(CommonService, self).close()
         self.close_mongo()
 
 
