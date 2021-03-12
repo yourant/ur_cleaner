@@ -50,7 +50,8 @@ class Fetcher(CommonService):
             yield (row['nid'], row['orderDate'], row['saler'], row['storeName'], row['allWeight'], row['allQty'],
                    row['amt'], row['orderAmt'], row['shippingAmt'], row['shipDiscount'], row['feeAmt'],
                    row['expressFare'], row['insuranceAmount'], row['skuPackFee'], row['sku'], row['skuQty'],
-                   row['skuWeight'], row['skuCostPrice'], row['skuAmt'], row['exchangeRate'], row['goodsCode'])
+                   row['skuWeight'], row['skuCostPrice'], row['skuAmt'], row['exchangeRate'], row['goodsCode'],
+                   row['salerName'])
 
     def push(self, rows):
         # for row in rows:
@@ -58,8 +59,8 @@ class Fetcher(CommonService):
         sql = ('insert into oauth_taskOfGoodsProfitInfoDetailTmp('
                'nid, orderDate, saler, storeName, allWeight, allQty, amt, orderAmt, shippingAmt,'
                'shipDiscount, feeAmt, expressFare, insuranceAmount, skuPackFee, sku, skuQty, '
-               'skuWeight, skuCostPrice, skuAmt, exchangeRate, goodsCode)'
-               'values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ')
+               'skuWeight, skuCostPrice, skuAmt, exchangeRate, goodsCode, salerName)'
+               'values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ')
         self.warehouse_cur.executemany(sql, rows)
         self.warehouse_con.commit()
 
