@@ -15,7 +15,6 @@ from pymongo import MongoClient
 
 mongo = MongoClient('192.168.0.150', 27017)
 mongodb = mongo['operation']
-# col = mongodb['wish_products']
 col = mongodb['wish_products']
 
 

@@ -9,13 +9,6 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
-from pymongo import MongoClient, errors
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-col = mongodb['wish_productboost_performance']
-query_db = mongodb['wish_productboost']
-
 
 class Worker(CommonService):
     """
@@ -28,18 +21,20 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'wish_productboost')
+        self.query_db = self.get_mongo_collection('operation', 'wish_productboost_performance')
 
     def close(self):
+        super(Worker, self).close()
         self.base_dao.close_cur(self.cur)
 
-    @staticmethod
-    def get_wish_campaign_id():
-        rows = query_db.find({}).sort("last_updated_time", -1).limit(10000)
+    def get_wish_campaign_id(self):
+        rows = self.query_db.find({}).sort("last_updated_time", -1).limit(10000)
         for row in rows:
             yield row
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clear wish wish_productboost_performance list')
 
     def get_token(self):
@@ -88,7 +83,7 @@ class Worker(CommonService):
             self.logger.error(e)
 
     def put(self, row):
-        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        self.col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def work(self):
         try:

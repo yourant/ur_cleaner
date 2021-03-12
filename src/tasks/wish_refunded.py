@@ -9,12 +9,6 @@ import datetime
 import requests
 from concurrent.futures import ThreadPoolExecutor
 from src.services.base_service import CommonService
-from pymongo import MongoClient
-
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['wish']
-col = mongodb['wish_refunded']
 
 
 class WishRefund(CommonService):
@@ -27,6 +21,7 @@ class WishRefund(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('wish', 'wish_refunded')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -95,15 +90,15 @@ class WishRefund(CommonService):
             self.logger.error('{} fails cause of {}'.format(token['aliasname'], e))
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clean data')
 
     def put(self, row):
         # self.logger.info(f'saving {row["order_id"]}')
-        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        self.col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def pull(self):
-        ret = col.find()
+        ret = self.col.find()
         for row in ret:
             yield row
 
@@ -143,7 +138,6 @@ class WishRefund(CommonService):
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
         finally:
-            mongo.close()
             self.close()
 
 

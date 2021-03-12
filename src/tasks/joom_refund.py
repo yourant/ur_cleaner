@@ -9,12 +9,6 @@ import requests
 from multiprocessing.pool import ThreadPool as Pool
 import math
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['joom']
-col = mongodb['joom_refund']
-
 
 class Worker(CommonService):
     """
@@ -26,6 +20,8 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('joom', 'joom_refund')
+      
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -86,15 +82,15 @@ class Worker(CommonService):
               self.logger.error(f'fail to parse rows cause of {why}')
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clear joom_refund')
 
     def put(self, row):
-        # col.save(row)
-        col.insert_one(row)
+        # self.col.save(row)
+        self.col.insert_one(row)
 
     def pull(self):
-        rows = col.find()
+        rows = self.col.find()
         for row in rows:
             yield (row['order_id'], row['refund_time'], row['total_value'], row['currencyCode'], row['plat'])
 
@@ -148,7 +144,6 @@ class Worker(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
 
 if __name__ == "__main__":
