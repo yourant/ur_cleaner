@@ -30,7 +30,10 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
-        sql = 'select AccessToken, aliasName from S_JoomSyncInfo'
+        sql = 'select AccessToken, aliasName from S_JoomSyncInfo s' \
+                " INNER JOIN B_Dictionary d ON s.aliasName=d.DictionaryName AND CategoryID=12 AND Used=0 "
+              # " where aliasName='JoomY4-4WyWaroom'"
+
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -46,7 +49,7 @@ class Worker(CommonService):
         url = 'https://api-merchant.joom.com/api/v2/product/multi-get'
         # headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         date = str(datetime.datetime.today() - datetime.timedelta(days=0))[:10]
-        since = str(datetime.datetime.today() - datetime.timedelta(days=1))[:10]
+        since = str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
         limit = 300
         start = 0
         try:
