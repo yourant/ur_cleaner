@@ -158,7 +158,7 @@ class Worker(CommonService):
         url = "https://merchant.wish.com/api/v2/product"
         params = {'access_token': row['access_token'], 'parent_sku': row['sku']}
         try:
-            response = requests.get(url, params=params)
+            response = requests.get(url, params=params,timeout=10)
             ret = response.json()
             if ret['code'] == 0:
                 return ret['data']['Product']['id']
@@ -229,7 +229,7 @@ class Worker(CommonService):
         url = 'https://merchant.wish.com/api/v2/product/add'
         try:
             if not existed:
-                res = requests.post(url, data=template)
+                res = requests.post(url, data=template,timeout=10)
                 ret = res.json()
                 if ret['code'] == 0:
 
@@ -305,7 +305,7 @@ class Worker(CommonService):
             for row in rows:
                 row['access_token'] = token
                 row['parent_sku'] = parent_sku
-                response = requests.post(add_url, data=row)
+                response = requests.post(add_url, data=row,timeout=10)
                 ret = response.json()
                 if ret['code'] != 0:
 
