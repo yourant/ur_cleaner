@@ -321,7 +321,7 @@ class Worker(CommonService):
                     except:
                         pass
                     self.add_log(task_log)
-                    self.logger.error(f"failed to upload of products variant {row['sku']} cause of {ret['message']}")
+                    # self.logger.error(f"failed to upload of products variant {row['sku']} cause of {ret['message']}")
         except Exception as why:
             task_log['info'] = why
             self.add_log(task_log)
