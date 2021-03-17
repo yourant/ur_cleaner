@@ -21,7 +21,7 @@ class Worker(BaseSpider):
         self.col = self.mongodb['delete_tupianku_tasks']
 
     def _get_goods(self):
-        sql = ("SELECT DISTINCT top 300 b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
+        sql = ("SELECT DISTINCT b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +
                " WHERE GoodsSKUStatus='停售' AND isnull(b.goodsCode,'')<>''" +
                " AND GoodsID NOT IN (SELECT DISTINCT GoodsID FROM [dbo].[B_GoodsSKU] WHERE GoodsSKUStatus<>'停售')")
         self.cur.execute(sql)
