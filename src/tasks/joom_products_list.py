@@ -12,12 +12,6 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['joom']
-col = mongodb['joom_productlist']
-
 
 class Worker(CommonService):
     """
@@ -29,8 +23,10 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'joom_productlist')
 
     def close(self):
+        super(Worker, self).close()
         self.base_dao.close_cur(self.cur)
 
     def get_joom_token(self):
@@ -44,7 +40,7 @@ class Worker(CommonService):
             yield row
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clear joom product list')
 
     def get_products(self, row):
@@ -103,19 +99,18 @@ class Worker(CommonService):
             self.logger.error(e)
 
     def put(self, row):
-        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
-        # col.save(row)
+        self.col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        # self.col.save(row)
 
     def pull(self):
-        rows = col.find({"enabled": "True","state":{'$nin':['rejected']}})
+        rows = self.col.find({"enabled": "True","state":{'$nin':['rejected']}})
         for row in rows:
             yield (row['code'], row['sku'], row['newsku'], row['itemid'], row['suffix'], row['selleruserid'], row['storage'], row['updateTime'])
 
     def save_trans(self):
         rows = self.pull()
-        self.push_one(rows)
-        # self.push_batch(rows)
-        mongo.close()
+        # self.push_one(rows)
+        self.push_batch(rows)
 
     def push_one(self, rows):
         try:
@@ -125,11 +120,23 @@ class Worker(CommonService):
                    "values (%s,%s,%s,%s,%s,%s,%s,%s) "
                    "else update ibay365_joom_lists set "
                    "storage=%s,updateTime=%s where code=%s and itemid=%s")
+
+            # sql = ("if not EXISTS (select id from ibay365_joom_lists(nolock) where "
+            #        "code=%s and itemid=%s) "
+            #        "insert into ibay365_joom_lists (code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) "
+            #        "values (%s,%s,%s,%s,%s,%s,%s,%s) "
+            #        "else update ibay365_joom_lists set "
+            #        "storage=%s,updateTime=%s where code=%s and itemid=%s")
+
+            sql = ( "insert into ibay365_joom_lists (code, sku, newsku,itemid, suffix, selleruserid, storage, updateTime) "
+                   "values (%s,%s,%s,%s,%s,%s,%s,%s) ")
             for row in rows:
-                self.cur.execute(sql, (
-                row[0], row[3], row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[6], datetime.datetime.now(), row[0],
-                row[3]))
-                # self.logger.info(f'putting {row[2]}')
+                try:
+                    self.cur.execute(sql, (
+                    row[0], row[3], row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[6], datetime.datetime.now(), row[0],
+                    row[3]))
+                except Exception as why:
+                    self.logger.error(f'fail to put  {row[2]} because of {why}')
             self.con.commit()
         except Exception as why:
             self.logger.error(f"fail  {why} ")
@@ -155,11 +162,11 @@ class Worker(CommonService):
     def work(self):
         try:
             tokens = self.get_joom_token()
-            self.clean()
-            pl = Pool(16)
-            pl.map(self.get_products, tokens)
-            pl.close()
-            pl.join()
+            # self.clean()
+            # pl = Pool(16)
+            # pl.map(self.get_products, tokens)
+            # pl.close()
+            # pl.join()
             self.save_trans()
         except Exception as why:
             self.logger.error('fail to count sku cause of {} '.format(why))

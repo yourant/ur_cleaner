@@ -15,6 +15,7 @@ class Checker(CommonService):
     smt跟踪号超时标记
     1. 缺货单和4px 在其他备注里面加【跟踪号超时】
     2. 未拣货和未核单 在内部便签里面追加【跟踪号超时】
+    3. 申请跟踪号-》超过7天-》跟踪号超时1-》重新申请-》超过5天-》跟踪号超时2-》重新申请-》超过5天-》跟踪号超时3
     """
 
     def __init__(self):
@@ -36,7 +37,7 @@ class Checker(CommonService):
         缺货单
         :return:
         """
-        sql = ("select  nid, logs,addressOwner,name  from (select pt.nid, logs,addressOwner,name, "
+        sql = ("select  nid, logs,addressOwner,name,memo  from (select pt.nid, logs,addressOwner,name,pt.memo, "
                "row_number() over (partition by pt.nid order by plog.nid desc) as rn from p_tradeun(nolock) as pt"
                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid "
                "LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid "
@@ -54,9 +55,9 @@ class Checker(CommonService):
         未核单:filterFlag=22
         :return:
         """
-        sql = ("select  nid, logs,nid as lognid,addressOwner,name from (  "
-                "select pt.nid, plog.logs,plog.nid as lognid,pt.addressOwner,bw.name, row_number() over (partition by pt.nid order by plog.nid desc) as rn from  "
-                "(select ordertime,nid, addressOwner, trackNo,logicsWayNid from p_trade(nolock)  where addressOwner ='aliexpress' and	FilterFlag in(22,20) ) as pt   "
+        sql = ("select  nid, logs,nid as lognid,addressOwner,name,memo from (  "
+                "select pt.nid,pt.memo, plog.logs,plog.nid as lognid,pt.addressOwner,bw.name, row_number() over (partition by pt.nid order by plog.nid desc) as rn from  "
+                "(select ordertime,nid, memo,addressOwner, trackNo,logicsWayNid from p_trade(nolock)  where addressOwner ='aliexpress' and	FilterFlag in(22,20) ) as pt   "
                 " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid   "
                 "LEFT join P_TradeLogs(nolock) as tlog on   tlog.nid = plog.nid  "
                 " LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid 						  "
@@ -79,17 +80,34 @@ class Checker(CommonService):
         return express
 
     def parse(self, trades):
+        """
+        1. 查找最近一次申请跟踪号日期
+        2. 计算应该标记的次数
+        3. 计算是否应该被标记
+        :param trades:
+        :return:
+        """
         out = {}
         for row in trades:
-            date = re.search(r'\d{4}-\d{2}-\d{2}', row['logs']).group(0)
+            times = 1
+            date1 = re.search(r'\d{4}-\d{2}-\d{2}', row['logs']).group(0)
+            try:
+                if row['memo']:
+                    data2 = re.findall(r'\d{4}-\d{2}-\d{2}.*:已修改追踪号，可以发', row['memo'])
+                    if len(data2) > 0:
+                        times = times + len(data2)
+                        date1 = data2[-1][:10]
+            except Exception as why:
+                print(row['memo'])
+
             if row['nid'] not in out:
-                out[row['nid']] = {'express': row['name'], 'date': date, 'addressOwner': row['addressOwner']}
+                out[row['nid']] = {'express': row['name'], 'date': date1, "times": times, 'addressOwner': row['addressOwner']}
             else:
-                if out[row['nid']]['date'] < date:
-                    out[row['nid']] = {'express': row['name'], 'date': date, 'addressOwner': row['addressOwner']}
+                if out[row['nid']]['date'] < date1:
+                    out[row['nid']] = {'express': row['name'], 'date': date1, "times": times, 'addressOwner': row['addressOwner']}
         return out
 
-    def mark_out_of_stock_trades(self, nid):
+    def mark_out_of_stock_trades(self, nid, times):
         try:
             sql = 'select count(*) as ret from CG_OutofStock_Total where tradeNid=%s'
             self.cur.execute(sql, (nid,))
@@ -97,7 +115,7 @@ class Checker(CommonService):
             is_existed = ret['ret']
             if is_existed == 0:
                 sql = 'insert into CG_OutofStock_Total(TradeNid, PrintMemoTotal) values (%s, %s)'
-                self.cur.execute(sql, (nid, '跟踪号超时'))
+                self.cur.execute(sql, (nid, '跟踪号超时' + str(times)))
                 self.con.commit()
         except Exception as why:
             self.logger.error(f'fail to mark-express of p_tradeun {nid} cause of {why} ')
@@ -110,10 +128,11 @@ class Checker(CommonService):
         except Exception as why:
             self.logger.error(f'fail to  unmark-express of p_tradeun {nid} cause of {why} ')
 
-    def mark_unchecked_unpicked_trades(self, nid):
+    def mark_unchecked_unpicked_trades(self, nid, times):
         """
         内部标签里面追加【跟踪号超时】
         :param nid:
+        :param times:
         :return:
         """
         try:
@@ -122,9 +141,9 @@ class Checker(CommonService):
             ret = self.cur.fetchone()
             if ret:
                 memo = ret['memo']
-                memo = memo.replace(';跟踪号超时', '') + ';跟踪号超时'
+                memo = memo.replace(';跟踪号超时', '') + ';跟踪号超时' + str(times)
             else:
-                memo = ';跟踪号超时'
+                memo = ';跟踪号超时' + str(times)
             sql = "update p_trade set memo =   %s where nid = %s "
             self.cur.execute(sql, (memo, nid))
             self.con.commit()
@@ -166,15 +185,22 @@ class Checker(CommonService):
             nid = row[0]
             date = row[1]['date']
             express = row[1]['express']
+            times = row[1]['times']
             if express in express_info:
                 if row[1]['addressOwner'] == 'aliexpress':
-                    if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
-                        self.mark_out_of_stock_trades(nid)
+                    if times == 1:
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                            self.mark_out_of_stock_trades(nid, times)
+                        else:
+                            self.unmark_out_of_stock_trades(nid)
                     else:
-                        self.unmark_out_of_stock_trades(nid)
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
+                            self.mark_out_of_stock_trades(nid, times)
+                        else:
+                            self.unmark_out_of_stock_trades(nid)
                 else:
                     if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
-                        self.mark_out_of_stock_trades(nid)
+                        self.mark_out_of_stock_trades(nid, times)
                     else:
                         self.unmark_out_of_stock_trades(nid)
 
@@ -191,15 +217,22 @@ class Checker(CommonService):
             nid = row[0]
             date = row[1]['date']
             express = row[1]['express']
+            times = row[1]['times']
             if express in express_info:
                 if row[1]['addressOwner'] == 'aliexpress':
-                    if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
-                        self.mark_unchecked_unpicked_trades(nid)
+                    if times == 1:
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                            self.mark_unchecked_unpicked_trades(nid, times)
+                        else:
+                            self.unmark_unchecked_unpicked_trades(nid)
                     else:
-                        self.unmark_unchecked_unpicked_trades(nid)
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                            self.mark_unchecked_unpicked_trades(nid, times)
+                        else:
+                            self.unmark_unchecked_unpicked_trades(nid)
                 else:
                     if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
-                        self.mark_unchecked_unpicked_trades(nid)
+                        self.mark_unchecked_unpicked_trades(nid, times)
                     else:
                         self.unmark_unchecked_unpicked_trades(nid)
 
