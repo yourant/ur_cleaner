@@ -242,7 +242,7 @@ class Checker(CommonService):
             express_info = self.get_express()
 
             # 标记缺货单
-            # self.mark_out_of_stock_trades_trans(express_info)
+            self.mark_out_of_stock_trades_trans(express_info)
 
             # 标记未核单和未拣货
             self.mark_unchecked_unpicked_trades_trans(express_info)
