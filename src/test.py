@@ -32,14 +32,15 @@ class AliSync(CommonService):
 
     def get_ebay_description(self):
         try:
+            token = "AgAAAA**AQAAAA**aAAAAA**4cDcXQ**nY+sHZ2PrBmdj6wVnY+sEZ2PrA2dj6ADmYCiCJCKowydj6x9nY+seQ**kykBAA**AAMAAA**2raaq3ZjHDQ4DiKqgsIU8yUrmXhnO/E+Tr2d4L3iuN1gisy+zj98RKBw428kEtvZWwsStHqLx4la1EY3Dj0ZQnjr43xCp8Jnc8VCUDV5N4eN+E+LF6Rb6VxGVp8hKUAfugt7QnudjbDauQjCCUA9SDoYJzQ9u/rwRJ5QVEZucKSnvTdifZ8c0jChwZ/ef/qe3aUTpEObghcU597C/G47rfSp6bHH+hDaEyRVdfENahD/ysQRjZN4CG8C/XRSsgphCv0OqKx+/wK//68Yy7/fnG0vxJ75kceLFkFFSfILRB4afumjfHR9WG7yvgqXfAmkB0oppaSFWPZMv/mjRTfPaCjyP+ZeT6H+hKWTmnBnzJEcvdM3As8rcTgpEr9AXoGowK4I7LAle8WuIqLzCpvqpldIl4BUcrmipX2tngP/XBSE0UieQthBh3RUgBmAazaoZ+bVMMT9GKy8DpzZ/WbcirwI7YNCZNWMRIjJWCUJ8mv15baOXwvN3u9GtWqZRhi+m+xCHCQ45CbHTw1Y56Y8sJuZRnwmB8kpshRNXRBX6VZjeEW2prBnpIbmhHBeOubbPdB3EwEu6FKziSXgyK5tkdM/LDOnj6WRQGSHcNBhvt0pFFLrYOmoTqLgWRs9lC27ByG4IebXMWf1iTM3qvppvpEsPTzoBZywHT2tftQd/6iAi1O+ZcFMsziV+tpIy++KteSwyJuQY0hEV885RDDYplsgwbLnB+oBbL44p6iWgjckjLgjiqwOC8XrMiBWjC2S"
             api = Trading(config_file=self.config)
             trade_response = api.execute(
-                'GetDescriptionTemplates',
+                'GetItem',
                 {
-                    'CategoryID': 155350
+                    'ItemID': 293716165258,
                 #     'SKU': row['Item']['SKU'],
                 #     # 'SKU': '7C2796@#01',
-                #     'requesterCredentials': row['requesterCredentials'],
+                    'requesterCredentials': {'eBayAuthToken': token},
                 }
             )
             ret = trade_response.dict()
