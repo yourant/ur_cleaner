@@ -57,17 +57,6 @@ class Checker(CommonService):
         未核单:filterFlag=22
         :return:
         """
-        sql = ("select  nid, logs,nid as lognid,addressOwner,name,memo from (  "
-                "select pt.nid,pt.memo, plog.logs,plog.nid as lognid,pt.addressOwner,bw.name, row_number() over (partition by pt.nid order by plog.nid desc) as rn from  "
-                "(select ordertime,nid, memo,addressOwner, trackNo,logicsWayNid from p_trade(nolock)  where addressOwner ='aliexpress' and	FilterFlag in(22,20) ) as pt   "
-                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid   "
-                "LEFT join P_TradeLogs(nolock) as tlog on   tlog.nid = plog.nid  "
-                " LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid 						  "
-                " where 	pt.trackNo is not null   "
-                " and (plog.logs like '%预获取转单号成功%' or plog.logs like '%跟踪号成功,跟踪号%' or plog.logs like '%提交订单成功!   跟踪号:%')  "
-                ") td  "
-                "where td.rn =1 " )
-
         sql = ("select pt.nid, logs,addressOwner,name "
                " from p_trade(nolock) as pt"
                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid "
@@ -122,6 +111,7 @@ class Checker(CommonService):
                 sql = 'insert into CG_OutofStock_Total(TradeNid, PrintMemoTotal) values (%s, %s)'
                 self.cur.execute(sql, (nid, '跟踪号超时' + str(times)))
                 self.con.commit()
+                self.logger.info(f'mark {nid}')
         except Exception as why:
             self.logger.error(f'fail to mark-express of p_tradeun {nid} cause of {why} ')
 
@@ -153,6 +143,7 @@ class Checker(CommonService):
             sql = "update p_trade set memo =   %s where nid = %s "
             self.cur.execute(sql, (memo, nid))
             self.con.commit()
+            self.logger.info(f'mark {nid}')
         except Exception as why:
             self.logger.error(f'fail to  mark-express of p_trade {nid} cause of {why} ')
 
@@ -254,7 +245,7 @@ class Checker(CommonService):
             self.mark_out_of_stock_trades_trans(express_info)
 
             # 标记未核单和未拣货
-            # self.mark_unchecked_unpicked_trades_trans(express_info)
+            self.mark_unchecked_unpicked_trades_trans(express_info)
 
         except Exception as why:
             self.logger.error(why)
