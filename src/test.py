@@ -37,7 +37,7 @@ class AliSync(CommonService):
             trade_response = api.execute(
                 'GetItem',
                 {
-                    'ItemID': 293668382548,
+                    'ItemID': 293716165258,
                 #     'SKU': row['Item']['SKU'],
                 #     # 'SKU': '7C2796@#01',
                     'requesterCredentials': {'eBayAuthToken': token},
