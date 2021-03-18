@@ -226,7 +226,7 @@ class Checker(CommonService):
                         else:
                             self.unmark_unchecked_unpicked_trades(nid)
                     else:
-                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
                             self.mark_unchecked_unpicked_trades(nid, times)
                         else:
                             self.unmark_unchecked_unpicked_trades(nid)
