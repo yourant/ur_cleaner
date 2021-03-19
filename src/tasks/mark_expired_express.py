@@ -37,13 +37,15 @@ class Checker(CommonService):
         缺货单
         :return:
         """
-        sql = ("select  nid, logs,addressOwner,name,memo  from (select pt.nid, logs,addressOwner,name,pt.memo, "
-               "row_number() over (partition by pt.nid order by plog.nid desc) as rn from p_tradeun(nolock) as pt"
+        sql = ("select pt.nid, logs,addressOwner,name "
+               " from p_tradeun(nolock) as pt"
                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid "
                "LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid "
                "where PROTECTIONELIGIBILITYTYPE='缺货订单'  and pt.trackNo is not null "
                "and (plog.logs like '%预获取转单号成功%' or plog.logs like '%跟踪号成功,跟踪号%'"
-               " or plog.logs like '%提交订单成功!   跟踪号:%') ) as td where rn=1")
+               " or plog.logs like '%提交订单成功!   跟踪号:%')  "
+               # "and pt.nid = 28069707"
+               "")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -55,16 +57,15 @@ class Checker(CommonService):
         未核单:filterFlag=22
         :return:
         """
-        sql = ("select  nid, logs,nid as lognid,addressOwner,name,memo from (  "
-                "select pt.nid,pt.memo, plog.logs,plog.nid as lognid,pt.addressOwner,bw.name, row_number() over (partition by pt.nid order by plog.nid desc) as rn from  "
-                "(select ordertime,nid, memo,addressOwner, trackNo,logicsWayNid from p_trade(nolock)  where addressOwner ='aliexpress' and	FilterFlag in(22,20) ) as pt   "
-                " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid   "
-                "LEFT join P_TradeLogs(nolock) as tlog on   tlog.nid = plog.nid  "
-                " LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid 						  "
-                " where 	pt.trackNo is not null   "
-                " and (plog.logs like '%预获取转单号成功%' or plog.logs like '%跟踪号成功,跟踪号%' or plog.logs like '%提交订单成功!   跟踪号:%')  "
-                ") td  "
-                "where td.rn =1 " )
+        sql = ("select pt.nid, logs,addressOwner,name "
+               " from p_trade(nolock) as pt"
+               " LEFT JOIN P_TradeLogs(nolock) as plog on cast(pt.Nid as varchar(20)) = plog.tradenid "
+               "LEFT JOIN b_logisticWay(nolock) as bw on pt.logicsWayNid = bw.nid "
+               "where addressOwner ='aliexpress' and	FilterFlag in(22,20)   and pt.trackNo is not null "
+               "and (plog.logs like '%预获取转单号成功%' or plog.logs like '%跟踪号成功,跟踪号%'"
+               " or plog.logs like '%提交订单成功!   跟踪号:%')  "
+               # "and pt.nid = 28069707"
+               "")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
@@ -89,22 +90,15 @@ class Checker(CommonService):
         """
         out = {}
         for row in trades:
-            times = 1
-            date1 = re.search(r'\d{4}-\d{2}-\d{2}', row['logs']).group(0)
-            try:
-                if row['memo']:
-                    data2 = re.findall(r'\d{4}-\d{2}-\d{2}.*:已修改追踪号，可以发', row['memo'])
-                    if len(data2) > 0:
-                        times = times + len(data2)
-                        date1 = data2[-1][:10]
-            except Exception as why:
-                print(row['memo'])
-
+            date = re.search(r'\d{4}-\d{2}-\d{2}', row['logs']).group(0)
             if row['nid'] not in out:
-                out[row['nid']] = {'express': row['name'], 'date': date1, "times": times, 'addressOwner': row['addressOwner']}
+                out[row['nid']] = {'express': row['name'], 'date': date, "times": 1, 'addressOwner': row['addressOwner']}
             else:
-                if out[row['nid']]['date'] < date1:
-                    out[row['nid']] = {'express': row['name'], 'date': date1, "times": times, 'addressOwner': row['addressOwner']}
+                times = out[row['nid']]['times'] + 1
+                new_date = out[row['nid']]['date']
+                if new_date > date:
+                    date = new_date
+                out[row['nid']] = {'express': row['name'], 'date': date, "times": times, 'addressOwner': row['addressOwner']}
         return out
 
     def mark_out_of_stock_trades(self, nid, times):
@@ -117,14 +111,16 @@ class Checker(CommonService):
                 sql = 'insert into CG_OutofStock_Total(TradeNid, PrintMemoTotal) values (%s, %s)'
                 self.cur.execute(sql, (nid, '跟踪号超时' + str(times)))
                 self.con.commit()
+                self.logger.info(f'mark {nid}')
         except Exception as why:
             self.logger.error(f'fail to mark-express of p_tradeun {nid} cause of {why} ')
 
     def unmark_out_of_stock_trades(self, nid):
         try:
-            sql = 'delete from CG_OutofStock_Total where tradeNid=%s and PrintMemoTotal=%s'
-            self.cur.execute(sql, (nid, '跟踪号超时'))
+            sql = 'delete from CG_OutofStock_Total where tradeNid=%s and PrintMemoTotal like %s'
+            self.cur.execute(sql, (nid, '%跟踪号超时%'))
             self.con.commit()
+            # self.logger.info(f'unmark {nid}')
         except Exception as why:
             self.logger.error(f'fail to  unmark-express of p_tradeun {nid} cause of {why} ')
 
@@ -143,10 +139,11 @@ class Checker(CommonService):
                 memo = ret['memo']
                 memo = memo.replace(';跟踪号超时', '') + ';跟踪号超时' + str(times)
             else:
-                memo = ';跟踪号超时' + str(times)
+                memo = '跟踪号超时' + str(times)
             sql = "update p_trade set memo =   %s where nid = %s "
             self.cur.execute(sql, (memo, nid))
             self.con.commit()
+            self.logger.info(f'mark {nid}')
         except Exception as why:
             self.logger.error(f'fail to  mark-express of p_trade {nid} cause of {why} ')
 
@@ -189,11 +186,14 @@ class Checker(CommonService):
             if express in express_info:
                 if row[1]['addressOwner'] == 'aliexpress':
                     if times == 1:
+                        # 第一次7超过7天开始标记
                         if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
                             self.mark_out_of_stock_trades(nid, times)
                         else:
                             self.unmark_out_of_stock_trades(nid)
+
                     else:
+                        # 其余超过5天开始标记
                         if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
                             self.mark_out_of_stock_trades(nid, times)
                         else:
@@ -226,7 +226,7 @@ class Checker(CommonService):
                         else:
                             self.unmark_unchecked_unpicked_trades(nid)
                     else:
-                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express] + 2:
+                        if (today - datetime.datetime.strptime(date, '%Y-%m-%d')).days >= express_info[express]:
                             self.mark_unchecked_unpicked_trades(nid, times)
                         else:
                             self.unmark_unchecked_unpicked_trades(nid)
