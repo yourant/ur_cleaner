@@ -103,7 +103,7 @@ class FetchEbayLists(CommonService):
                                 'itemid': result['Item']['ItemID'],
                                 'suffix': suffix,
                                 'selleruserid': result['Item']['Seller']['UserID'],
-                                'storage': item['Quantity'] - item['SellingStatus']['QuantitySold'],
+                                'storage': int(item['Quantity']) - int(item['SellingStatus']['QuantitySold']),
                                 'listingType': result['Item']['ListingType'],
                                 'country': result['Item']['Country'],
                                 'paypal': paypal,
@@ -135,7 +135,7 @@ class FetchEbayLists(CommonService):
                             'suffix': suffix,
                             'selleruserid': result['Item']['Seller']['UserID'],
                             # 'storage': Variation['Quantity'],
-                            'storage': Variation['Quantity'] - Variation['SellingStatus']['QuantitySold'],
+                            'storage': int(Variation['Quantity']) - int(Variation['SellingStatus']['QuantitySold']),
                             'listingType': result['Item']['ListingType'],
                             'country': result['Item']['Country'],
                             'paypal': paypal,
@@ -168,7 +168,7 @@ class FetchEbayLists(CommonService):
                         'suffix': suffix,
                         'selleruserid': result['Item']['Seller']['UserID'],
                         # 'storage': result['Item']['Quantity'],
-                        'storage': result['Item']['Quantity'] - result['Item']['SellingStatus']['QuantitySold'],
+                        'storage': int(result['Item']['Quantity']) - int(result['Item']['SellingStatus']['QuantitySold']),
                         'listingType': result['Item']['ListingType'],
                         'country': result['Item']['Country'],
                         'paypal': paypal,
@@ -197,7 +197,7 @@ class FetchEbayLists(CommonService):
                'FROM [dbo].[S_PalSyncInfo] WHERE SyncEbayEnable=1 '
                'and notename in (select dictionaryName from B_Dictionary '
                "where  CategoryID=12 and FitCode ='eBay' and used = 0) "
-               "and NoteName in ('eBay-39-abovestair5', '') "
+               "and NoteName in ('eBay-39-abovestair5', 'eBay-19-sectionry-4') "
                # "and NoteName in ('eBay-C86-syho_63','eBay-C91-heir918','eBay-C92-ha199597','eBay-C79-jlh-79',
                # 'eBay-C99-tianru98','eBay-C95-shi_7040','eBay-C96-sysy_3270','eBay-E23-sarodyconsulting134',
                # 'eBay-E37-howa589680','eBay-E38-cameron878_2','eBay-E39-berr_9671','eBay-33-moonstair8','eBay-34-starstair9')"
