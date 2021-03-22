@@ -62,8 +62,11 @@ class AliSync(CommonService):
             #         # print(row)
             #         col2.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
             #     self.logger.info(f'success to sync data in {begin}')
-            res = self.get_ebay_description()
-            print(res)
+            #res = self.get_ebay_description()
+            update_time = str(datetime.datetime.today())[:19]
+            print(update_time)
+
+
             # for item in res['DescriptionTemplate']:
             #     self.col.insert_one(item)
             # for item in res['ThemeGroup']:
