@@ -51,18 +51,18 @@ class DevRateFetcher(CommonService):
         rate_map = self.get_department_rate()
         for dp in developers:
             if dp['depart'] in rate_map:
-                yield dp['username'],rate_map[dp['depart']]
+                yield dp['username'], rate_map[dp['depart']]
             else:
                 yield dp['username'], rate_map['其他']
 
     def push(self, rows):
         try:
-            sql = "insert into cache_dev_rate(developer,rate) values (%s,%s)"
+            sql = "insert into cache_dev_rate(developer,rate) values (%s,%s) ON DUPLICATE KEY UPDATE rate=values(rate)"
             self.warehouse_cur.executemany(sql, rows)
             self.warehouse_con.commit()
             self.logger.info('success to fetch dev rate')
         except Exception as why:
-            pass
+            self.logger.error(f'fail to push dev rate cause of {why}')
 
     def work(self):
         try:
