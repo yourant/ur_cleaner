@@ -46,7 +46,9 @@ class DevRateSuffixGoodsFetcher(CommonService):
                ' PPebayZn , inPackageFeeRmb , expressFareRmb , netProfit , netRate, sold',
                ') values (',
                '%s,%s,%s,%s,%s,%s,%s,%s,%s,',
-               '%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE goodsName=values(goodsName)',
+               '%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE saleMoneyRmbZn = values(saleMoneyRmbZn), '
+               'costMoneyRmb= values(costMoneyRmb) , PPebayUS = values(PPebayUS),inPackageFeeRmb=values(inPackageFeeRmb), '
+               'expressFareRmb = values(expressFareRmb)',
                ]
         self.warehouse_cur.executemany(''.join(sql), rows)
         self.warehouse_con.commit()
@@ -63,7 +65,7 @@ class DevRateSuffixGoodsFetcher(CommonService):
             today = str(datetime.datetime.today())[:10]
             last_month = (datetime.date.today().replace(day=1) - datetime.timedelta(days=1)).strftime("%Y-%m")
             last_month_first_day = str(last_month + '-01')
-            last_month_first_day = '2019-01-01'
+            # last_month_first_day = '2019-01-01'
             # today = '2021-01-06'
             # self.clear(last_month_first_day, today)
             for date_flag in (0, 1):
