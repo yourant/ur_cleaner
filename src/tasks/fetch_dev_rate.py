@@ -4,6 +4,7 @@
 # Author: turpure
 
 import os
+import datetime
 from src.services.base_service import CommonService
 
 
@@ -49,15 +50,17 @@ class DevRateFetcher(CommonService):
     def get_developer_rate(self):
         developers = self.get_developer()
         rate_map = self.get_department_rate()
+        now = str(datetime.datetime.now())
         for dp in developers:
             if dp['depart'] in rate_map:
-                yield dp['username'], rate_map[dp['depart']]
+                yield dp['username'], rate_map[dp['depart']], '海外仓', now
             else:
-                yield dp['username'], rate_map['其他']
+                yield dp['username'], rate_map['其他'], '国内仓', now
 
     def push(self, rows):
         try:
-            sql = "insert into cache_dev_rate(developer,rate) values (%s,%s) ON DUPLICATE KEY UPDATE rate=values(rate)"
+            sql = ("insert into cache_dev_rate(developer,rate,position,updatedTime) values (%s,%s,%s, %s) "
+                   "ON DUPLICATE KEY UPDATE rate=values(rate), position= values(position), updatedTime = values(updatedTime)")
             self.warehouse_cur.executemany(sql, rows)
             self.warehouse_con.commit()
             self.logger.info('success to fetch dev rate')
