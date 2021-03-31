@@ -7,9 +7,10 @@ import os
 import datetime
 import re
 from src.services.base_service import CommonService
+from src.services.base_service import BaseMssqlService
 
 
-class Marker(CommonService):
+class Marker(BaseMssqlService):
     """
     mark trades out of stock
     业务逻辑：
@@ -21,12 +22,12 @@ class Marker(CommonService):
     def __init__(self):
         super().__init__()
         self.goods_status = ('春节放假', '清仓', '停产', '停售', '线下清仓', '线上清仓', '线上清仓50P', '线上清仓100P')
-        self.base_name = 'mssql'
-        self.cur = self.base_dao.get_cur(self.base_name)
-        self.con = self.base_dao.get_connection(self.base_name)
+        # self.base_name = 'mssql'
+        # self.cur = self.base_dao.get_cur(self.base_name)
+        # self.con = self.base_dao.get_connection(self.base_name)
 
-    def close(self):
-        self.base_dao.close_cur(self.cur)
+    # def close(self):
+    #     self.base_dao.close_cur(self.cur)
 
     def transport_exception_trades(self, trade_info):
         max_bill_code_query = "P_S_CodeRuleGet 130,''"
@@ -61,14 +62,21 @@ class Marker(CommonService):
             delta_day = 5
         return delta_day
 
-    def prepare_to_mark(self):
+    def get_all_trades(self):
         param_status = ','.join(self.goods_status)
         trades_to_mark_sql = "www_outOfStock_sku '7','{}'".format(param_status)
-        empty_mark_sql = "update p_tradeUn set reasonCode = '', memo = %s where nid = %s"
-        pattern = '不采购: .*;'
         self.cur.execute(trades_to_mark_sql)
         trades_to_mark = self.cur.fetchall()
+        ret = []
+        for row in trades_to_mark:
+            ret.append(row)
+        return ret
+
+    def prepare_to_mark(self):
+        empty_mark_sql = "update p_tradeUn set reasonCode = '', memo = %s where nid = %s"
+        pattern = '不采购: .*;'
         ret_trades = {}
+        trades_to_mark = self.get_all_trades()
         for tra in trades_to_mark:
             memo = tra['memo']
             if re.match(pattern, memo):
@@ -77,11 +85,18 @@ class Marker(CommonService):
                 today = str(datetime.datetime.now())[5:10]
             origin_memo = re.sub(pattern, '', memo)
             if tra['which'] == 'pre':
-                self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
-                self.con.commit()
+                # self.cur.execute(empty_mark_sql, (origin_memo, tra['tradeNid']))
+                # self.con.commit()
                 self.logger.info('emptying %s', tra['tradeNid'])
+                trade = {
+                    'tradeNid': tra['tradeNid'],
+                    'mark_memo': '',
+                    'origin_memo': origin_memo,
+                    'reasonCode': ''
+                }
+                ret_trades[tra['tradeNid']] = trade
 
-            if tra['which'] == 'cur' and tra['goodsSkuStatus'] in self.goods_status:
+            elif tra['which'] == 'cur' and tra['goodsSkuStatus'] in self.goods_status:
                 mark_memo = '不采购: ' + tra['purchaser'] + today + ':' + tra['sku'] + tra['goodsSkuStatus'] + ';'
                 trade = {
                     'tradeNid': tra['tradeNid'],
@@ -122,6 +137,12 @@ class Marker(CommonService):
             self.con.commit()
             self.logger.info('marking %s', mar['tradeNid'])
 
+    def test(self):
+        update_memo_sql = "update p_tradeUn set memo = %s, reasonCode = %s where nid = %s"
+        self.cur.execute(update_memo_sql, ('', '', 28711143))
+        self.con.commit()
+        self.logger.info('updating...')
+
     def run(self):
         try:
             self.handle_exception_trades_trans()
@@ -131,6 +152,7 @@ class Marker(CommonService):
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
         finally:
+            self.con.commit()
             self.close()
 
 

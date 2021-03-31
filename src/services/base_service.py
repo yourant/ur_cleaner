@@ -90,4 +90,24 @@ class BaseService(object):
             self.logger.error('fail to close connection cause of {}'.format(e))
 
 
+class BaseMssqlService(object):
+    """
+    wrap log and mssql service
+    """
+    def __init__(self):
+        self.logger = log.SysLogger().log
+        self.mssql = db.DataBase('mssql')
+        self.con = self.mssql.connection
+        if self.con:
+            self.cur = self.con.cursor(as_dict=True)
+
+    def close(self):
+        try:
+            self.mssql.close()
+            self.logger.info('close connection')
+        except Exception as e:
+            self.logger.error('fail to close connection cause of {}'.format(e))
+
+
+
 
