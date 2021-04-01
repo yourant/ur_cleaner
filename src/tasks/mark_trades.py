@@ -134,7 +134,6 @@ class Marker(BaseMssqlService):
         for mar in trades_to_mark.values():
             new_memo = mar['origin_memo'] + mar['mark_memo']
             self.cur.execute(update_memo_sql, (new_memo, mar['reasonCode'], mar['tradeNid']))
-            self.con.commit()
             self.logger.info('marking %s', mar['tradeNid'])
 
     def test(self):
@@ -152,7 +151,6 @@ class Marker(BaseMssqlService):
             name = os.path.basename(__file__).split(".")[0]
             raise Exception(f'fail to finish task of {name}')
         finally:
-            self.con.commit()
             self.close()
 
 
