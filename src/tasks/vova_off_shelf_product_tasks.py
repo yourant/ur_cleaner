@@ -23,8 +23,8 @@ class OffShelf(CommonService):
         self.base_dao.close_cur(self.cur)
 
     def get_vova_token(self):
-        sql = ("EXEC B_VovaOffShelfProducts  '清仓,停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +
-              "'爆款,旺款,Wish新款,浮动款,在售,侵权'," +
+        sql = ("EXEC B_VovaOffShelfProducts  '停产,停售,线上清仓,线下清仓,线上清仓50P,线上清仓100P,春节放假'," +
+              "'爆款,旺款,Wish新款,浮动款,在售,侵权,清仓'," +
               "'清仓,停产,停售,线上清仓,线上清仓50P,线上清仓100P,春节放假'")
 
         # sql = ("EXEC B_VovaOffShelfProducts  '停产,停售,春节放假'," +

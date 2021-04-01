@@ -40,7 +40,7 @@ class Worker(BaseService):
                 row['DeclaredValue'],
                 row['OriginCountry'],
                 row['OriginCountryCode'],
-                row['BmpFileName'],
+                row['Name'],
                 row['GoodsName'],
                 row['GoodsSKUID'],
                 row['StoreID'],
