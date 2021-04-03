@@ -19,10 +19,8 @@ class AliSync(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.mongo = MongoClient('192.168.0.150', 27017)
         self.mongodb = self.mongo['operation']
-        self.col = self.mongodb['ebay_description_template']
-        self.col1 = self.mongodb['ebay_description_group']
+        self.col = self.get_mongo_collection('operation', 'wish_stock_task')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -63,8 +61,27 @@ class AliSync(CommonService):
             #         col2.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
             #     self.logger.info(f'success to sync data in {begin}')
             #res = self.get_ebay_description()
-            update_time = str(datetime.datetime.today())[:19]
-            print(update_time)
+            item = {
+                'item_id': '6062bc31893e9afe58745377',
+            'suffix': 'WISE180-neatthao',
+            'sku': '6A557301',
+            'goodsCode': '6A5573',
+            'goodsStatus': '在售',
+            'mainImage': 'https://canary.contestimg.wish.com/api/webimage/6062bc31893e9afe58745377-original.jpg?cache_buster=-5461400121706197611',
+            'shopSku': '6A557301@#E180',
+            'onlineInventory': 0,
+            'targetInventory': 10000,
+            'goodsName': '保鲜袋收纳袋',
+            'status': '待执行',
+            'executedResult': '',
+            'executedTime': '',
+            'created': '2021-04-02 13:55:00',
+            'updated': '2021-04-02 13:55:00',
+            'accessToken': '111'
+            }
+            self.col.insert_one(item)
+            # update_time = str(datetime.datetime.today())[:19]
+            # print(update_time)
 
 
             # for item in res['DescriptionTemplate']:
