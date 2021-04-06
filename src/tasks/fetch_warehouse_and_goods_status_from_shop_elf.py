@@ -7,7 +7,7 @@ import os
 import time
 from src.services.base_service import CommonService
 """
-库存预警。
+同步仓库和商品状态到运营中心
 """
 
 
@@ -18,7 +18,8 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.col_product = self.get_mongo_collection('operation', 'product_sku')
+        self.col_store = self.get_mongo_collection('operation', 'store')
+        self.col_goods_status = self.get_mongo_collection('operation', 'store')
         self.total_num = 10000000
         self.step = 1000
 
