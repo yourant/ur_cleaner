@@ -19,10 +19,8 @@ class AliSync(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['operation']
-        self.col = self.mongodb['ebay_description_template']
-        self.col1 = self.mongodb['ebay_description_group']
+        self.col = self.get_mongo_collection('operation', 'wish_stock_task')
+        self.product_list = self.get_mongo_collection('operation', 'wish_products')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -38,8 +36,8 @@ class AliSync(CommonService):
                 'GetItem',
                 {
                     'ItemID': 293716165258,
-                #     'SKU': row['Item']['SKU'],
-                #     # 'SKU': '7C2796@#01',
+                    #     'SKU': row['Item']['SKU'],
+                    #     # 'SKU': '7C2796@#01',
                     'requesterCredentials': {'eBayAuthToken': token},
                 }
             )
@@ -62,15 +60,18 @@ class AliSync(CommonService):
             #         # print(row)
             #         col2.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
             #     self.logger.info(f'success to sync data in {begin}')
-            #res = self.get_ebay_description()
-            update_time = str(datetime.datetime.today())[:19]
-            print(update_time)
+            # res = self.get_ebay_description()
 
+            # update_time = str(datetime.datetime.today())[:19]
+            # print(update_time)
 
-            # for item in res['DescriptionTemplate']:
-            #     self.col.insert_one(item)
-            # for item in res['ThemeGroup']:
-            #     self.col1.insert_one(item)
+            products = self.product_list.find({'goods_code': {'$in': [None]}})
+            for item in products:
+                goods_code = item['parent_sku'].split('@')[0]
+                print(goods_code)
+                # self.col.insert_one(item)
+                self.product_list.update_one({'id': item['id'], 'parent_sku': item['parent_sku']},
+                                             {"$set": {'goods_code': goods_code}}, upsert=True)
         except Exception as e:
             self.logger(e)
         # finally:

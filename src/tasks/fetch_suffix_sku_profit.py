@@ -33,18 +33,19 @@ class SuffixSkuProfitFetcher(CommonService):
 
         for row in ret:
             yield (
-                row['dateFlag'], row['orderDate'],row['suffix'], row['pingtai'], row['goodsCode'], row['goodsName'],
-                row['storeName'], row['salerName'], row['devDate'], row['skuQty'], row['saleMoneyRmb'], row['refund'],row['profitRmb']
+                row['dateFlag'], row['orderDate'], row['suffix'], row['pingtai'], row['goodsCode'], row['mainImage'],
+                row['goodsName'], row['storeName'], row['salerName'], row['devDate'], row['skuQty'],
+                row['saleMoneyRmb'], row['refund'], row['profitRmb']
             )
 
     def push(self, rows):
         sql = ['insert into cache_suffixSkuProfitReport(',
-               'dateFlag,orderDate,suffix,pingtai,goodsCode,goodsName,',
+               'dateFlag,orderDate,suffix,pingtai,goodsCode,mainImage,goodsName,',
                'storeName,salerName,devDate,skuQty,saleMoneyRmb,refund,profitRmb',
                ') values (',
-               '%s,%s,%s,%s,%s,%s,',
+               '%s,%s,%s,%s,%s,%s,%s,',
                '%s,%s,%s,%s,%s,%s,%s',
-               ') ON DUPLICATE KEY UPDATE pingtai=values(pingtai),'
+               ') ON DUPLICATE KEY UPDATE pingtai=values(pingtai),mainImage=values(mainImage),'
                'goodsName=values(goodsName),salerName=values(salerName),devDate=values(devDate),'
                'skuQty=values(skuQty),saleMoneyRmb=values(saleMoneyRmb),'
                'refund=values(refund),profitRmb=values(profitRmb)'

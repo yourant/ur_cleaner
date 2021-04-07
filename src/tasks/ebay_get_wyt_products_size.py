@@ -51,18 +51,19 @@ class FetchEbay(CommonService):
             self.logger.error('failed cause of {}'.format(e))
 
     def _parse_response(self, rows):
+        update_time = str(datetime.datetime.today())[:19]
         try:
             for row in rows:
                 res_list = (row['skuCode'], row['registerWeight'], row['registerLength'],
-                            row['registerWidth'], row['registerHeight'])
+                            row['registerWidth'], row['registerHeight'], update_time)
                 for item in row['customsDeclarationList']:
                     if item['countryCode'] == 'UK':
-                        sql = f'insert into UK_Storehouse_WeightAndSize values(%s,%s,%s,%s,%s)'
+                        sql = f'insert into UK_Storehouse_WeightAndSize values(%s,%s,%s,%s,%s,%s)'
                         self.cur.execute(sql, res_list)
                         self.con.commit()
                         break
                     if item['countryCode'] == 'AU':
-                        sql = f'insert into AU_Storehouse_WeightAndSize values(%s,%s,%s,%s,%s)'
+                        sql = f'insert into AU_Storehouse_WeightAndSize values(%s,%s,%s,%s,%s,%s)'
                         self.cur.execute(sql, res_list)
                         self.con.commit()
                         break
