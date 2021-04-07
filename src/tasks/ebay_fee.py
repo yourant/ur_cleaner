@@ -9,12 +9,7 @@ from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from src.services.base_service import CommonService
 from configs.config import Config
-from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-col = mongodb['ebay_fee']
 
 
 class EbayFee(CommonService):
@@ -25,7 +20,8 @@ class EbayFee(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=40))[:10]
+        self.col = self.get_mongo_collection('operation', 'ebay_fee')
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
@@ -149,9 +145,8 @@ class EbayFee(CommonService):
                 if float(row.NetDetailAmount.value) != 0:
                     yield fee
 
-    @staticmethod
-    def save(row):
-        col.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
+    def save(self, row):
+        self.col.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
 
     def work(self, ebay_token):
         par = self.get_request_params(ebay_token)
@@ -161,9 +156,8 @@ class EbayFee(CommonService):
         except Exception as why:
             self.logger.error(f'fail to work in get fee of {ebay_token["notename"]} cause of {why}')
 
-    @staticmethod
-    def get_data(begin, end):
-        rows = col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
+    def get_data(self, begin, end):
+        rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
         for row in rows:
             yield (row['accountName'], row['feeType'], row['value'], row['currency'],
                    row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
@@ -223,7 +217,6 @@ class EbayFee(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
 
 if __name__ == '__main__':
