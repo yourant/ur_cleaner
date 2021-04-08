@@ -3,17 +3,15 @@
 # @Time: 2019-11-05 11:02
 # Author: turpure
 
-from src.services.base_service import BaseService
-from pymongo import MongoClient
+from src.services.base_service import CommonService
 import requests
 
 
-class Worker(BaseService):
+class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
-        self.mongo = MongoClient(host="192.168.0.150", port=27017)
-        self.mdb = self.mongo.product_engine
+        self.col = self.get_mongo_collection('product_engine', 'wish_category')
 
     @staticmethod
     def get_main_cate():
@@ -31,8 +29,7 @@ class Worker(BaseService):
         return {'cate': main_cat, 'subCate': cats}
 
     def save(self, row):
-        col = self.mdb["wish_category"]
-        col.insert_one(row)
+        self.col.insert_one(row)
 
     def run(self):
         try:

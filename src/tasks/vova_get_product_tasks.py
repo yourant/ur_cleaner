@@ -10,11 +10,6 @@ import json
 import asyncio
 import datetime
 import math
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['vova']
-col = mongodb['vova_listing']
 
 
 class Producer(CommonService):
@@ -24,6 +19,7 @@ class Producer(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('vova', 'vova_listing')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -84,14 +80,14 @@ class Producer(CommonService):
 
     async def save(self, rows, token, page):
         try:
-            col.insert_many(rows)
+            self.col.insert_many(rows)
             self.logger.info(f"success to save data page {page} in multi processing way of suffix {token['suffix']} ")
         except Exception as why:
             self.logger.error(
                 f"fail to save data page {page} in multi processing way of suffix {token['suffix']} cause of {why} ")
 
     def clean_mongo(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clear mongo')
 
     def clean_db(self):
@@ -101,7 +97,7 @@ class Producer(CommonService):
         self.logger.info('success to clear vova listing')
 
     def pull_from_mongo(self):
-        rows = col.find()
+        rows = self.col.find()
         for rw in rows:
             ret = (rw['code'], rw['sku'], rw['newsku'],
                    rw['itemid'], rw['suffix'], rw['selleruserid'], rw['storage'], rw['updateTime'])

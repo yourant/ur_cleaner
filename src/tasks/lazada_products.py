@@ -11,13 +11,6 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-# col = mongodb['wish_products']
-col = mongodb['wish_products']
-
 
 class Worker(CommonService):
     """
@@ -29,6 +22,7 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'lazada_products')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -45,7 +39,7 @@ class Worker(CommonService):
             yield row
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         self.logger.info('success to clear wish product list')
 
     def get_products(self, row):
@@ -113,7 +107,7 @@ class Worker(CommonService):
 
     def put(self, row):
         # col.save(row)
-        col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+        self.col.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def work(self):
         try:

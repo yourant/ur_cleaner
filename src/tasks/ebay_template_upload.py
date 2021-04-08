@@ -10,16 +10,9 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 from bson import ObjectId
-from pymongo import MongoClient
 from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from configs.config import Config
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-col_temp = mongodb['ebay_template']
-col_task = mongodb['ebay_task']
-col_log = mongodb['ebay_log']
 
 
 class Worker(CommonService):
@@ -36,13 +29,15 @@ class Worker(CommonService):
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
         self.tokens = self.get_tokens()
+        self.col_temp = self.get_mongo_collection('operation', 'ebay_template')
+        self.col_task = self.get_mongo_collection('operation', 'ebay_task')
+        self.col_log = self.get_mongo_collection('operation', 'ebay_log')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-    @staticmethod
-    def get_ebay_tasks():
-        ret = col_task.find({'status': 'todo'})
+    def get_ebay_tasks(self):
+        ret = self.col_task.find({'status': 'todo'})
         for row in ret:
             yield row
 
@@ -62,7 +57,7 @@ class Worker(CommonService):
 
     def get_ebay_template(self, template_id):
         try:
-            template = col_temp.find_one({'_id': ObjectId(template_id)})
+            template = self.col_temp.find_one({'_id': ObjectId(template_id)})
             try:
                 token = self.tokens[template['SiteInfo']['Suffix']]
             except Exception:
@@ -386,18 +381,18 @@ class Worker(CommonService):
             self.logger.error(f"fail to upload of products variants {parent_sku}  cause of {why}")
 
     def update_task_status(self, row):
-        col_task.update_one({'_id': row['id']}, {"$set": {'item_id': row['item_id'], 'status': row['status'],
+        self.col_task.update_one({'_id': row['id']}, {"$set": {'item_id': row['item_id'], 'status': row['status'],
                                                           'updated': self.today}}, upsert=True)
 
     def update_template_status(self, template_id, item_id):
-        col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功',
+        self.col_temp.update_one({'_id': ObjectId(template_id)}, {"$set": {'item_id': item_id, 'status': '刊登成功',
                                                                       'is_online': 1, 'updated': self.today}},
                             upsert=True)
 
     # 添加日志
     def add_log(self, params):
         params['created'] = self.today
-        col_log.insert_one(params)
+        self.col_log.insert_one(params)
 
     def work(self):
         try:
@@ -413,20 +408,19 @@ class Worker(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
     def sync_data(self):
         """
         同步模板和任务的状态
         :return:
         """
-        tp = col_temp.find()
+        tp = self.col_temp.find()
         for ele in tp:
-            ret = col_task.find_one({'template_id': str(ele['_id']), "item_id": {'$nin': ['']}})
+            ret = self.col_task.find_one({'template_id': str(ele['_id']), "item_id": {'$nin': ['']}})
             item_id = ''
             if ret:
                 item_id = ret.get('item_id', '')
-            col_temp.update_one({'_id': ele['_id']}, {"$set": {'item_id': item_id, 'is_online': 1, 'status': '刊登成功'}})
+            self.col_temp.update_one({'_id': ele['_id']}, {"$set": {'item_id': item_id, 'is_online': 1, 'status': '刊登成功'}})
             self.logger.info(f'updating template of {ele["_id"]} set item_id to {item_id}')
 
 

@@ -5,16 +5,15 @@
 
 import requests
 from bs4 import BeautifulSoup
-from pymongo import MongoClient
 import datetime
+from src.services.base_service import CommonService
 
 
-class Worker(object):
+class Worker(CommonService):
 
     def __init__(self):
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['product_engine']
-        self.col = self.mongodb['ebay_recommended_product']
+        super().__init__()
+        self.col = self.get_mongo_collection('product_engine', 'ebay_recommended_product')
 
     def get_url(self):
         today = str(datetime.datetime.now())[:10]

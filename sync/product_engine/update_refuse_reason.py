@@ -3,15 +3,14 @@
 # @Time: 2019-11-28 13:15
 # Author: turpure
 
-from pymongo import MongoClient
+from src.services.base_service import CommonService
 
 
-class Worker(object):
+class Worker(CommonService):
 
     def __init__(self):
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['product_engine']
-        self.col = self.mongodb['ebay_recommended_product']
+        super().__init__()
+        self.col = self.get_mongo_collection('product_engine', 'ebay_recommended_product')
 
     def get_reason(self):
         ret = self.col.find()

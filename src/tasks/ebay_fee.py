@@ -25,6 +25,7 @@ class EbayFee(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'ebay_fee')
 
     def close(self):
         self.base_dao.close_cur(self.cur)

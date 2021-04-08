@@ -6,7 +6,6 @@
 from src.services.base_service import CommonService
 from ebaysdk.trading import Connection as Trading
 import datetime
-from pymongo import MongoClient
 from configs.config import Config
 
 

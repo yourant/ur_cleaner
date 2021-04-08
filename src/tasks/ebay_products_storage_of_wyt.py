@@ -3,16 +3,10 @@ import time
 from src.services.base_service import CommonService
 from configs.config import Config
 from src.services import oauth_wyt as wytOauth
-from pymongo import MongoClient
 import math
 import json
 import requests
 import os
-
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['ebay']
-col = mongodb['ebay_product_list']
 
 
 class FetchEbayProductsStorage(CommonService):

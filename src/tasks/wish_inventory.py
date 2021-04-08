@@ -6,6 +6,7 @@ import os
 from multiprocessing.pool import ThreadPool as Pool
 from src.services.base_service import CommonService
 import requests
+import datetime
 
 
 class Worker(CommonService):
@@ -18,6 +19,7 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.task = self.get_mongo_collection('operation', 'wish_stock_task')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -47,11 +49,13 @@ class Worker(CommonService):
         for row in ret:
             yield row
 
+
+
     def update_inventory(self, row):
         # print(row)
-        token = row['token']
-        sku = row['sku']
-        inventory = row['quantity']
+        token = row['accessToken']
+        sku = row['shopSku']
+        inventory = row['targetInventory']
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         base_url = 'https://merchant.wish.com/api/v2/variant/update-inventory'
         param = {
@@ -66,21 +70,27 @@ class Worker(CommonService):
                 ret = response.json()
                 # print(ret)
                 if ret["code"] == 0:
-                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    row['status'] = 'success'
+                    row['executedResult'] = 'success'
+                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+                    self.logger.info(f'success { row["suffix"] } to update { row["item_id"] }')
                     break
+                else:
+                    row['status'] = 'failed'
+                    row['executedResult'] = 'failed'
+                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
             except Exception as why:
                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')
 
-    def update_flag(self, nid):
-        sql = "update ibay365_wish_quantity set flag = 1 where nid=%"
-        self.cur.execute(sql, nid)
-        self.con.commit()
-
     def work(self):
         try:
-            self.calculate_quantity()
+            # self.calculate_quantity()
+            # tokens = self.get_wish_token()
 
-            tokens = self.get_wish_token()
+            # tokens = self.task.find({'item_id': '57e249007c15837357ae5615'})
+            tokens = self.task.find({'status': '初始化'})
             pl = Pool(16)
             pl.map(self.update_inventory, tokens)
         except Exception as why:

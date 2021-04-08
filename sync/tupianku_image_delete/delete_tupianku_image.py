@@ -16,9 +16,7 @@ class Worker(BaseSpider):
 
     def __init__(self, tupianku_name=2):
         super().__init__(tupianku_name)
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['ur_cleaner']
-        self.col = self.mongodb['delete_tupianku_tasks']
+        self.col = self.get_mongo_collection('ur_cleaner', 'delete_tupianku_tasks')
 
     def _get_goods(self):
         sql = ("SELECT DISTINCT b.goodsCode FROM [dbo].[B_GoodsSKU]  bs LEFT JOIN B_Goods  b ON bs.GoodsID = b.NID" +

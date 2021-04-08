@@ -5,7 +5,6 @@
 
 import os
 from src.services.base_service import CommonService
-from pymongo import MongoClient
 
 
 class Worker(CommonService):
@@ -15,11 +14,8 @@ class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
-
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['operation']
-        self.from_col = self.mongodb['wish_products']
-        self.to_col = self.mongodb['wish_productboost_recommended']
+        self.from_col = self.get_mongo_collection('operation', 'wish_products')
+        self.to_col = self.get_mongo_collection('operation', 'wish_productboost_recommended')
 
     def close(self):
         self.mongo.close()

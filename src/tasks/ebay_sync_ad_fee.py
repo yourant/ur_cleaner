@@ -9,11 +9,6 @@ from src.services.base_service import CommonService
 from configs.config import Config
 import phpserialize
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-table = mongo['operation']['ebay_products']
-
 
 class EbayFee(CommonService):
     """
@@ -29,6 +24,7 @@ class EbayFee(CommonService):
         self.warehouse_name = 'mysql'
         self.warehouse_cur = self.base_dao.get_cur(self.warehouse_name)
         self.warehouse_con = self.base_dao.get_connection(self.warehouse_name)
+        self.table = self.get_mongo_collection('operation', 'ebay_products')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -118,7 +114,7 @@ class EbayFee(CommonService):
     def get_ebay_shipping_fee_from_mongo(self, item_id):
         out = {'sku': '', 'shipping_fee': 0, 'shipping_name': ''}
         try:
-            ret = table.find_one({'itemID': item_id})
+            ret = self.table.find_one({'itemID': item_id})
             if ret:
                 out['sku'] = ret['parentSku'].split('@#')[0]
                 item = ret['shippingDetails']['shippingServiceOptions']
