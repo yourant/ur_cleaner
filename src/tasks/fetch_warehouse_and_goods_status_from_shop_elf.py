@@ -18,72 +18,41 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.col_store = self.get_mongo_collection('operation', 'store')
-        self.col_goods_status = self.get_mongo_collection('operation', 'store')
-        self.total_num = 10000000
-        self.step = 1000
+        self.col = self.get_mongo_collection('operation', 'product_dictionary')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-    def sync_stocking_waring(self):
-        sql = "EXEC Y_R_KC_StockingWaringAll '',0,0,'','0','','','',100000000,1,'','0','','',''"
-        self.cur.execute(sql)
-        self.con.commit()
-        self.logger.info('success to sync product stock info to shop elf')
-
-    def sync_stocking_waring_to_ur_operation_center(self):
-
+    def sync_warehouse(self):
         try:
-            # sql = "SELECT * FROM Y_R_tStockingWaring(nolock) where rowid between %s and %s"
-            sql = "SELECT * FROM Y_R_tStockingWaring(nolock)"
+            sql = "SELECT StoreName FROM [dbo].[B_Store](nolock) WHERE Used=0;"
             self.cur.execute(sql)
             ret = self.cur.fetchall()
             for row in ret:
-                del row['SelFlag']
-                del row['rowid']
-                del row['fpagecount']
-                del row['RecCount']
-                del row['LinkUrl2']
-                del row['LinkUrl3']
-                del row['LinkUrl4']
-                del row['LinkUrl5']
-                del row['LinkUrl6']
-                del row['onroadamount']
-                del row['OutCode']
-                del row['WarningCats']
-                del row['ModelNum']
-                row['MinPrice'] = 0 if row['MinPrice'] is None else float(row['MinPrice'])
-                row['goodsPrice'] = 0 if row['goodsPrice'] is None else float(row['goodsPrice'])
-                row['costprice'] = 0 if row['costprice'] is None else float(row['costprice'])
-                row['costmoney'] = 0 if row['costmoney'] is None else float(row['costmoney'])
-                row['CanSellDay'] = 0 if row['CanSellDay'] is None else float(row['CanSellDay'])
-                row['maxnum'] = 0 if row['maxnum'] is None else int(row['maxnum'])
-                row['minnum'] = 0 if row['minnum'] is None else int(row['minnum'])
-                row['Number'] = 0 if row['Number'] is None else int(row['Number'])
-                row['ReservationNum'] = 0 if row['ReservationNum'] is None else int(row['ReservationNum'])
-                row['usenum'] = 0 if row['usenum'] is None else int(row['usenum'])
-                row['UnPaiDNum'] = 0 if row['UnPaiDNum'] is None else int(row['UnPaiDNum'])
-                row['hopeUseNum'] = 0 if row['hopeUseNum'] is None else int(row['hopeUseNum'])
-                row['NotInStore'] = 0 if row['NotInStore'] is None else int(row['NotInStore'])
-                row['MinPrice'] = 0 if row['MinPrice'] is None else float(row['MinPrice'])
-                row['SaleReNum'] = 0 if row['SaleReNum'] is None else float(row['SaleReNum'])
-                row['SuggestNum'] = 0 if row['SuggestNum'] is None else float(row['SuggestNum'])
-                row['DayNum'] = 0 if row['DayNum'] is None else float(row['DayNum'])
-                row['GoodsCostMoney'] = 0 if row['GoodsCostMoney'] is None else float(row['GoodsCostMoney'])
+                self.col.insert_one({'type': '仓库', 'name': row['StoreName']})
+            self.logger.info('success to sync store info')
+        except Exception as why:
+            self.logger.error(why)
 
-                self.col_product.insert_one(row)
+    def sync_goods_status(self):
+        try:
+            sql = "SELECT DictionaryName FROM [dbo].[B_Dictionary](nolock) WHERE CategoryID=15 AND Used=0"
+            self.cur.execute(sql)
+            ret = self.cur.fetchall()
+            for row in ret:
+                self.col.insert_one({'type': '商品状态', 'name': row['DictionaryName']})
+            self.logger.info('success to sync goods status info')
         except Exception as why:
             self.logger.error(why)
 
     def run(self):
         begin_time = time.time()
         try:
-            # 计算库存预警数据
-            self.sync_stocking_waring()
-            # 同步库存预警到运营中心
-            self.col_product.delete_many({})
-            self.sync_stocking_waring_to_ur_operation_center()
+            self.col.delete_many({})
+            # 同步仓库
+            self.sync_warehouse()
+            # 同步商品状态
+            self.sync_goods_status()
 
         except Exception as why:
             self.logger.error(why)
