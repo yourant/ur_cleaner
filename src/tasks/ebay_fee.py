@@ -20,7 +20,8 @@ class EbayFee(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=40))[:10]
+        self.col = self.get_mongo_collection('operation', 'ebay_fee')
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)

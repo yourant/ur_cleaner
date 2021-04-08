@@ -60,12 +60,15 @@ class DataBase(object):
         return self.connect
 
     def close(self):
-        if self.used_count == 1:
-            SysLogger().log.info('close {}...'.format(self.base_name))
-            self.connect.close()
-        if self.used_count > 1:
-            SysLogger().log.info('close {} by decreasing one connection'.format(self.base_name))
-            self.used_count -= 1
+        try:
+            if self.used_count == 1:
+                SysLogger().log.info('close {}...'.format(self.base_name))
+                self.connect.close()
+            if self.used_count > 1:
+                SysLogger().log.info('close {} by decreasing one connection'.format(self.base_name))
+                self.used_count -= 1
+        except Exception as why:
+            SysLogger().log.error('fail to close connection cause of {}'.format(why))
 
 
 if __name__ == '__main__':
