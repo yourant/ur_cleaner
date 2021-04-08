@@ -158,7 +158,8 @@ class EbayFee(CommonService):
             self.logger.error(f'fail to work in get fee of {ebay_token["notename"]} cause of {why}')
 
     def get_data(self, begin, end):
-        rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
+        # rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
+        rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}, no_cursor_timeout=True)
         for row in rows:
             yield (row['accountName'], row['feeType'], row['value'], row['currency'],
                    row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
