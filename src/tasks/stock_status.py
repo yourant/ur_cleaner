@@ -28,7 +28,7 @@ class Worker(CommonService):
         self.base_dao.close_cur(self.warehouse_cur)
 
     def get_stock_waring_info(self):
-        sql = "EXEC oauth_stockStatus 1,1,1000000;"
+        sql = "EXEC oauth_stockStatus 1,1,100000000;"
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
