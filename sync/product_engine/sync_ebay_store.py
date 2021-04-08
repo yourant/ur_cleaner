@@ -4,16 +4,17 @@
 # Author: turpure
 
 
-from src.services.base_service import BaseService
-from pymongo import MongoClient
+from src.services.base_service import CommonService
 
 
-class Worker(BaseService):
+class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['product_engine']
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('product_engine', 'ebay_stores')
 
     def get_stores(self):
         sql = 'SELECT distinct eBayUserID,NoteName FROM S_PalSyncInfo'
@@ -22,10 +23,9 @@ class Worker(BaseService):
         return ret
 
     def save(self, rows):
-        col = self.mongodb['ebay_stores']
         for row in rows:
             try:
-                col.insert(row)
+                self.col.insert(row)
             except Exception as why:
                 self.logger.debug(f'fail to save {row["NoteName"]} cause of {why}')
 

@@ -5,13 +5,8 @@ import time
 from src.services.base_service import CommonService
 from configs.config import Config
 from multiprocessing.pool import ThreadPool as Pool
-from pymongo import MongoClient
 import math
 import os
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['ebay']
-col = mongodb['ebay_product_list']
 
 
 class FetchEbayLists(CommonService):
@@ -21,6 +16,7 @@ class FetchEbayLists(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'ebay_product_list')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -110,7 +106,7 @@ class FetchEbayLists(CommonService):
                                 'site': result['Item']['Site'],
                                 'updateTime': str(datetime.datetime.today())[:10]
                             }
-                            col.insert_one(ele)
+                            self.col.insert_one(ele)
                             # self.save_data(ele)
                     else:
                         try:
@@ -143,7 +139,7 @@ class FetchEbayLists(CommonService):
                             'updateTime': str(datetime.datetime.today())[:10]
                         }
 
-                        col.insert_one(ele)
+                        self.col.insert_one(ele)
                         # self.save_data(ele)
                 else:  # 单属性
                     try:
@@ -175,7 +171,7 @@ class FetchEbayLists(CommonService):
                         'site': result['Item']['Site'],
                         'updateTime': str(datetime.datetime.today())[:10]
                     }
-                    col.insert_one(ele)
+                    self.col.insert_one(ele)
                     # self.save_data(ele)
         except Exception as e:
             self.logger.error(
@@ -209,7 +205,7 @@ class FetchEbayLists(CommonService):
             yield row
 
     def clean(self):
-        col.delete_many({})
+        self.col.delete_many({})
         sql = "truncate table ibay365_ebay_lists"
         self.cur.execute(sql)
         self.con.commit()
@@ -218,12 +214,10 @@ class FetchEbayLists(CommonService):
     def save_trans(self):
         rows = self.pull()
         self.push_batch(rows)
-        mongo.close()
 
-    @staticmethod
-    def pull():
+    def pull(self):
         # rows = col.find({'sku':{'$regex':"8C1085"}})
-        rows = col.find()
+        rows = self.col.find()
         for row in rows:
             yield (row['code'], row['sku'], row['newSku'], row['itemid'], row['suffix'], row['selleruserid'],
                    row['storage'], row['listingType'], row['country'], row['paypal'], row['site'], row['updateTime'])

@@ -9,12 +9,6 @@ from configs.config import Config
 import requests
 from concurrent.futures import ThreadPoolExecutor as Pool
 import json
-from pymongo import MongoClient
-
-
-mongo = MongoClient('192.168.0.150', 27017)
-mongodb = mongo['operation']
-col = mongodb['wish_template']
 
 
 class Worker(CommonService):
@@ -32,6 +26,7 @@ class Worker(CommonService):
         self.con = self.base_dao.get_connection(self.base_name)
         self.warehouse_cur = self.base_dao.get_cur(self.warehouse)
         self.warehouse_con = self.base_dao.get_connection(self.warehouse)
+        self.col = self.get_mongo_collection('operation', 'wish_template')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -77,7 +72,7 @@ class Worker(CommonService):
             raise Exception(f'{why}')
 
     # def push(self, data):
-    #     col.save(data)
+    #     self.col.save(data)
 
     def work(self):
         try:
@@ -91,7 +86,6 @@ class Worker(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
 
 if __name__ == "__main__":

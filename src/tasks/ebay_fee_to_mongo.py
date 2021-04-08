@@ -9,12 +9,7 @@ from ebaysdk.trading import Connection as Trading
 from ebaysdk import exception
 from src.services.base_service import CommonService
 from configs.config import Config
-from pymongo import MongoClient
 from multiprocessing.pool import ThreadPool as Pool
-
-mongo = MongoClient('192.168.0.172', 27017)
-mongodb = mongo['operation']
-col = mongodb['ebay_fee']
 
 
 class EbayFee(CommonService):
@@ -29,6 +24,7 @@ class EbayFee(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.col = self.get_mongo_collection('operation', 'ebay_fee')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -152,7 +148,7 @@ class EbayFee(CommonService):
                     yield fee
 
     def save(self, row):
-        col.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
+        self.col.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
 
     def work(self, ebay_token):
         par = self.get_request_params(ebay_token)
@@ -173,7 +169,6 @@ class EbayFee(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
 
 
 if __name__ == '__main__':

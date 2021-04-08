@@ -149,10 +149,9 @@ class Sync(CommonService):
 
     def work(self):
         try:
-            # tokens = self.get_wish_token()
-            #
             goods_code = self.product_stock.aggregate([
                 {'$match': {'storeName': '义乌仓', 'GoodsStatus': {'$in': self.status + self.status1 + self.status2}}},
+                # {'$match': {'storeName': '义乌仓', 'GoodsStatus': {'$in': ['停产', '停售']}}},
                 {'$group': {'_id': {"goodscode": "$goodscode"}}},
                 {"$project": {'_id': 0, 'goodsCode': "$_id.goodscode"}}
             ])
@@ -163,39 +162,6 @@ class Sync(CommonService):
             pl.map(self.get_data, goods_code)
             pl.close()
             pl.join()
-
-
-            # sku_stock_query = self.product_stock.find(
-            #     {'storeName': '义乌仓', 'GoodsStatus': {'$in': self.status + self.status1 + self.status2}})
-            # sku_stock_list = list(sku_stock_query)
-            # product_query = self.get_products()
-            #
-            # for product in product_query:
-            #     storage = int(product['onlineInventory'])
-            #     for sku in sku_stock_list:
-            #         if sku['SKU'] == product['sku']:
-            #             hope_use_num = int(sku['hopeUseNum'])
-            #             check = self.check(storage, hope_use_num, sku['GoodsStatus'])
-            #             # print(product['item_id'], sku['SKU'], storage, hope_use_num, sku['GoodsStatus'], check)
-            #             # 判断sku数量是否需要修改
-            #             if check:
-            #                 inventory = self.get_quantity(storage, hope_use_num, sku['GoodsStatus'])
-            #                 # if inventory == 90000 and storage < 100 or inventory < 90000 and storage != inventory:
-            #                 if inventory == 90000 and storage < 100 or inventory == 0 and storage != 0:
-            #                     params = {'item_id': product['item_id'], 'suffix': product['suffix'],
-            #                               'sku': product['sku'], 'shopSku': product['shopSku'],
-            #                               'goodsCode': sku['goodscode'], 'goodsName': sku['goodsname'],
-            #                               'mainImage': sku['skuImageUrl'], 'goodsStatus': sku['GoodsStatus'],
-            #                               'onlineInventory': storage, 'targetInventory': inventory,
-            #                               'status': '初始化', 'accessToken': product['accessToken'],
-            #                               'created': str(datetime.datetime.today())[:19], 'executedResult': '',
-            #                               'executedTime': ''}
-            #                     # print(params)
-            #                     # self.task.insert_one(params)
-            #                     self.task.update_one({'item_id': params['item_id'], 'shopSku': params['shopSku']},
-            #                                          {"$set": params}, upsert=True)
-            #             break
-            #     self.logger.info(f"success to get new inventory of goods {product['sku']}")
         except Exception as why:
             self.logger.error(why)
             name = os.path.basename(__file__).split(".")[0]

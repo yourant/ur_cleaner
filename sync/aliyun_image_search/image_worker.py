@@ -5,18 +5,15 @@
 
 
 from sync.aliyun_image_search.base_request import BaseRequest
-from src.services.base_service import BaseService
-from pymongo import MongoClient
+from src.services.base_service import CommonService
 
 
-class Worker(BaseService):
+class Worker(CommonService):
 
     def __init__(self):
         super().__init__()
         self.request = BaseRequest()
-        self.mongo = MongoClient('192.168.0.150', 27017)
-        self.mongodb = self.mongo['product_engine']
-        self.col = self.mongodb['images_tasks']
+        self.col = self.get_mongo_collection('product_engine', 'images_tasks')
 
     def get_images(self):
         images = self.col.find({"doneFlag": 0})

@@ -13,13 +13,6 @@ from src.services.base_service import CommonService
 import requests
 from multiprocessing.pool import ThreadPool as Pool
 
-from pymongo import MongoClient
-
-mongo = MongoClient('192.168.0.150', 27017)
-
-operation = mongo['wish']
-table = operation['wish_productlist']
-
 
 class Sync(CommonService):
     """
@@ -31,6 +24,7 @@ class Sync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.table = self.get_mongo_collection('operation', 'wish_productlist')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -83,7 +77,7 @@ class Sync(CommonService):
                         ele['_id'] = ele['id']
                         ele['suffix'] = suffix
                         try:
-                            table.insert_one(ele)
+                            self.table.insert_one(ele)
                         except Exception as why:
                             self.logger.error(f" fail to insert {ele['id']} cause of {why}")
                         # self.logger.info(f'putting {ele["_id"]}')
@@ -97,18 +91,16 @@ class Sync(CommonService):
         except Exception as e:
             self.logger.error(e)
 
-    @staticmethod
-    def pull():
+    def pull(self):
         # rows = col.find({'sku':{'$regex':"8C1085"}})
         # rows = table.find()
-        rows = table.find({"removed_by_merchant": "False", "review_status": "approved"})
+        rows = self.table.find({"removed_by_merchant": "False", "review_status": "approved"})
         for row in rows:
             yield (row['code'], row['sku'], row['newSku'], row['itemid'], row['suffix'], row['selleruserid'],
                    row['storage'], row['listingType'], row['country'], row['paypal'], row['site'], row['updateTime'])
 
-    @staticmethod
-    def get_products():
-        rows = table.find({"removed_by_merchant": "False", "review_status": "approved"})
+    def get_products(self):
+        rows = self.table.find({"removed_by_merchant": "False", "review_status": "approved"})
         for rw in rows:
             for row in rw['variants']:
                 new_sku = row['Variant']['sku'].split("@")[0]
@@ -121,7 +113,7 @@ class Sync(CommonService):
                        ele['storage'], ele['updateTime'])
 
     def clear_db(self):
-        table.delete_many({})
+        self.table.delete_many({})
         sql = 'truncate table ibay365_wish_lists'
         self.cur.execute(sql)
         self.con.commit()
@@ -151,7 +143,6 @@ class Sync(CommonService):
         # rows = self.pull()
         rows = self.get_products()
         self.push_db(rows)
-        mongo.close()
 
     def work(self):
         begin = time.time()
@@ -170,7 +161,6 @@ class Sync(CommonService):
             raise Exception(f'fail to finish task of {name}')
         finally:
             self.close()
-            mongo.close()
         print('程序耗时{:.2f}'.format(time.time() - begin))  # 计算程序总耗时
 
 
