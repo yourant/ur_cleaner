@@ -20,7 +20,7 @@ class EbayFee(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=40))[:10]
+        self.batch_id = str(datetime.datetime.now() - datetime.timedelta(days=7))[:10]
         self.col = self.get_mongo_collection('operation', 'ebay_fee')
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
@@ -158,7 +158,8 @@ class EbayFee(CommonService):
             self.logger.error(f'fail to work in get fee of {ebay_token["notename"]} cause of {why}')
 
     def get_data(self, begin, end):
-        rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
+        # rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}).sort([("Date", 1)])
+        rows = self.col.find({'Date': {'$gte': begin, '$lte': end}}, no_cursor_timeout=True)
         for row in rows:
             yield (row['accountName'], row['feeType'], row['value'], row['currency'],
                    row['Date'], str(row['Date'])[:10], row['description'], row['itemId'], row['memo'],
