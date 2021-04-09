@@ -45,7 +45,6 @@ class Sync(CommonService):
         return res
 
     def get_products(self, goods_code):
-    # def get_products(self):
         rows = self.product_list.find({"removed_by_merchant": "False", "review_status": "approved",
                                        'goods_code': goods_code,
                                        # 'parent_sku': {'$regex': goods_code},
@@ -100,7 +99,7 @@ class Sync(CommonService):
                         break
             # self.logger.info(f'success to get new inventory of goods {goods_code}')
         except Exception as e:
-            self.logger.error(f'failed to get new inventory of goods {goods_code}')
+            self.logger.error(f'failed to get new inventory of goods {goods_code} cause of {e}')
 
     def get_quantity(self, storage, hope_use_num, status):
         if storage <= 0:
@@ -170,8 +169,6 @@ if __name__ == "__main__":
     start = time.time()
     worker = Sync()
     worker.work()
-    # loop = asyncio.get_event_loop()
-    # loop.run_until_complete(worker.work())
 
     end = time.time()
     date = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(end))
