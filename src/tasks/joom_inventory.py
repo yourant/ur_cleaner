@@ -6,6 +6,7 @@ import os
 from multiprocessing.pool import ThreadPool as Pool
 from src.services.base_service import CommonService
 import requests
+import datetime
 
 
 class Worker(CommonService):
@@ -18,6 +19,7 @@ class Worker(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
+        self.task = self.get_mongo_collection('operation', 'joom_stock_task')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -41,9 +43,9 @@ class Worker(CommonService):
             yield row
 
     def update_inventory(self, row):
-        token = row['token']
-        sku = row['sku']
-        inventory = row['quantity']
+        token = row['accessToken']
+        sku = row['shopSku']
+        inventory = row['targetInventory']
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + token}
         base_url = 'https://api-merchant.joom.com/api/v2/variant/update-inventory'
         try:
@@ -55,17 +57,25 @@ class Worker(CommonService):
                 response = requests.post(base_url, params=param, headers=headers, timeout=20)
                 ret = response.json()
                 if ret["code"] == 0:
-                    self.logger.info(f'success { row["suffix"] } to update { row["itemid"] }')
+                    row['status'] = 'success'
+                    row['executedResult'] = 'success'
+                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
+                    self.logger.info(f'success { row["suffix"] } to update { row["item_id"] }')
                     break
                 else:
-                    self.logger.error(f'fail to update inventory cause of  {ret["message"]} and trying {i} times')
+                    row['status'] = 'failed'
+                    row['executedResult'] = 'failed'
+                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
         except Exception as e:
             self.logger.error(e)
 
     def work(self):
         try:
-            tokens = self.get_joom_token()
+            tokens = self.task.find({'status': '初始化'})
+            # tokens = self.task.find({'status': '初始化', 'item_id': '6051a144ce140001069f6175'})
             pl = Pool(16)
             pl.map(self.update_inventory, tokens)
 

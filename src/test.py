@@ -19,7 +19,8 @@ class AliSync(CommonService):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
         self.col = self.get_mongo_collection('operation', 'wish_stock_task')
-        self.product_list = self.get_mongo_collection('operation', 'wish_products')
+        self.product_list = self.get_mongo_collection('operation', 'joom_products')
+        self.test = self.get_mongo_collection('operation', 'joom_products')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
