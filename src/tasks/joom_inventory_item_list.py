@@ -54,7 +54,7 @@ class Sync(CommonService):
         for rw in rows:
             for row in rw['variants']:
                 new_sku = row['Variant']['sku'].split("@")[0]
-                new_sku = new_sku.split("*")[0]
+                # new_sku = new_sku.split("*")[0]
                 ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
                        'newsku': new_sku, 'item_id': row['Variant']['product_id'], 'suffix': rw['suffix'],
                        'storage': row['Variant']['inventory'], 'enabled': row['Variant']['enabled']}

@@ -18,9 +18,8 @@ class AliSync(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.col = self.get_mongo_collection('operation', 'wish_stock_task')
-        self.product_list = self.get_mongo_collection('operation', 'joom_products')
-        self.test = self.get_mongo_collection('operation', 'joom_products')
+        self.col = self.get_mongo_collection('operation', 'vova_stock_task')
+        self.product_list = self.get_mongo_collection('operation', 'vova_products')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -70,7 +69,7 @@ class AliSync(CommonService):
                 goods_code = item['parent_sku'].split('@')[0]
                 print(goods_code)
                 # self.col.insert_one(item)
-                self.product_list.update_one({'id': item['id'], 'parent_sku': item['parent_sku']},
+                self.product_list.update_one({'product_id': item['product_id']},
                                              {"$set": {'goods_code': goods_code}}, upsert=True)
         except Exception as e:
             self.logger(e)
