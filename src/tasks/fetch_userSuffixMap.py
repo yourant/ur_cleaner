@@ -39,6 +39,8 @@ class UserSuffixMapFetcher(CommonService):
 
     def push(self, rows):
         try:
+            clear_table = 'truncate table oauth_userSuffixMap '
+            self.cur.execute(clear_table)
             for rw in rows:
                 try:
                     sql = "insert into oauth_userSuffixMap(username,suffix) values (%s,%s)"

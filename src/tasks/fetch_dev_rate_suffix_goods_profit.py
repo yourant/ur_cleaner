@@ -10,7 +10,7 @@ from src.services.base_service import CommonService
 
 class DevRateSuffixGoodsFetcher(CommonService):
     """
-    fetch suffix profit from erp day by day
+    計算清倉列表利潤
     """
 
     def __init__(self):
@@ -55,7 +55,7 @@ class DevRateSuffixGoodsFetcher(CommonService):
         self.logger.info('success to fetch cache_devRateGoodsProfit')
 
     def clear(self, begin, end):
-        sql = 'delete from cache_devRateSuffixGoodsProfit where orderDate BETWEEN %s and  %s'
+        sql = 'delete from cache_devRateSuffixGoodsProfit where ordertime BETWEEN %s and  %s'
         self.warehouse_cur.execute(sql, (begin, end))
         self.warehouse_con.commit()
         self.logger.info(f'success to clear cache_devRateGoodsProfit between {begin} and {end}')
@@ -67,7 +67,7 @@ class DevRateSuffixGoodsFetcher(CommonService):
             last_month_first_day = str(last_month + '-01')
             # last_month_first_day = '2019-01-01'
             # today = '2021-01-06'
-            # self.clear(last_month_first_day, today)
+            self.clear(last_month_first_day, today)
             for date_flag in (0, 1):
                 rows = self.fetch(date_flag, last_month_first_day, today)
                 self.push(rows)
