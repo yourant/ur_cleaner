@@ -35,13 +35,16 @@ class Worker(CommonService):
             yield (row['goodsCode'], row['sku'], row['skuName'], row['storeName'], row['goodsStatus'], row['salerName'],
                    row['createDate'], row['costPrice'], row['useNum'], row['costmoney'], row['notInStore'],
                    row['notInCostmoney'], row['hopeUseNum'], row['totalCostmoney'], row['sellCount1'],
-                   row['sellCount2'], row['sellCount3'], row['weight'], row['updateTime'])
+                   row['sellCount2'], row['sellCount3'], row['weight'], row['sellCostMoney'],
+                   row['threeSellCount'], row['sevenSellCount'], row['fourteenSellCount'],
+                   row['thirtySellCount'], row['trend'], row['updateTime'])
 
     def push(self, rows):
         sql = ("insert into cache_stockWaringTmpData(goodsCode, sku, skuName, storeName, goodsStatus, "
                "salerName, createDate, costPrice, useNum, costmoney,notInStore, notInCostmoney, "
-               "hopeUseNum, totalCostmoney, sellCount1, sellCount2, sellCount3, weight, updateTime) "
-               "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ")
+               "hopeUseNum, totalCostmoney, sellCount1, sellCount2, sellCount3, weight, "
+               "sellCostMoney, threeSellCount, sevenSellCount, fourteenSellCount, thirtySellCount, trend, updateTime) "
+               "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ")
         try:
             self.warehouse_cur.executemany(sql, list(rows))
             self.warehouse_con.commit()
@@ -83,8 +86,8 @@ class Worker(CommonService):
             self.clean()
             tasks = self.get_stock_waring_info()
             self.push(tasks)
-            orders = self.get_30days_order_info()
-            self.insert(orders)
+            # orders = self.get_30days_order_info()
+            # self.insert(orders)
         except Exception as why:
             self.logger.error(why)
             name = os.path.basename(__file__).split(".")[0]
