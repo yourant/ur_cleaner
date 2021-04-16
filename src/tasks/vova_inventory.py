@@ -22,6 +22,7 @@ class OffShelf(CommonService):
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
         self.task = self.get_mongo_collection('operation', 'vova_stock_task')
+        self.product_stock = self.get_mongo_collection('operation', 'product_sku')
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -74,11 +75,29 @@ class OffShelf(CommonService):
                             self.update_products_storage(token)
                     if '标准库存不能全为0' in ret['message']:
                         self.disable_product(token)
+                    if '克隆商品sku均价不能大于原型sku均价' in ret['message']:
+                        if self.check_sku_status(token['goodsCode']):
+                            self.disable_product(token)
                     else:
                         result = ret['message'] if 'message' in ret else 'failed'
                         self.update_task_status(token, result)
         except Exception as error:
             self.logger.error(f'fail to update products  of {token["shopSku"]} cause of {error}')
+
+    def check_sku_status(self, goods_code):
+        all_goods_status_num = self.product_stock.aggregate([
+            {'$match': {'storeName': '义乌仓', 'goodscode': goods_code}},
+            # {'$match': {'storeName': '义乌仓', 'GoodsStatus': {'$in': ['停产', '停售']}}},
+            {'$group': {'_id': {"GoodsStatus": "GoodsStatus"}}},
+            {"$project": {'_id': 0, 'goodsStatus': "$_id.GoodsStatus"}}
+        ])
+        filter_goods_status_num = self.product_stock.aggregate([
+            {'$match': {'storeName': '义乌仓', 'goodscode': goods_code, 'GoodsStatus': {'$in': ['清仓', '停产', '停售']}}},
+            # {'$match': {'storeName': '义乌仓', 'GoodsStatus': {'$in': ['停产', '停售']}}},
+            {'$group': {'_id': {"GoodsStatus": "GoodsStatus"}}},
+            {"$project": {'_id': 0, 'goodsStatus': "$_id.GoodsStatus"}}
+        ])
+        return True if len(list(all_goods_status_num)) == len(list(filter_goods_status_num)) else False
 
     def disable_product(self, token):
         item = {
@@ -89,7 +108,14 @@ class OffShelf(CommonService):
         try:
             response = requests.post(url, data=json.dumps(item))
             res = response.json()
-            result = 'success' if res['execute_status'] == 'success' else res['message']
+            # print(res)
+            if res['execute_status'] == 'success':
+                result = 'success'
+            else:
+                try:
+                    result = res['data']['errors_list'][0]['message']
+                except:
+                    result = res['message'] if 'message' in res else 'failed'
             self.update_task_status(token, result)
             self.logger.info(f"{res['execute_status']} to disable product {token['item_id']}")
         except Exception as why:
@@ -103,9 +129,9 @@ class OffShelf(CommonService):
 
     def run(self):
         try:
-            tokens = self.task.find({'status': '初始化'})
+            # tokens = self.task.find({'status': '初始化'})
             # tokens = self.task.find({'item_id': '13818534'})
-            # tokens = self.task.find({'status': 'failed'})
+            tokens = self.task.find({'status': 'failed'})
             pl = Pool(16)
             pl.map(self.update_products_storage, tokens)
         except Exception as why:

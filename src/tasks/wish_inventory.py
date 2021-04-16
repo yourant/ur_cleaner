@@ -49,8 +49,6 @@ class Worker(CommonService):
         for row in ret:
             yield row
 
-
-
     def update_inventory(self, row):
         # print(row)
         token = row['accessToken']
