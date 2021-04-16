@@ -61,11 +61,10 @@ class OffShelf(CommonService):
             for i in range(2):
                 response = requests.post(url, data=json.dumps(param), headers=headers, timeout=20)
                 ret = response.json()
-                # print(ret)
                 if ret['execute_status'] == 'success':
                     result = 'success'
                     self.update_task_status(token, result)
-                    self.logger.info(f'success {token["suffix"]} to update {token["item_id"]}')
+                    # self.logger.info(f'success {token["suffix"]} to update {token["item_id"]}')
                     break
                 else:
                     if '存在被顾客预定' in ret['message']:
@@ -76,7 +75,7 @@ class OffShelf(CommonService):
                     if '标准库存不能全为0' in ret['message']:
                         self.disable_product(token)
                     else:
-                        result = 'failed'
+                        result = ret['message'] if 'message' in ret else 'failed'
                         self.update_task_status(token, result)
         except Exception as error:
             self.logger.error(f'fail to update products  of {token["shopSku"]} cause of {error}')
@@ -90,22 +89,23 @@ class OffShelf(CommonService):
         try:
             response = requests.post(url, data=json.dumps(item))
             res = response.json()
-            result = 'success' if res['execute_status'] == 'success' else 'failed'
+            result = 'success' if res['execute_status'] == 'success' else res['message']
             self.update_task_status(token, result)
             self.logger.info(f"{res['execute_status']} to disable product {token['item_id']}")
         except Exception as why:
             self.logger.error(f'fail to disable {token["item_id"]} casue of {why}')
 
     def update_task_status(self, row, res):
-        row['status'] = res
+        row['status'] = 'success' if res == 'success' else 'failed'
         row['executedResult'] = res
         row['executedTime'] = str(datetime.datetime.today())[:19]
         self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def run(self):
         try:
-            # tokens = self.task.find({'item_id': '70384352'})
             tokens = self.task.find({'status': '初始化'})
+            # tokens = self.task.find({'item_id': '13818534'})
+            # tokens = self.task.find({'status': 'failed'})
             pl = Pool(16)
             pl.map(self.update_products_storage, tokens)
         except Exception as why:

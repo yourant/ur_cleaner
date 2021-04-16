@@ -65,7 +65,7 @@ class Worker(CommonService):
                     break
                 else:
                     row['status'] = 'failed'
-                    row['executedResult'] = 'failed'
+                    row['executedResult'] = ret['message'] if 'message' in ret else 'failed'
                     row['executedTime'] = str(datetime.datetime.today())[:19]
                     self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
