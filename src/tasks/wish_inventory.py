@@ -70,14 +70,14 @@ class Worker(CommonService):
                 if ret["code"] == 0:
                     row['status'] = 'success'
                     row['executedResult'] = 'success'
-                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    row['executedTime'] = datetime.datetime.today()
                     self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
                     self.logger.info(f'success { row["suffix"] } to update { row["item_id"] }')
                     break
                 else:
                     row['status'] = 'failed'
                     row['executedResult'] = ret['message'] if 'message' in ret else 'failed'
-                    row['executedTime'] = str(datetime.datetime.today())[:19]
+                    row['executedTime'] = datetime.datetime.today()
                     self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
             except Exception as why:
                 self.logger.error(f'fail to update inventory cause of  {why} and trying {i + 1} times')

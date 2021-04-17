@@ -124,7 +124,7 @@ class OffShelf(CommonService):
     def update_task_status(self, row, res):
         row['status'] = 'success' if res == 'success' else 'failed'
         row['executedResult'] = res
-        row['executedTime'] = str(datetime.datetime.today())[:19]
+        row['executedTime'] = datetime.datetime.today()
         self.task.update_one({'_id': row['_id']}, {"$set": row}, upsert=True)
 
     def run(self):

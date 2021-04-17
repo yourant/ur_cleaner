@@ -83,8 +83,8 @@ class Sync(CommonService):
                                           'goodsCode': sku['goodscode'], 'goodsName': sku['goodsname'],
                                           'mainImage': sku['skuImageUrl'], 'goodsStatus': sku['GoodsStatus'],
                                           'status': '初始化', 'accessToken': product['accessToken'],
-                                          'created': str(datetime.datetime.today())[:19], 'executedResult': '',
-                                          'executedTime': ''}
+                                          'created': datetime.datetime.today(),
+                                          'executedResult': '', 'executedTime': ''}
                                 # print(params)
                                 # self.task.insert_one(params)
                                 self.task.update_one({'item_id': params['item_id'], 'shopSku': params['shopSku']},

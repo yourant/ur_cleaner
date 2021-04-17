@@ -64,13 +64,14 @@ class AliSync(CommonService):
             # update_time = str(datetime.datetime.today())[:19]
             # print(update_time)
 
-            products = self.product_list.find({'goods_code': {'$in': [None]}})
+            products = self.col.find({})
             for item in products:
-                goods_code = item['parent_sku'].split('@')[0]
-                print(goods_code)
+                created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
+                # print(datetime.datetime.today())
+                # print(created)
                 # self.col.insert_one(item)
-                self.product_list.update_one({'product_id': item['product_id']},
-                                             {"$set": {'goods_code': goods_code}}, upsert=True)
+                self.col.update_one({'item_id': item['item_id']},
+                                             {"$set": {'created': created}}, upsert=True)
         except Exception as e:
             self.logger(e)
         # finally:
