@@ -77,7 +77,7 @@ class AliChecker(CommonService):
         update_price = "update cgd set money= gs.costprice * amount + amount*(%s-%s)/%s," \
                        "allmoney= gs.costprice * amount + amount*(%s-%s)/%s, " \
                        "cgd.beforeavgprice= gs.costprice, " \
-                       "cgd.price= gs.costprice ," \
+                       "cgd.price= gs.costprice +(%s - %s)/%s ," \
                        "cgd.taxprice= gs.costprice + (%s-%s)/%s " \
                        "from cg_stockorderd  as cgd " \
                        "LEFT JOIN B_goodsSku as gs on cgd.goodsskuid = gs.nid " \
@@ -101,7 +101,7 @@ class AliChecker(CommonService):
             order_money = check_info['sumPayment']
             if qty == check_qty:
                 self.cur.execute(update_sql, (order_id, express_fee, order_money, bill_number))
-                self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
+                self.cur.execute(update_price, (order_money, total_cost_money, qty) * 4 + (bill_number,))
                 self.cur.execute(update_status, (audier, order_money, bill_number))
                 self.cur.execute(check_sql, (bill_number,))
                 log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"

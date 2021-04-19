@@ -65,7 +65,7 @@ class AliSync(CommonService):
         update_price = "update cgd set money= gs.costprice * amount + amount*(%s-%s)/%s," \
                        "allmoney= gs.costprice * amount + amount*(%s-%s)/%s, " \
                        "cgd.beforeavgprice= gs.costprice, " \
-                       "cgd.price= gs.costprice ," \
+                       "cgd.price= gs.costprice  + (%s-%s)/%s ," \
                        "cgd.taxprice= gs.costprice + (%s-%s)/%s " \
                        "from cg_stockorderd  as cgd " \
                        "LEFT JOIN B_goodsSku as gs on cgd.goodsskuid = gs.nid " \
@@ -86,7 +86,7 @@ class AliSync(CommonService):
                 if qty == check_qty:
                     log = 'ur_cleaner ' + str(datetime.datetime.today())[:19] + " 同步1688订单差额"
                     self.cur.execute(update_sql, (order_id, express_fee, order_money, order_money, bill_number))
-                    self.cur.execute(update_price, (order_money, total_cost_money, qty) * 3 + (bill_number,))
+                    self.cur.execute(update_price, (order_money, total_cost_money, qty) * 4 + (bill_number,))
                     self.cur.execute(check_sql, (bill_number,))
                     self.cur.execute(log_sql, ('采购订单', ret['NID'], 'ur_cleaner', log))
                     self.con.commit()
@@ -110,12 +110,12 @@ class AliSync(CommonService):
 
 
                     # 更新含税价格
-                    set_tax__price_sql = ('update cgd set  cgd.beforeavgprice= gs.costprice,cgd.price = gs.costprice, '
+                    set_tax__price_sql = ('update cgd set  cgd.beforeavgprice= gs.costprice,cgd.price = gs.costprice - %s, '
                                           'taxPrice = gs.costprice - %s,money = amount * gs.costprice, '
                                           'allMoney = amount * (gs.costprice - %s) from cg_stockOrderD as cgd '
                                           'Left JOIN B_goodsSku(nolock) as gs on cgd.goodsskuid = gs.nid '
                                           'where cgd.stockOrderNid = %s')
-                    self.cur.execute(set_tax__price_sql, (single_delta_money, single_delta_money, stock_nid,))
+                    self.cur.execute(set_tax__price_sql, (single_delta_money,single_delta_money, single_delta_money, stock_nid,))
 
                     # 审核订单
                     self.cur.execute(check_sql, (bill_number,))
