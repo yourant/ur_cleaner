@@ -7,6 +7,8 @@ from src.services.base_service import CommonService
 from ebaysdk.trading import Connection as Trading
 import datetime
 from configs.config import Config
+from multiprocessing.pool import ThreadPool as Pool
+from bson import ObjectId
 
 
 # class AliSync(BaseService):
@@ -18,8 +20,8 @@ class AliSync(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
-        self.col = self.get_mongo_collection('operation', 'wish_stock_task')
-        self.product_list = self.get_mongo_collection('operation', 'wish_products')
+        self.col = self.get_mongo_collection('operation', 'vova_stock_task')
+        self.product_list = self.get_mongo_collection('operation', 'vova_products')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -49,28 +51,42 @@ class AliSync(CommonService):
         except Exception as e:
             self.logger.error(f"error cause of {e}")
 
+    def update_data(self, item):
+        # created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
+        if not item['executedTime']:
+            # updated = datetime.datetime.strptime(item['executedTime'], "%Y-%m-%d %H:%M:%S")
+            updated = item['created'] + datetime.timedelta(hours=1)
+
+        # print(created)
+        # print(updated)
+            print(updated)
+            self.col.update_one({'_id': item['_id']},
+                            {"$set": {'executedTime': updated}}, upsert=True)
+                            # {"$set": {'created': created, 'executedTime': updated}}, upsert=True)
+
     def run(self):
         try:
-            # for i in range(33):
-            #     begin = str(datetime.datetime.strptime('2020-08-01', '%Y-%m-%d') + datetime.timedelta(days=i))[:10]
-            #     # print(begin)
-            #     rows = self.get_data(begin)
-            #     for row in rows:
-            #         # print(row)
-            #         col2.update_one({'recordId': row['recordId']}, {"$set": row}, upsert=True)
-            #     self.logger.info(f'success to sync data in {begin}')
-            # res = self.get_ebay_description()
 
             # update_time = str(datetime.datetime.today())[:19]
             # print(update_time)
 
-            products = self.product_list.find({'goods_code': {'$in': [None]}})
-            for item in products:
-                goods_code = item['parent_sku'].split('@')[0]
-                print(goods_code)
+            # products = self.col.find({'executedTime': {'$gte': '2021-04-01', '$lte': '2021-04-17 23:59:59'}})
+            products = self.col.find({'status': 'failed'})
+            # products = self.col.find({'_id': ObjectId('6075e33dea9d958f09ef7f93')})
+            # products = self.col.find({'_id': ObjectId('60754a08ea9d958f09a6ecfd')})
+
+            pl = Pool(100)
+            pl.map(self.update_data, products)
+            pl.close()
+            pl.join()
+
+            # for item in products:
+            #     created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
+                # print(datetime.datetime.today())
+                # print(created)
                 # self.col.insert_one(item)
-                self.product_list.update_one({'id': item['id'], 'parent_sku': item['parent_sku']},
-                                             {"$set": {'goods_code': goods_code}}, upsert=True)
+                # self.col.update_one({'item_id': item['item_id']},{"$set": {'created': created}}, upsert=True)
+
         except Exception as e:
             self.logger(e)
         # finally:

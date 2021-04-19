@@ -70,8 +70,8 @@ class Worker(CommonService):
                 row['SuggestNum'] = 0 if row['SuggestNum'] is None else float(row['SuggestNum'])
                 row['DayNum'] = 0 if row['DayNum'] is None else float(row['DayNum'])
                 row['GoodsCostMoney'] = 0 if row['GoodsCostMoney'] is None else float(row['GoodsCostMoney'])
-
-                self.col_product.insert_one(row)
+                yield row
+                # self.col_product.insert_one(row)
         except Exception as why:
             self.logger.error(why)
 
@@ -82,8 +82,8 @@ class Worker(CommonService):
             self.sync_stocking_waring()
             # 同步库存预警到运营中心
             self.col_product.delete_many({})
-            self.sync_stocking_waring_to_ur_operation_center()
-
+            data = self.sync_stocking_waring_to_ur_operation_center()
+            self.col_product.insert_many(data)
         except Exception as why:
             self.logger.error(why)
             name = os.path.basename(__file__).split(".")[0]

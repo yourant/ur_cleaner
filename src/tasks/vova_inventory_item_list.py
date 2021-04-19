@@ -1,7 +1,7 @@
 #! usr/bin/env/python3
 # coding:utf-8
-# @Time: 2019-02-22 11:30
-# Author: turpure
+# @Time: 2021-04-09 11:30
+# Author: Henry
 
 
 import os
@@ -22,48 +22,41 @@ class Sync(CommonService):
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
         self.product_stock = self.get_mongo_collection('operation', 'product_sku')
-        self.product_list = self.get_mongo_collection('operation', 'wish_products')
-        self.task = self.get_mongo_collection('operation', 'wish_stock_task')
-        self.suffix_token = self.get_wish_suffix_token()
+        self.product_list = self.get_mongo_collection('operation', 'vova_products')
+        self.task = self.get_mongo_collection('operation', 'vova_stock_task')
+        self.suffix_token = self.get_vova_suffix_token()
         self.status = ['线下清仓']  # 改0
         self.status1 = ['爆款', '旺款', '浮动款', 'Wish新款', '在售']  # 改固定数量
-        self.status2 = ['停产', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P', '春节放假', '停售']  # 改实际库存'
+        self.status2 = ['停产', '春节放假', '停售', '清仓', '线上清仓', '线上清仓50P', '线上清仓100P']  # 改实际库存'
 
     def close(self):
         self.base_dao.close_cur(self.cur)
 
-    def get_wish_suffix_token(self):
+    def get_vova_suffix_token(self):
         res = dict()
-        sql = ("SELECT AccessToken,aliasname FROM S_WishSyncInfo WHERE  "
+        sql = ("SELECT ApiKey AS AccessToken,AliasName FROM S_SyncInfoVova WHERE  "
                "aliasname is not null"
                " and  AliasName not in "
-               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='Wish') ")
+               "(select DictionaryName from B_Dictionary where CategoryID=12 and used=1 and FitCode='VOVA') ")
         self.cur.execute(sql)
         ret = self.cur.fetchall()
         for row in ret:
-            res[row['aliasname']] = row['AccessToken']
+            res[row['AliasName']] = row['AccessToken']
         return res
 
     def get_products(self, goods_code):
-        rows = self.product_list.find({"removed_by_merchant": "False", "review_status": "approved",
+        rows = self.product_list.find({"is_delete": '0', 'is_on_sale': 1,
                                        'goods_code': goods_code,
-                                       # 'parent_sku': {'$regex': goods_code},
                                        # 'suffix': suffix,
                                        # "id": "5f962aaeb0d3c2003d8e091d"
                                        }, no_cursor_timeout=True)
         for rw in rows:
-            for row in rw['variants']:
-                new_sku = row['Variant']['sku'].split("@")[0]
+            for row in rw['sku_list']:
+                new_sku = row['goods_sku'].split("@")[0]
                 # new_sku = new_sku.split("*")[0]
-                ele = {'code': row['Variant']['sku'], 'sku': row['Variant']['sku'],
-                       'newsku': new_sku, 'itemid': row['Variant']['product_id'], 'suffix': rw['suffix'],
-                       'selleruserid': '', 'storage': row['Variant']['inventory'],
-                       'updateTime': str(datetime.datetime.today())[:19],
-                       'enabled': row['Variant']['enabled'], 'removed_by_merchant': rw['removed_by_merchant']}
-                ele['_id'] = ele['itemid']
-                # yield (ele['code'], ele['sku'], ele['newsku'], ele['itemid'], ele['suffix'], ele['selleruserid'],
-                #        ele['storage'], ele['updateTime'])
-                yield {'shopSku': ele['sku'], 'sku': ele['newsku'], 'item_id': ele['itemid'], 'suffix': ele['suffix'],
+                ele = {'shopSku': row['goods_sku'], 'sku': new_sku, 'item_id': rw['product_id'],
+                       'suffix': rw['suffix'], 'storage': row['storage']}
+                yield {'item_id': ele['item_id'], 'shopSku': ele['shopSku'], 'sku': ele['sku'], 'suffix': ele['suffix'],
                        'onlineInventory': ele['storage'], 'accessToken': self.suffix_token[ele['suffix']]}
 
     def get_data(self, row):
@@ -86,9 +79,9 @@ class Sync(CommonService):
                             if inventory == 90000 and storage < 100 or inventory == 0 and storage != 0:
                                 params = {'item_id': product['item_id'], 'suffix': product['suffix'],
                                           'sku': product['sku'], 'shopSku': product['shopSku'],
+                                          'onlineInventory': storage, 'targetInventory': inventory,
                                           'goodsCode': sku['goodscode'], 'goodsName': sku['goodsname'],
                                           'mainImage': sku['skuImageUrl'], 'goodsStatus': sku['GoodsStatus'],
-                                          'onlineInventory': storage, 'targetInventory': inventory,
                                           'status': '初始化', 'accessToken': product['accessToken'],
                                           'created': datetime.datetime.today(),
                                           'executedResult': '', 'executedTime': ''}
