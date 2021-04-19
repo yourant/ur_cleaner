@@ -134,9 +134,9 @@ class OffShelf(CommonService):
 
     def run(self):
         try:
-            # tokens = self.task.find({'status': '初始化'})
+            tokens = self.task.find({'status': '初始化'})
             # tokens = self.task.find({'item_id': '39417083'})
-            tokens = self.task.find({'status': 'failed'})
+            # tokens = self.task.find({'status': 'failed'})
             pl = Pool(16)
             pl.map(self.update_products_storage, tokens)
         except Exception as why:
