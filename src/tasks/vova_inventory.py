@@ -62,6 +62,7 @@ class OffShelf(CommonService):
             for i in range(2):
                 response = requests.post(url, data=json.dumps(param), headers=headers, timeout=20)
                 ret = response.json()
+                # print(ret)
                 if ret['execute_status'] == 'success':
                     result = 'success'
                     self.update_task_status(token, result)
@@ -78,6 +79,10 @@ class OffShelf(CommonService):
                     if '克隆商品sku均价不能大于原型sku均价' in ret['message']:
                         if self.check_sku_status(token['goodsCode']):
                             self.disable_product(token)
+                        else:
+                            result = ret['message'] if 'message' in ret else 'failed'
+                            self.update_task_status(token, result)
+
                     else:
                         result = ret['message'] if 'message' in ret else 'failed'
                         self.update_task_status(token, result)
@@ -130,7 +135,7 @@ class OffShelf(CommonService):
     def run(self):
         try:
             # tokens = self.task.find({'status': '初始化'})
-            # tokens = self.task.find({'item_id': '13818534'})
+            # tokens = self.task.find({'item_id': '39417083'})
             tokens = self.task.find({'status': 'failed'})
             pl = Pool(16)
             pl.map(self.update_products_storage, tokens)
