@@ -5,6 +5,8 @@
 
 import os
 import time
+import datetime
+import calendar
 from src.services.base_service import CommonService
 
 """
@@ -37,14 +39,27 @@ class Worker(CommonService):
                    row['notInCostmoney'], row['hopeUseNum'], row['totalCostmoney'], row['sellCount1'],
                    row['sellCount2'], row['sellCount3'], row['weight'], row['sellCostMoney'],
                    row['threeSellCount'], row['sevenSellCount'], row['fourteenSellCount'],
-                   row['thirtySellCount'], row['trend'], row['updateTime'])
+                   row['thirtySellCount'], row['trend'], row['updateTime'], row['updateMonth'])
 
     def push(self, rows):
         sql = ("insert into cache_stockWaringTmpData(goodsCode, sku, skuName, storeName, goodsStatus, "
                "salerName, createDate, costPrice, useNum, costmoney,notInStore, notInCostmoney, "
-               "hopeUseNum, totalCostmoney, sellCount1, sellCount2, sellCount3, weight, "
-               "sellCostMoney, threeSellCount, sevenSellCount, fourteenSellCount, thirtySellCount, trend, updateTime) "
-               "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ")
+               "hopeUseNum, totalCostmoney, sellCount1, sellCount2, sellCount3, weight, sellCostMoney, threeSellCount,"
+               "sevenSellCount, fourteenSellCount, thirtySellCount, trend, updateTime, updateMonth) "
+               "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ")
+        try:
+            self.warehouse_cur.executemany(sql, list(rows))
+            self.warehouse_con.commit()
+            self.logger.info('success to get stock waring info')
+        except Exception as why:
+            self.logger.error('failed to get stock waring info cause of %s' % why)
+
+    def push_backup(self, rows):
+        sql = ("insert into cache_stockWaringTmpDataBackup(goodsCode, sku, skuName, storeName, goodsStatus, "
+               "salerName, createDate, costPrice, useNum, costmoney,notInStore, notInCostmoney, "
+               "hopeUseNum, totalCostmoney, sellCount1, sellCount2, sellCount3, weight, sellCostMoney, threeSellCount,"
+               "sevenSellCount, fourteenSellCount, thirtySellCount, trend, updateTime, updateMonth) "
+               "values(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ")
         try:
             self.warehouse_cur.executemany(sql, list(rows))
             self.warehouse_con.commit()
@@ -83,9 +98,21 @@ class Worker(CommonService):
     def run(self):
         begin_time = time.time()
         try:
-            self.clean()
-            tasks = self.get_stock_waring_info()
-            self.push(tasks)
+            today = datetime.datetime.today()
+            today_str = str(datetime.datetime.today())[:10]
+            hour = today.hour
+            this_month_last_day = str(
+                datetime.datetime(today.year, today.month, calendar.monthrange(today.year, today.month)[1]))[:10]
+            # 每月最后一天执行备份数据
+            if today_str == this_month_last_day and hour >= 22:
+                self.clean()
+                tasks = self.get_stock_waring_info()
+                self.push_backup(tasks)
+            # 每日的普通数据查询
+            if hour < 22:
+                self.clean()
+                tasks = self.get_stock_waring_info()
+                self.push(tasks)
             # orders = self.get_30days_order_info()
             # self.insert(orders)
         except Exception as why:

@@ -6,6 +6,7 @@
 from src.services.base_service import CommonService
 from ebaysdk.trading import Connection as Trading
 import datetime
+import calendar
 from configs.config import Config
 from multiprocessing.pool import ThreadPool as Pool
 from bson import ObjectId
@@ -20,8 +21,12 @@ class AliSync(CommonService):
     def __init__(self):
         super().__init__()
         self.config = Config().get_config('ebay.yaml')
+        self.base_name = 'mssql'
+        self.cur = self.base_dao.get_cur(self.base_name)
+        self.con = self.base_dao.get_connection(self.base_name)
         self.col = self.get_mongo_collection('operation', 'vova_stock_task')
         self.product_list = self.get_mongo_collection('operation', 'vova_products')
+        self.token = self.get_mongo_collection('operation', 'vova_tokens')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -64,28 +69,64 @@ class AliSync(CommonService):
                             {"$set": {'executedTime': updated}}, upsert=True)
                             # {"$set": {'created': created, 'executedTime': updated}}, upsert=True)
 
+    def get_data(self):
+        sql = "SELECT AliasName as suffix,APIKey as token FROM [dbo].[S_SyncInfoVova];"
+
+        self.cur.execute(sql)
+        ret = self.cur.fetchall()
+        tokens = dict()
+        for ele in ret:
+            # tokens[ele['suffix']] = ele['token']
+            # tokens[ele['sellerID']] = ele['token']
+            print(ele)
+            yield ele
+
     def run(self):
         try:
 
-            # update_time = str(datetime.datetime.today())[:19]
-            # print(update_time)
+            today = datetime.datetime.today()
+            hour = today.hour
+            today_str = str(datetime.datetime.today())[:10]
+            update_time = str(datetime.datetime(today.year, today.month, calendar.monthrange(today.year, today.month)[1]))[:10]
+            print(hour)
+            print(today_str)
+            print(update_time)
 
             # products = self.col.find({'executedTime': {'$gte': '2021-04-01', '$lte': '2021-04-17 23:59:59'}})
-            products = self.col.find({'status': 'failed'})
+            # products = self.col.find({'status': 'failed'})
             # products = self.col.find({'_id': ObjectId('6075e33dea9d958f09ef7f93')})
             # products = self.col.find({'_id': ObjectId('60754a08ea9d958f09a6ecfd')})
 
-            pl = Pool(100)
-            pl.map(self.update_data, products)
-            pl.close()
-            pl.join()
+            # pl = Pool(100)
+            # pl.map(self.update_data, products)
+            # pl.close()
+            # pl.join()
 
+            # products = self.get_data()
+            # print(123)
             # for item in products:
             #     created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
                 # print(datetime.datetime.today())
                 # print(created)
                 # self.col.insert_one(item)
                 # self.col.update_one({'item_id': item['item_id']},{"$set": {'created': created}}, upsert=True)
+
+
+
+            # sql = "SELECT AliasName as suffix,APIKey as token FROM [dbo].[S_SyncInfoVova];"
+            # self.cur.execute(sql)
+            # ret = self.cur.fetchall()
+            # for row in ret:
+            #     # tokens[ele['suffix']] = ele['token']
+            #     # tokens[ele['sellerID']] = ele['token']
+            #     row['updated'] = datetime.datetime.today()
+            #     print(row)
+            #     self.token.update_one({'suffix': row['suffix']}, {"$set": row}, upsert=True)
+
+
+
+
+
 
         except Exception as e:
             self.logger(e)
