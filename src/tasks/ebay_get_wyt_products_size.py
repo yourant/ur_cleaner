@@ -26,7 +26,7 @@ class FetchEbay(CommonService):
     def get_data(self):
         step = 100
         data = {
-            # "skuCode": "UK-A009801",
+            # "skuCode": "UK-L091701",
             "pageSize": str(step),
             "pageNo": "1"
         }
@@ -38,6 +38,7 @@ class FetchEbay(CommonService):
             ret = json.loads(res.content)
             # print(ret)
             if ret['code'] == '0':
+                # print(ret)
                 self._parse_response(ret['data']['list'])
                 if ret['data']['pageParams']['totalCount'] > step:
                     page = math.ceil(ret['data']['pageParams']['totalCount'] / step)
@@ -54,8 +55,11 @@ class FetchEbay(CommonService):
         update_time = str(datetime.datetime.today())[:19]
         try:
             for row in rows:
-                res_list = (row['skuCode'], row['registerWeight'], row['registerLength'],
-                            row['registerWidth'], row['registerHeight'], update_time)
+                weight = row['weight'] if row['weight'] else row['registerWeight']
+                length = row['length'] if row['length'] else row['registerLength']
+                width = row['width'] if row['width'] else row['registerWidth']
+                height = row['height'] if row['height'] else row['registerHeight']
+                res_list = (row['skuCode'], weight, length, width, height, update_time)
                 for item in row['customsDeclarationList']:
                     if item['countryCode'] == 'UK':
                         sql = f'insert into UK_Storehouse_WeightAndSize values(%s,%s,%s,%s,%s,%s)'
@@ -81,6 +85,7 @@ class FetchEbay(CommonService):
     def run(self):
         begin_time = time.time()
         try:
+            self.clean()
             self.get_data()
         except Exception as e:
             self.logger.error(e)
