@@ -60,7 +60,7 @@ class Worker(CommonService):
             yield row['proId']
 
     def redo_tasks(self, task_id):
-        url = "http://127.0.0.1:8089/v1/oa-data-mine/mine"
+        url = "http://192.168.0.172:8089/v1/oa-data-mine/mine"
         headers = {'content-type': 'application/json', 'Authorization': 'Bearer ' + self.token}
         data = json.dumps({"condition":{"proId": task_id}})
         try:
