@@ -90,8 +90,8 @@ class Sync(CommonService):
     def work(self):
         try:
 
-            # tokens = self.task.find({'status': '初始化'})
-            tokens = self.task.find({'item_id': '5a9779691c6def2c4c164307'})
+            tokens = self.task.find({'status': '初始化'})
+            # tokens = self.task.find({'item_id': '5a9779691c6def2c4c164307'})
             pl = Pool(16)
             pl.map(self.ending_item, tokens)
         except Exception as why:
