@@ -24,6 +24,8 @@ class AliSync(CommonService):
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
         self.payments = self.get_py_payment_method()
+        self.begin =  str(datetime.datetime.today() - datetime.timedelta(days=10))[:10]
+        self.end =  str(datetime.datetime.today())[:10]
 
     def close(self):
         self.base_dao.close_cur(self.cur)
@@ -41,25 +43,27 @@ class AliSync(CommonService):
     def get_order_details(self, order_info):
         order_id = order_info['orderId']
         oauth = aliOauth.Ali(order_info['account'])
-        base_url = oauth.get_request_url(order_id)
         out = dict()
         try:
+            base_url = oauth.get_request_url(order_id)
             res = requests.get(base_url)
             ret = json.loads(res.content)['result']
             out['nid'] = order_info['nid']
             out['tradeTypeCode'] = ret['baseInfo']['tradeTypeCode']
             out['balanceId'] = self.payments[out['tradeTypeCode']]
             out['billNumber'] = order_info['billNumber']
+            return out
         except Exception as e:
             self.logger.error(f'fait to get info of order {order_info["orderId"]} cause of {e}')
-        return out
+        return None
 
     def get_order_from_py(self):
-        # todo 哪些订单需要同步付款方式, 还有解决重复同步的问题
         some_days = str(datetime.datetime.today() - datetime.timedelta(days=60))[:10]
         query = ("select nid, alibabaOrderId as orderId,billNumber, 'caigoueasy' as account from cg_stockOrderM(nolock) "
-                 "where alibabaOrderId='1288587110981682293' ")
-        self.cur.execute(query)
+                 "where convert(varchar(10),makeDate,121) between %s and %s and CheckFlag=1 "
+                 "and  not EXISTS ( select OrderNID from  CG_StockLogs(nolock) where cg_stockOrderM.nid =CG_StockLogs.OrderNid  and logs like '%同步1688订单付款方式%')")
+                 # "where alibabaOrderId='1288587110981682293' ")
+        self.cur.execute(query, (self.begin, self.end))
         ret = self.cur.fetchall()
         for row in ret:
             yield row
@@ -82,7 +86,8 @@ class AliSync(CommonService):
             orders = self.get_order_from_py()
             for od in orders:
                 order_data = self.get_order_details(od)
-                self.update_order_balanced_id(order_data)
+                if order_data:
+                    self.update_order_balanced_id(order_data)
         except Exception as e:
             self.logger.error(f'fail to finish work of ali syncing cause of {e}')
             name = os.path.basename(__file__).split(".")[0]
