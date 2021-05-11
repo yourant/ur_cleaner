@@ -24,9 +24,9 @@ class AliSync(CommonService):
         self.base_name = 'mssql'
         self.cur = self.base_dao.get_cur(self.base_name)
         self.con = self.base_dao.get_connection(self.base_name)
-        self.col = self.get_mongo_collection('operation', 'vova_stock_task')
-        self.product_list = self.get_mongo_collection('operation', 'vova_products')
-        self.token = self.get_mongo_collection('operation', 'vova_tokens')
+        self.col = self.get_mongo_collection('operation', 'ebay_stock_task')
+        self.product_list = self.get_mongo_collection('operation', 'ebay_products')
+        self.token = self.get_mongo_collection('operation', 'ebay_tokens')
         # self.base_name = 'mysql'
         # self.cur = self.base_dao.get_cur(self.base_name)
         # self.con = self.base_dao.get_connection(self.base_name)
@@ -84,13 +84,13 @@ class AliSync(CommonService):
     def run(self):
         try:
 
-            today = datetime.datetime.today()
-            hour = today.hour
-            today_str = str(datetime.datetime.today())[:10]
-            update_time = str(datetime.datetime(today.year, today.month, calendar.monthrange(today.year, today.month)[1]))[:10]
-            print(hour)
-            print(today_str)
-            print(update_time)
+            today = datetime.datetime.now()
+            # hour = today.hour
+            # today_str = str(datetime.datetime.today())[:10]
+            # update_time = str(datetime.datetime(today.year, today.month, calendar.monthrange(today.year, today.month)[1]))[:10]
+            print(today)
+            # print(today_str)
+            # print(update_time)
 
             # products = self.col.find({'executedTime': {'$gte': '2021-04-01', '$lte': '2021-04-17 23:59:59'}})
             # products = self.col.find({'status': 'failed'})
@@ -103,13 +103,22 @@ class AliSync(CommonService):
             # pl.join()
 
             # products = self.get_data()
+            # products = self.product_list.find({'itemID': '303843078504'})
+
+
+            # products = self.product_list.find({})
             # print(123)
             # for item in products:
-            #     created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
+            #     try:
+            #         goods_code = item['parentSku'].split('@')[0]
+            #     except:
+            #         goods_code = ''
+                # created = datetime.datetime.strptime(item['created'], "%Y-%m-%d %H:%M:%S")
                 # print(datetime.datetime.today())
-                # print(created)
+                # print(goods_code)
                 # self.col.insert_one(item)
                 # self.col.update_one({'item_id': item['item_id']},{"$set": {'created': created}}, upsert=True)
+                # self.product_list.update_one({'itemID': item['itemID']}, {"$set": {'goods_code': goods_code}}, upsert=True)
 
 
 
